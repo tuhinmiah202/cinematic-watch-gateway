@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LogOut, Film, Plus, Search } from 'lucide-react';
+import { LogOut, Film, Plus, Search, Home, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
@@ -16,7 +16,9 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [streamingLink, setStreamingLink] = useState('');
-  const [movieStats] = useState({ movies: 245, series: 89 }); // Mock data
+  const [movieStats] = useState({ movies: 245, series: 89 });
+  const [selectedMovies, setSelectedMovies] = useState<any[]>([]);
+  const [showManagement, setShowManagement] = useState(false);
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -46,11 +48,30 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddMovie = (movieId: number, title: string) => {
-    // In a real application, this would add the movie to the database
+  const handleAddMovie = (movie: any) => {
+    if (!streamingLink.trim()) {
+      toast({
+        title: "Streaming Link Required",
+        description: "Please enter a streaming link before adding the movie.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const movieWithLink = { ...movie, streamingLink };
+    setSelectedMovies(prev => [...prev, movieWithLink]);
     toast({
       title: "Movie Added",
-      description: `${title} has been added to the platform.`,
+      description: `${movie.title} has been added with streaming link.`,
+    });
+    setStreamingLink('');
+  };
+
+  const handleRemoveMovie = (movieId: number) => {
+    setSelectedMovies(prev => prev.filter(m => m.id !== movieId));
+    toast({
+      title: "Movie Removed",
+      description: "Movie has been removed from the platform.",
     });
   };
 
@@ -61,17 +82,25 @@ const AdminDashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-4">
+              <Link to="/">
+                <Button variant="outline" size="sm" className="text-white border-white/20">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
               <CardTitle className="text-white flex items-center gap-2">
@@ -107,7 +136,69 @@ const AdminDashboard = () => {
               <div className="text-3xl font-bold text-green-400">{movieStats.movies + movieStats.series}</div>
             </CardContent>
           </Card>
+
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-orange-400" />
+                Manage Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setShowManagement(!showManagement)}
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                {showManagement ? 'Hide' : 'Show'} Management
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Movie Management Section */}
+        {showManagement && (
+          <Card className="bg-gray-800 border-gray-700 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white">Manage Movies & Series</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedMovies.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedMovies.map((movie) => (
+                    <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <img
+                          src={tmdbService.getImageUrl(movie.poster_path)}
+                          alt={movie.title}
+                          className="w-16 h-24 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <h4 className="text-white font-semibold text-sm mb-1">{movie.title}</h4>
+                          <p className="text-gray-400 text-xs mb-2">
+                            {new Date(movie.release_date).getFullYear()}
+                          </p>
+                          <p className="text-green-400 text-xs mb-2">
+                            Streaming: {movie.streamingLink}
+                          </p>
+                          <Button
+                            size="sm"
+                            onClick={() => handleRemoveMovie(movie.id)}
+                            className="bg-red-600 hover:bg-red-700 text-xs"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400">No movies added yet. Use the search below to add movies.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Movie Search and Add */}
         <Card className="bg-gray-800 border-gray-700 mb-8">
@@ -130,7 +221,7 @@ const AdminDashboard = () => {
             </div>
 
             <div>
-              <Label className="text-white">Streaming Link (Optional)</Label>
+              <Label className="text-white">Streaming Link (Required)</Label>
               <Input
                 placeholder="https://streaming-platform.com/movie-link"
                 value={streamingLink}
@@ -159,11 +250,12 @@ const AdminDashboard = () => {
                           </p>
                           <Button
                             size="sm"
-                            onClick={() => handleAddMovie(movie.id, movie.title)}
+                            onClick={() => handleAddMovie(movie)}
                             className="bg-green-600 hover:bg-green-700 text-xs"
+                            disabled={!streamingLink.trim()}
                           >
                             <Plus className="w-3 h-3 mr-1" />
-                            Add
+                            Add with Link
                           </Button>
                         </div>
                       </div>

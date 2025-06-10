@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,7 +30,7 @@ const AdminLogin = () => {
     } else {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials. Password should be: tuhin@123",
+        description: "Invalid password. Please try again.",
         variant: "destructive",
       });
     }
@@ -43,23 +42,11 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-gray-800 border-gray-700">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">Admin Login</CardTitle>
-          <p className="text-gray-400">Access the CineStream admin panel</p>
+          <CardTitle className="text-2xl font-bold text-white">Admin Access</CardTitle>
+          <p className="text-gray-400">Enter password to continue</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="username" className="text-white">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter any username"
-                className="bg-gray-700 border-gray-600 text-white"
-                required
-              />
-            </div>
             <div>
               <Label htmlFor="password" className="text-white">Password</Label>
               <Input
@@ -67,7 +54,7 @@ const AdminLogin = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="tuhin@123"
+                placeholder="Enter password"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
@@ -77,14 +64,9 @@ const AdminLogin = () => {
               className="w-full bg-purple-600 hover:bg-purple-700" 
               disabled={isLoading}
             >
-              {isLoading ? "Logging in..." : "Login"}
+              {isLoading ? "Accessing..." : "Access Dashboard"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-400">
-              Demo credentials: any username, password: tuhin@123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
