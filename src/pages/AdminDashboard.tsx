@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LogOut, Film, Plus, Search, Home, Trash2, Edit } from 'lucide-react';
+import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
@@ -16,9 +16,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [streamingLink, setStreamingLink] = useState('');
-  const [movieStats] = useState({ movies: 245, series: 89 });
-  const [selectedMovies, setSelectedMovies] = useState<any[]>([]);
-  const [showManagement, setShowManagement] = useState(false);
+  const [movieStats, setMovieStats] = useState({ movies: 0, series: 0 });
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -58,8 +56,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    const movieWithLink = { ...movie, streamingLink };
-    setSelectedMovies(prev => [...prev, movieWithLink]);
+    // In real implementation, you would save to Supabase here
+    setMovieStats(prev => ({ ...prev, movies: prev.movies + 1 }));
     toast({
       title: "Movie Added",
       description: `${movie.title} has been added with streaming link.`,
@@ -67,30 +65,22 @@ const AdminDashboard = () => {
     setStreamingLink('');
   };
 
-  const handleRemoveMovie = (movieId: number) => {
-    setSelectedMovies(prev => prev.filter(m => m.id !== movieId));
-    toast({
-      title: "Movie Removed",
-      description: "Movie has been removed from the platform.",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      {/* Header */}
+      {/* Compact Header */}
       <div className="bg-black/50 backdrop-blur-md border-b border-purple-500/20">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-            <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
+            <div className="flex items-center gap-2">
               <Link to="/">
                 <Button variant="outline" size="sm" className="text-white border-white/20">
-                  <Home className="w-4 h-4 mr-2" />
+                  <Home className="w-4 h-4 mr-1" />
                   Home
                 </Button>
               </Link>
               <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-4 h-4 mr-1" />
                 Logout
               </Button>
             </div>
@@ -98,112 +88,66 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="container mx-auto px-4 py-6">
+        {/* Compact Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Film className="w-5 h-5 text-purple-400" />
-                Total Movies
+              <CardTitle className="text-white flex items-center gap-2 text-sm">
+                <Film className="w-4 h-4 text-purple-400" />
+                Movies
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-400">{movieStats.movies}</div>
+              <div className="text-2xl font-bold text-purple-400">{movieStats.movies}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Film className="w-5 h-5 text-blue-400" />
-                Total Series
+              <CardTitle className="text-white flex items-center gap-2 text-sm">
+                <Film className="w-4 h-4 text-blue-400" />
+                Series
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-400">{movieStats.series}</div>
+              <div className="text-2xl font-bold text-blue-400">{movieStats.series}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Plus className="w-5 h-5 text-green-400" />
-                Total Content
+              <CardTitle className="text-white flex items-center gap-2 text-sm">
+                <Plus className="w-4 h-4 text-green-400" />
+                Total
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-400">{movieStats.movies + movieStats.series}</div>
+              <div className="text-2xl font-bold text-green-400">{movieStats.movies + movieStats.series}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Edit className="w-5 h-5 text-orange-400" />
-                Manage Content
+              <CardTitle className="text-white flex items-center gap-2 text-sm">
+                <Settings className="w-4 h-4 text-orange-400" />
+                Manage
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => setShowManagement(!showManagement)}
-                className="w-full bg-orange-600 hover:bg-orange-700"
-              >
-                {showManagement ? 'Hide' : 'Show'} Management
-              </Button>
+              <Link to="/admin/manage">
+                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
+                  Manage Content
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
 
-        {/* Movie Management Section */}
-        {showManagement && (
-          <Card className="bg-gray-800 border-gray-700 mb-8">
-            <CardHeader>
-              <CardTitle className="text-white">Manage Movies & Series</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedMovies.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedMovies.map((movie) => (
-                    <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="flex gap-3">
-                        <img
-                          src={tmdbService.getImageUrl(movie.poster_path)}
-                          alt={movie.title}
-                          className="w-16 h-24 object-cover rounded"
-                        />
-                        <div className="flex-1">
-                          <h4 className="text-white font-semibold text-sm mb-1">{movie.title}</h4>
-                          <p className="text-gray-400 text-xs mb-2">
-                            {new Date(movie.release_date).getFullYear()}
-                          </p>
-                          <p className="text-green-400 text-xs mb-2">
-                            Streaming: {movie.streamingLink}
-                          </p>
-                          <Button
-                            size="sm"
-                            onClick={() => handleRemoveMovie(movie.id)}
-                            className="bg-red-600 hover:bg-red-700 text-xs"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400">No movies added yet. Use the search below to add movies.</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Movie Search and Add */}
-        <Card className="bg-gray-800 border-gray-700 mb-8">
+        <Card className="bg-gray-800 border-gray-700 mb-6">
           <CardHeader>
-            <CardTitle className="text-white">Search and Add Movies from TMDB</CardTitle>
+            <CardTitle className="text-white text-lg">Search and Add Movies from TMDB</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -221,7 +165,7 @@ const AdminDashboard = () => {
             </div>
 
             <div>
-              <Label className="text-white">Streaming Link (Required)</Label>
+              <Label className="text-white text-sm">Streaming Link (Required)</Label>
               <Input
                 placeholder="https://streaming-platform.com/movie-link"
                 value={streamingLink}
@@ -232,32 +176,31 @@ const AdminDashboard = () => {
 
             {/* Search Results */}
             {searchResults && (
-              <div className="mt-6">
-                <h3 className="text-white font-semibold mb-4">Search Results:</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                  {searchResults.results.slice(0, 9).map((movie) => (
-                    <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="flex gap-3">
+              <div className="mt-4">
+                <h3 className="text-white font-semibold mb-3 text-sm">Search Results:</h3>
+                <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
+                  {searchResults.results.slice(0, 6).map((movie) => (
+                    <div key={movie.id} className="bg-gray-700 rounded-lg p-3">
+                      <div className="flex gap-3 items-center">
                         <img
                           src={tmdbService.getImageUrl(movie.poster_path)}
                           alt={movie.title}
-                          className="w-16 h-24 object-cover rounded"
+                          className="w-12 h-16 object-cover rounded"
                         />
-                        <div className="flex-1">
-                          <h4 className="text-white font-semibold text-sm mb-1">{movie.title}</h4>
-                          <p className="text-gray-400 text-xs mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-semibold text-sm truncate">{movie.title}</h4>
+                          <p className="text-gray-400 text-xs">
                             {new Date(movie.release_date).getFullYear()}
                           </p>
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddMovie(movie)}
-                            className="bg-green-600 hover:bg-green-700 text-xs"
-                            disabled={!streamingLink.trim()}
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add with Link
-                          </Button>
                         </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddMovie(movie)}
+                          className="bg-green-600 hover:bg-green-700 text-xs px-3"
+                          disabled={!streamingLink.trim()}
+                        >
+                          Add with Link
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -270,33 +213,33 @@ const AdminDashboard = () => {
         {/* Manual Movie Addition */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Add Custom Movie/Series</CardTitle>
+            <CardTitle className="text-white text-lg">Add Custom Movie/Series</CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Title</Label>
+                  <Label className="text-white text-sm">Title</Label>
                   <Input className="bg-gray-700 border-gray-600 text-white" placeholder="Movie title" />
                 </div>
                 <div>
-                  <Label className="text-white">Release Year</Label>
+                  <Label className="text-white text-sm">Release Year</Label>
                   <Input className="bg-gray-700 border-gray-600 text-white" placeholder="2024" type="number" />
                 </div>
               </div>
               
               <div>
-                <Label className="text-white">Description</Label>
-                <Textarea className="bg-gray-700 border-gray-600 text-white" placeholder="Movie description..." />
+                <Label className="text-white text-sm">Description</Label>
+                <Textarea className="bg-gray-700 border-gray-600 text-white" placeholder="Movie description..." rows={3} />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Poster URL</Label>
+                  <Label className="text-white text-sm">Poster URL</Label>
                   <Input className="bg-gray-700 border-gray-600 text-white" placeholder="https://..." />
                 </div>
                 <div>
-                  <Label className="text-white">Streaming Link</Label>
+                  <Label className="text-white text-sm">Streaming Link</Label>
                   <Input className="bg-gray-700 border-gray-600 text-white" placeholder="https://..." />
                 </div>
               </div>

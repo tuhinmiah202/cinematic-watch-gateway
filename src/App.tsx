@@ -9,6 +9,7 @@ import MovieDetail from "./pages/MovieDetail";
 import WatchMovie from "./pages/WatchMovie";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminManage from "./pages/AdminManage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/watch/:id" element={<WatchMovie />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/manage" element={<AdminManage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
