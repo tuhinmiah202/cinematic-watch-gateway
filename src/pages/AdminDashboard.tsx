@@ -24,7 +24,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [streamingLink, setStreamingLink] = useState('');
   const [managedContent, setManagedContent] = useState<ManagedContent[]>([]);
   
   // Manual form states
@@ -40,7 +39,24 @@ const AdminDashboard = () => {
     if (!isAuth) {
       navigate('/admin');
     }
+    
+    // Load managed content from localStorage
+    const saved = localStorage.getItem('adminManagedContent');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setManagedContent(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error('Error parsing managed content:', error);
+        setManagedContent([]);
+      }
+    }
   }, [navigate]);
+
+  // Save to localStorage whenever content changes
+  useEffect(() => {
+    localStorage.setItem('adminManagedContent', JSON.stringify(managedContent));
+  }, [managedContent]);
 
   const { data: searchResults, refetch: searchMovies } = useQuery({
     queryKey: ['search', searchQuery],
@@ -64,40 +80,30 @@ const AdminDashboard = () => {
   };
 
   const handleAddTMDBMovie = (movie: any) => {
-    if (!streamingLink.trim()) {
-      toast({
-        title: "Streaming Link Required",
-        description: "Please enter a streaming link before adding the movie.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const newContent: ManagedContent = {
       id: Date.now(),
-      title: movie.title,
-      year: new Date(movie.release_date).getFullYear(),
-      streamingLink: streamingLink.trim(),
-      type: 'movie',
+      title: movie.title || movie.name,
+      year: new Date(movie.release_date || movie.first_air_date).getFullYear(),
+      streamingLink: '', // No streaming link required initially
+      type: movie.title ? 'movie' : 'series',
       tmdbId: movie.id
     };
 
-    setManagedContent(prev => [...prev, newContent]);
+    setManagedContent(prev => [newContent, ...prev]); // Add to beginning
     
     toast({
-      title: "Movie Added",
-      description: `${movie.title} has been added with streaming link.`,
+      title: `${movie.title ? 'Movie' : 'Series'} Added`,
+      description: `${movie.title || movie.name} has been added. You can add streaming link later from manage page.`,
     });
-    setStreamingLink('');
   };
 
   const handleAddManualContent = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!manualTitle.trim() || !manualStreamingLink.trim()) {
+    if (!manualTitle.trim()) {
       toast({
-        title: "Required Fields Missing",
-        description: "Please fill in title and streaming link.",
+        title: "Title Required",
+        description: "Please enter a title.",
         variant: "destructive",
       });
       return;
@@ -111,7 +117,7 @@ const AdminDashboard = () => {
       type: manualType
     };
 
-    setManagedContent(prev => [...prev, newContent]);
+    setManagedContent(prev => [newContent, ...prev]); // Add to beginning
     
     toast({
       title: `${manualType === 'movie' ? 'Movie' : 'Series'} Added`,
@@ -199,7 +205,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Link to="/admin/manage" state={{ managedContent, setManagedContent }}>
+              <Link to="/admin/manage">
                 <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
                   Manage Content
                 </Button>
@@ -211,12 +217,12 @@ const AdminDashboard = () => {
         {/* TMDB Search and Add */}
         <Card className="bg-gray-800 border-gray-700 mb-6">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Search and Add Movies from TMDB</CardTitle>
+            <CardTitle className="text-white text-lg">Search and Add Movies/Series from TMDB</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input
-                placeholder="Search movies by title..."
+                placeholder="Search movies and series by title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white"
@@ -226,16 +232,6 @@ const AdminDashboard = () => {
                 <Search className="w-4 h-4 mr-2" />
                 Search
               </Button>
-            </div>
-
-            <div>
-              <Label className="text-white text-sm">Streaming Link (Required)</Label>
-              <Input
-                placeholder="https://streaming-platform.com/movie-link"
-                value={streamingLink}
-                onChange={(e) => setStreamingLink(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
-              />
             </div>
 
             {/* Search Results */}
@@ -248,22 +244,24 @@ const AdminDashboard = () => {
                       <div className="flex gap-3 items-center">
                         <img
                           src={tmdbService.getImageUrl(movie.poster_path)}
-                          alt={movie.title}
+                          alt={movie.title || movie.name}
                           className="w-12 h-16 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-semibold text-sm truncate">{movie.title}</h4>
+                          <h4 className="text-white font-semibold text-sm truncate">{movie.title || movie.name}</h4>
                           <p className="text-gray-400 text-xs">
-                            {new Date(movie.release_date).getFullYear()}
+                            {new Date(movie.release_date || movie.first_air_date).getFullYear()}
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            {movie.title ? 'Movie' : 'TV Series'}
                           </p>
                         </div>
                         <Button
                           size="sm"
                           onClick={() => handleAddTMDBMovie(movie)}
                           className="bg-green-600 hover:bg-green-700 text-xs px-3"
-                          disabled={!streamingLink.trim()}
                         >
-                          Add with Link
+                          Add
                         </Button>
                       </div>
                     </div>
@@ -352,13 +350,12 @@ const AdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-white text-sm">Streaming Link *</Label>
+                  <Label className="text-white text-sm">Streaming Link (Optional)</Label>
                   <Input 
                     className="bg-gray-700 border-gray-600 text-white" 
                     placeholder="https://..."
                     value={manualStreamingLink}
                     onChange={(e) => setManualStreamingLink(e.target.value)}
-                    required
                   />
                 </div>
               </div>

@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Trash2, ExternalLink, Edit3, Save, X } from 'lucide-react';
+import { ArrowLeft, Trash2, ExternalLink, Edit3, Save, X, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ManagedContent {
@@ -18,22 +18,23 @@ interface ManagedContent {
 
 const AdminManage = () => {
   const { toast } = useToast();
-  const location = useLocation();
   const [managedContent, setManagedContent] = useState<ManagedContent[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editStreamingLink, setEditStreamingLink] = useState('');
 
   useEffect(() => {
-    // Get content from location state or localStorage
-    if (location.state?.managedContent) {
-      setManagedContent(location.state.managedContent);
-    } else {
-      const saved = localStorage.getItem('adminManagedContent');
-      if (saved) {
-        setManagedContent(JSON.parse(saved));
+    // Load managed content from localStorage
+    const saved = localStorage.getItem('adminManagedContent');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setManagedContent(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error('Error parsing managed content:', error);
+        setManagedContent([]);
       }
     }
-  }, [location.state]);
+  }, []);
 
   useEffect(() => {
     // Save to localStorage whenever content changes
@@ -65,6 +66,11 @@ const AdminManage = () => {
   const handleEditStreamingLink = (id: number, currentLink: string) => {
     setEditingId(id);
     setEditStreamingLink(currentLink);
+  };
+
+  const handleAddStreamingLink = (id: number) => {
+    setEditingId(id);
+    setEditStreamingLink('');
   };
 
   const handleSaveStreamingLink = (id: number) => {
@@ -196,13 +202,23 @@ const AdminManage = () => {
                               <span className="text-green-400 text-xs truncate max-w-xs">
                                 {movie.streamingLink || 'No streaming link'}
                               </span>
-                              <Button
-                                size="sm"
-                                onClick={() => handleEditStreamingLink(movie.id, movie.streamingLink)}
-                                className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </Button>
+                              {movie.streamingLink ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleEditStreamingLink(movie.id, movie.streamingLink)}
+                                  className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleAddStreamingLink(movie.id)}
+                                  className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -213,7 +229,7 @@ const AdminManage = () => {
                           <Button
                             size="sm"
                             onClick={() => handleRemoveStreamingLink(movie.id, movie.title)}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-orange-600 hover:bg-orange-700 text-xs"
                             title="Remove streaming link only"
                           >
                             Remove Link
@@ -284,13 +300,23 @@ const AdminManage = () => {
                               <span className="text-green-400 text-xs truncate max-w-xs">
                                 {item.streamingLink || 'No streaming link'}
                               </span>
-                              <Button
-                                size="sm"
-                                onClick={() => handleEditStreamingLink(item.id, item.streamingLink)}
-                                className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </Button>
+                              {item.streamingLink ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleEditStreamingLink(item.id, item.streamingLink)}
+                                  className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleAddStreamingLink(item.id)}
+                                  className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -301,7 +327,7 @@ const AdminManage = () => {
                           <Button
                             size="sm"
                             onClick={() => handleRemoveStreamingLink(item.id, item.title)}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-orange-600 hover:bg-orange-700 text-xs"
                             title="Remove streaming link only"
                           >
                             Remove Link
