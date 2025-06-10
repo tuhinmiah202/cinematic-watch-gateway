@@ -17,13 +17,13 @@ const GenreFilter = ({ genres, selectedGenre, onGenreSelect }: GenreFilterProps)
   const allGenres = [...genres, ...customGenres];
 
   return (
-    <div className="mb-6">
-      <h2 className="text-lg font-bold text-white mb-3">Browse by Genre</h2>
-      <div className="flex flex-wrap gap-2">
+    <div className="mb-4">
+      <h2 className="text-sm font-bold text-white mb-2">Browse by Genre</h2>
+      <div className="flex flex-wrap gap-1.5">
         <Button
           variant={selectedGenre === null ? "default" : "outline"}
           onClick={() => onGenreSelect(null)}
-          className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs px-3 py-1"
+          className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs px-2 py-1 h-7"
         >
           All Movies
         </Button>
@@ -32,7 +32,7 @@ const GenreFilter = ({ genres, selectedGenre, onGenreSelect }: GenreFilterProps)
             key={genre.id}
             variant={selectedGenre === genre.id ? "default" : "outline"}
             onClick={() => onGenreSelect(genre.id)}
-            className={`rounded-full transition-all duration-300 text-xs px-3 py-1 ${
+            className={`rounded-full transition-all duration-300 text-xs px-2 py-1 h-7 ${
               selectedGenre === genre.id 
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
                 : 'bg-transparent border border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white'

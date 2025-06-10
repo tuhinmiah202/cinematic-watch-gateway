@@ -11,12 +11,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface ManagedContent {
+  id: number;
+  title: string;
+  year: number;
+  streamingLink: string;
+  type: 'movie' | 'series';
+  tmdbId?: number;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [streamingLink, setStreamingLink] = useState('');
-  const [movieStats, setMovieStats] = useState({ movies: 0, series: 0 });
+  const [managedContent, setManagedContent] = useState<ManagedContent[]>([]);
+  
+  // Manual form states
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualYear, setManualYear] = useState('');
+  const [manualDescription, setManualDescription] = useState('');
+  const [manualPoster, setManualPoster] = useState('');
+  const [manualStreamingLink, setManualStreamingLink] = useState('');
+  const [manualType, setManualType] = useState<'movie' | 'series'>('movie');
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -46,7 +63,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddMovie = (movie: any) => {
+  const handleAddTMDBMovie = (movie: any) => {
     if (!streamingLink.trim()) {
       toast({
         title: "Streaming Link Required",
@@ -56,8 +73,17 @@ const AdminDashboard = () => {
       return;
     }
 
-    // In real implementation, you would save to Supabase here
-    setMovieStats(prev => ({ ...prev, movies: prev.movies + 1 }));
+    const newContent: ManagedContent = {
+      id: Date.now(),
+      title: movie.title,
+      year: new Date(movie.release_date).getFullYear(),
+      streamingLink: streamingLink.trim(),
+      type: 'movie',
+      tmdbId: movie.id
+    };
+
+    setManagedContent(prev => [...prev, newContent]);
+    
     toast({
       title: "Movie Added",
       description: `${movie.title} has been added with streaming link.`,
@@ -65,9 +91,47 @@ const AdminDashboard = () => {
     setStreamingLink('');
   };
 
+  const handleAddManualContent = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!manualTitle.trim() || !manualStreamingLink.trim()) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in title and streaming link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newContent: ManagedContent = {
+      id: Date.now(),
+      title: manualTitle.trim(),
+      year: parseInt(manualYear) || new Date().getFullYear(),
+      streamingLink: manualStreamingLink.trim(),
+      type: manualType
+    };
+
+    setManagedContent(prev => [...prev, newContent]);
+    
+    toast({
+      title: `${manualType === 'movie' ? 'Movie' : 'Series'} Added`,
+      description: `${manualTitle} has been added successfully.`,
+    });
+
+    // Reset form
+    setManualTitle('');
+    setManualYear('');
+    setManualDescription('');
+    setManualPoster('');
+    setManualStreamingLink('');
+  };
+
+  const movies = managedContent.filter(item => item.type === 'movie');
+  const series = managedContent.filter(item => item.type === 'series');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      {/* Compact Header */}
+      {/* Header */}
       <div className="bg-black/50 backdrop-blur-md border-b border-purple-500/20">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -89,7 +153,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Compact Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
@@ -99,7 +163,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{movieStats.movies}</div>
+              <div className="text-2xl font-bold text-purple-400">{movies.length}</div>
             </CardContent>
           </Card>
 
@@ -111,7 +175,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{movieStats.series}</div>
+              <div className="text-2xl font-bold text-blue-400">{series.length}</div>
             </CardContent>
           </Card>
 
@@ -123,7 +187,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">{movieStats.movies + movieStats.series}</div>
+              <div className="text-2xl font-bold text-green-400">{managedContent.length}</div>
             </CardContent>
           </Card>
 
@@ -135,7 +199,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Link to="/admin/manage">
+              <Link to="/admin/manage" state={{ managedContent, setManagedContent }}>
                 <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
                   Manage Content
                 </Button>
@@ -144,7 +208,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Movie Search and Add */}
+        {/* TMDB Search and Add */}
         <Card className="bg-gray-800 border-gray-700 mb-6">
           <CardHeader>
             <CardTitle className="text-white text-lg">Search and Add Movies from TMDB</CardTitle>
@@ -195,7 +259,7 @@ const AdminDashboard = () => {
                         </div>
                         <Button
                           size="sm"
-                          onClick={() => handleAddMovie(movie)}
+                          onClick={() => handleAddTMDBMovie(movie)}
                           className="bg-green-600 hover:bg-green-700 text-xs px-3"
                           disabled={!streamingLink.trim()}
                         >
@@ -210,42 +274,97 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Manual Movie Addition */}
+        {/* Manual Content Addition */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white text-lg">Add Custom Movie/Series</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form onSubmit={handleAddManualContent} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white text-sm">Title</Label>
-                  <Input className="bg-gray-700 border-gray-600 text-white" placeholder="Movie title" />
+                  <Label className="text-white text-sm">Title *</Label>
+                  <Input 
+                    className="bg-gray-700 border-gray-600 text-white" 
+                    placeholder="Movie/Series title"
+                    value={manualTitle}
+                    onChange={(e) => setManualTitle(e.target.value)}
+                    required
+                  />
                 </div>
                 <div>
                   <Label className="text-white text-sm">Release Year</Label>
-                  <Input className="bg-gray-700 border-gray-600 text-white" placeholder="2024" type="number" />
+                  <Input 
+                    className="bg-gray-700 border-gray-600 text-white" 
+                    placeholder="2024" 
+                    type="number"
+                    value={manualYear}
+                    onChange={(e) => setManualYear(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-white text-sm">Type</Label>
+                <div className="flex gap-4 mt-2">
+                  <label className="flex items-center gap-2 text-white">
+                    <input
+                      type="radio"
+                      value="movie"
+                      checked={manualType === 'movie'}
+                      onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
+                      className="text-purple-400"
+                    />
+                    Movie
+                  </label>
+                  <label className="flex items-center gap-2 text-white">
+                    <input
+                      type="radio"
+                      value="series"
+                      checked={manualType === 'series'}
+                      onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
+                      className="text-purple-400"
+                    />
+                    Series
+                  </label>
                 </div>
               </div>
               
               <div>
                 <Label className="text-white text-sm">Description</Label>
-                <Textarea className="bg-gray-700 border-gray-600 text-white" placeholder="Movie description..." rows={3} />
+                <Textarea 
+                  className="bg-gray-700 border-gray-600 text-white" 
+                  placeholder="Content description..."
+                  rows={3}
+                  value={manualDescription}
+                  onChange={(e) => setManualDescription(e.target.value)}
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-white text-sm">Poster URL</Label>
-                  <Input className="bg-gray-700 border-gray-600 text-white" placeholder="https://..." />
+                  <Input 
+                    className="bg-gray-700 border-gray-600 text-white" 
+                    placeholder="https://..."
+                    value={manualPoster}
+                    onChange={(e) => setManualPoster(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <Label className="text-white text-sm">Streaming Link</Label>
-                  <Input className="bg-gray-700 border-gray-600 text-white" placeholder="https://..." />
+                  <Label className="text-white text-sm">Streaming Link *</Label>
+                  <Input 
+                    className="bg-gray-700 border-gray-600 text-white" 
+                    placeholder="https://..."
+                    value={manualStreamingLink}
+                    onChange={(e) => setManualStreamingLink(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               
               <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-                Add Movie/Series
+                Add {manualType === 'movie' ? 'Movie' : 'Series'}
               </Button>
             </form>
           </CardContent>
