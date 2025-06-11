@@ -1,7 +1,7 @@
 
 import { Movie, tmdbService } from '@/services/tmdbService';
 import { Link } from 'react-router-dom';
-import { Star, Calendar } from 'lucide-react';
+import { Star, Calendar, Tv } from 'lucide-react';
 
 interface MovieCardProps {
   movie: Movie;
@@ -13,6 +13,7 @@ const MovieCard = ({ movie }: MovieCardProps) => {
   const releaseDate = movie.release_date || movie.first_air_date;
   const year = movie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
   const rating = movie.vote_average || 0;
+  const isTV = movie.media_type === 'tv' || movie.type === 'series' || movie.name;
 
   return (
     <Link 
@@ -35,6 +36,14 @@ const MovieCard = ({ movie }: MovieCardProps) => {
             {rating.toFixed(1)}
           </div>
         )}
+
+        {/* TV Show indicator */}
+        {isTV && (
+          <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+            <Tv className="w-3 h-3" />
+            TV
+          </div>
+        )}
       </div>
       
       {/* Movie Info Overlay */}
@@ -43,6 +52,13 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         <div className="flex items-center gap-2 text-sm text-gray-300">
           <Calendar className="w-4 h-4" />
           {year}
+          {isTV && (
+            <>
+              <span>•</span>
+              <Tv className="w-4 h-4" />
+              <span>Series</span>
+            </>
+          )}
         </div>
       </div>
     </Link>

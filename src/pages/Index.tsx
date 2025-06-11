@@ -44,7 +44,18 @@ const Index = () => {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event for same-window updates
+    const handleManagedContentUpdate = () => {
+      loadManagedContent();
+    };
+    
+    window.addEventListener('managedContentUpdate', handleManagedContentUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('managedContentUpdate', handleManagedContentUpdate);
+    };
   }, []);
 
   const { data: genresData } = useQuery({
@@ -54,13 +65,45 @@ const Index = () => {
 
   const { data: moviesData, isLoading, error } = useQuery({
     queryKey: ['movies', selectedGenre, searchQuery, contentType, currentPage],
-    queryFn: () => {
+    queryFn: async () => {
       if (searchQuery) {
         return tmdbService.searchMovies(searchQuery);
       }
+      
       if (selectedGenre && selectedGenre < 900) {
-        return tmdbService.getMoviesByGenre(selectedGenre);
+        // For specific genres, get both movies and TV shows if contentType is 'all'
+        if (contentType === 'all') {
+          const [movieResults, tvResults] = await Promise.all([
+            tmdbService.getMoviesByGenre(selectedGenre),
+            tmdbService.getTVShowsByGenre(selectedGenre)
+          ]);
+          return {
+            results: [...movieResults.results, ...tvResults.results],
+            total_pages: Math.max(movieResults.total_pages, tvResults.total_pages)
+          };
+        } else if (contentType === 'movie') {
+          return tmdbService.getMoviesByGenre(selectedGenre);
+        } else if (contentType === 'tv') {
+          return tmdbService.getTVShowsByGenre(selectedGenre);
+        }
       }
+      
+      // Default popular content
+      if (contentType === 'all') {
+        const [movieResults, tvResults] = await Promise.all([
+          tmdbService.getPopularMovies(),
+          tmdbService.getPopularTVShows()
+        ]);
+        return {
+          results: [...movieResults.results, ...tvResults.results],
+          total_pages: Math.max(movieResults.total_pages, tvResults.total_pages)
+        };
+      } else if (contentType === 'movie') {
+        return tmdbService.getPopularMovies();
+      } else if (contentType === 'tv') {
+        return tmdbService.getPopularTVShows();
+      }
+      
       return tmdbService.getPopularMovies();
     }
   });
@@ -99,7 +142,6 @@ const Index = () => {
     if (contentType === 'movie') {
       filteredManagedContent = managedContent.filter(item => item.type === 'movie');
       tmdbResults = tmdbResults.filter((movie: Movie) => {
-        // For TMDB content, check media_type or assume movie if not specified
         return !movie.media_type || movie.media_type === 'movie';
       });
     } else if (contentType === 'tv') {
@@ -264,7 +306,10 @@ const Index = () => {
             {/* Content Counter */}
             <div className="text-center mb-3">
               <p className="text-gray-300 text-sm">
-                Showing {paginatedContent.length} of {allContent.length} {contentType === 'movie' ? 'movies' : contentType === 'tv' ? 'series' : 'items'} (Page {currentPage} of {totalPages})
+                Showing {paginatedContent.length} of {allContent.length} {contentType === 'movie' ? 'movies' : contentType === 'tv' ? 'series' : 'items'} 
+                {searchQuery && ` for "${searchQuery}"`}
+                {selectedGenre && genresData && ` in ${genresData.genres.find(g => g.id === selectedGenre)?.name || 'selected genre'}`}
+                (Page {currentPage} of {totalPages})
               </p>
             </div>
 
