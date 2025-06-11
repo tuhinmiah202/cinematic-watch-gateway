@@ -101,7 +101,7 @@ const MovieDetail = () => {
             </div>
 
             <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
-              {movie.genres.map((genre) => (
+              {movie.genres && movie.genres.map((genre) => (
                 <span 
                   key={genre.id}
                   className="px-2 py-1 bg-purple-600 rounded-full text-xs"
