@@ -52,6 +52,28 @@ export interface Episode {
 }
 
 export const contentService = {
+  // Clear all existing content
+  async clearAllContent(): Promise<boolean> {
+    try {
+      // Delete all content which will cascade delete related records
+      const { error } = await supabase
+        .from('content')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) {
+        console.error('Error clearing content:', error);
+        return false;
+      }
+
+      console.log('All content cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('Error clearing content:', error);
+      return false;
+    }
+  },
+
   // Get all approved content
   async getApprovedContent(): Promise<ContentItem[]> {
     const { data, error } = await supabase
@@ -66,7 +88,7 @@ export const contentService = {
         content_genres!inner(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(url, platform_name, is_active),
+        streaming_links!inner(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
@@ -104,7 +126,7 @@ export const contentService = {
         content_genres!inner(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(url, platform_name, is_active),
+        streaming_links!inner(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
@@ -114,45 +136,6 @@ export const contentService = {
 
     if (error) {
       console.error('Error fetching content by type:', error);
-      return [];
-    }
-
-    return data?.map(item => ({
-      ...item,
-      cast_members: item.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: item.streaming_links || []
-    })) || [];
-  },
-
-  // Get content by genre
-  async getContentByGenre(genreId: string): Promise<ContentItem[]> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast!inner(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres!inner(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links!inner(url, platform_name, is_active),
-        episodes(*)
-      `)
-      .eq('is_admin_approved', true)
-      .eq('content_genres.genre_id', genreId)
-      .eq('streaming_links.is_active', true)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching content by genre:', error);
       return [];
     }
 
@@ -182,7 +165,7 @@ export const contentService = {
         content_genres!inner(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(url, platform_name, is_active),
+        streaming_links!inner(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
@@ -221,7 +204,7 @@ export const contentService = {
         content_genres!inner(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(url, platform_name, is_active),
+        streaming_links!inner(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('id', id)

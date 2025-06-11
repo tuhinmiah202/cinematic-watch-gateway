@@ -1,5 +1,5 @@
 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
@@ -10,10 +10,20 @@ import { Loader2 } from 'lucide-react';
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const movieId = id || '0';
 
   const handleBack = () => {
-    navigate(-1);
+    const backParams = searchParams.get('back');
+    if (backParams) {
+      navigate(`/?${decodeURIComponent(backParams)}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleWatchNow = (streamingUrl: string) => {
+    navigate(`/watch/${movieId}?url=${encodeURIComponent(streamingUrl)}`);
   };
 
   // Try to fetch from Supabase first (for admin content)
@@ -114,7 +124,7 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      {/* Compact Header */}
+      {/* Header */}
       <div className="bg-black/50 backdrop-blur-md border-b border-purple-500/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
           <Button 
@@ -190,12 +200,14 @@ const MovieDetail = () => {
             <p className="text-sm text-gray-300 leading-relaxed mb-4">{overview}</p>
 
             {streamingUrl ? (
-              <a href={streamingUrl} target="_blank" rel="noopener noreferrer">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 w-full md:w-auto">
-                  <Play className="w-5 h-5 mr-2" />
-                  Watch Now
-                </Button>
-              </a>
+              <Button 
+                size="lg" 
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 w-full md:w-auto"
+                onClick={() => handleWatchNow(streamingUrl)}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Watch Now
+              </Button>
             ) : (
               <Button 
                 size="lg" 
