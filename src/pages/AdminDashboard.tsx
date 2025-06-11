@@ -15,9 +15,11 @@ interface ManagedContent {
   id: number;
   title: string;
   year: number;
-  streamingLink: string;
+  streamingLink?: string;
   type: 'movie' | 'series';
   tmdbId?: number;
+  description?: string;
+  poster_path?: string;
 }
 
 const AdminDashboard = () => {
@@ -31,7 +33,6 @@ const AdminDashboard = () => {
   const [manualYear, setManualYear] = useState('');
   const [manualDescription, setManualDescription] = useState('');
   const [manualPoster, setManualPoster] = useState('');
-  const [manualStreamingLink, setManualStreamingLink] = useState('');
   const [manualType, setManualType] = useState<'movie' | 'series'>('movie');
 
   useEffect(() => {
@@ -56,6 +57,8 @@ const AdminDashboard = () => {
   // Save to localStorage whenever content changes
   useEffect(() => {
     localStorage.setItem('adminManagedContent', JSON.stringify(managedContent));
+    // Trigger a storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
   }, [managedContent]);
 
   const { data: searchResults, refetch: searchMovies } = useQuery({
@@ -80,20 +83,26 @@ const AdminDashboard = () => {
   };
 
   const handleAddTMDBMovie = (movie: any) => {
+    const title = movie.title || movie.name;
+    const releaseDate = movie.release_date || movie.first_air_date;
+    const year = releaseDate ? new Date(releaseDate).getFullYear() : new Date().getFullYear();
+    const type = movie.media_type === 'tv' ? 'series' : 'movie';
+    
     const newContent: ManagedContent = {
       id: Date.now(),
-      title: movie.title || movie.name,
-      year: new Date(movie.release_date || movie.first_air_date).getFullYear(),
-      streamingLink: '', // No streaming link required initially
-      type: movie.title ? 'movie' : 'series',
-      tmdbId: movie.id
+      title: title,
+      year: year,
+      type: type,
+      tmdbId: movie.id,
+      poster_path: movie.poster_path,
+      description: movie.overview
     };
 
     setManagedContent(prev => [newContent, ...prev]); // Add to beginning
     
     toast({
-      title: `${movie.title ? 'Movie' : 'Series'} Added`,
-      description: `${movie.title || movie.name} has been added. You can add streaming link later from manage page.`,
+      title: `${type === 'movie' ? 'Movie' : 'Series'} Added`,
+      description: `${title} has been added. You can add streaming link later from manage page.`,
     });
   };
 
@@ -113,8 +122,9 @@ const AdminDashboard = () => {
       id: Date.now(),
       title: manualTitle.trim(),
       year: parseInt(manualYear) || new Date().getFullYear(),
-      streamingLink: manualStreamingLink.trim(),
-      type: manualType
+      type: manualType,
+      description: manualDescription.trim(),
+      poster_path: manualPoster.trim()
     };
 
     setManagedContent(prev => [newContent, ...prev]); // Add to beginning
@@ -129,7 +139,6 @@ const AdminDashboard = () => {
     setManualYear('');
     setManualDescription('');
     setManualPoster('');
-    setManualStreamingLink('');
   };
 
   const movies = managedContent.filter(item => item.type === 'movie');
@@ -239,33 +248,36 @@ const AdminDashboard = () => {
               <div className="mt-4">
                 <h3 className="text-white font-semibold mb-3 text-sm">Search Results:</h3>
                 <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
-                  {searchResults.results.slice(0, 6).map((movie) => (
-                    <div key={movie.id} className="bg-gray-700 rounded-lg p-3">
-                      <div className="flex gap-3 items-center">
-                        <img
-                          src={tmdbService.getImageUrl(movie.poster_path)}
-                          alt={movie.title || movie.name}
-                          className="w-12 h-16 object-cover rounded"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-semibold text-sm truncate">{movie.title || movie.name}</h4>
-                          <p className="text-gray-400 text-xs">
-                            {new Date(movie.release_date || movie.first_air_date).getFullYear()}
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            {movie.title ? 'Movie' : 'TV Series'}
-                          </p>
+                  {searchResults.results.slice(0, 6).map((movie) => {
+                    const title = movie.title || movie.name;
+                    const releaseDate = movie.release_date || movie.first_air_date;
+                    const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                    const type = movie.media_type === 'tv' ? 'TV Series' : 'Movie';
+                    
+                    return (
+                      <div key={movie.id} className="bg-gray-700 rounded-lg p-3">
+                        <div className="flex gap-3 items-center">
+                          <img
+                            src={tmdbService.getImageUrl(movie.poster_path)}
+                            alt={title}
+                            className="w-12 h-16 object-cover rounded"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
+                            <p className="text-gray-400 text-xs">{year}</p>
+                            <p className="text-gray-500 text-xs">{type}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddTMDBMovie(movie)}
+                            className="bg-green-600 hover:bg-green-700 text-xs px-3"
+                          >
+                            Add
+                          </Button>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddTMDBMovie(movie)}
-                          className="bg-green-600 hover:bg-green-700 text-xs px-3"
-                        >
-                          Add
-                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -339,25 +351,14 @@ const AdminDashboard = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-white text-sm">Poster URL</Label>
-                  <Input 
-                    className="bg-gray-700 border-gray-600 text-white" 
-                    placeholder="https://..."
-                    value={manualPoster}
-                    onChange={(e) => setManualPoster(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-white text-sm">Streaming Link (Optional)</Label>
-                  <Input 
-                    className="bg-gray-700 border-gray-600 text-white" 
-                    placeholder="https://..."
-                    value={manualStreamingLink}
-                    onChange={(e) => setManualStreamingLink(e.target.value)}
-                  />
-                </div>
+              <div>
+                <Label className="text-white text-sm">Poster URL</Label>
+                <Input 
+                  className="bg-gray-700 border-gray-600 text-white" 
+                  placeholder="https://..."
+                  value={manualPoster}
+                  onChange={(e) => setManualPoster(e.target.value)}
+                />
               </div>
               
               <Button type="submit" className="bg-purple-600 hover:bg-purple-700">

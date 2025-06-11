@@ -5,7 +5,7 @@ import { tmdbService, Movie, Genre } from '@/services/tmdbService';
 import MovieCard from '@/components/MovieCard';
 import GenreFilter from '@/components/GenreFilter';
 import Navbar from '@/components/Navbar';
-import { Loader2, Film, Tv, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Film, Tv, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
@@ -20,12 +20,31 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [managedContent, setManagedContent] = useState<any[]>([]);
 
-  // Load managed content from localStorage
+  // Load managed content from localStorage and set up listener
   useEffect(() => {
-    const saved = localStorage.getItem('adminManagedContent');
-    if (saved) {
-      setManagedContent(JSON.parse(saved));
-    }
+    const loadManagedContent = () => {
+      const saved = localStorage.getItem('adminManagedContent');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setManagedContent(Array.isArray(parsed) ? parsed : []);
+        } catch (error) {
+          console.error('Error parsing managed content:', error);
+          setManagedContent([]);
+        }
+      }
+    };
+
+    // Load initially
+    loadManagedContent();
+
+    // Listen for localStorage changes
+    const handleStorageChange = () => {
+      loadManagedContent();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const { data: genresData } = useQuery({
@@ -39,7 +58,7 @@ const Index = () => {
       if (searchQuery) {
         return tmdbService.searchMovies(searchQuery);
       }
-      if (selectedGenre) {
+      if (selectedGenre && selectedGenre < 900) {
         return tmdbService.getMoviesByGenre(selectedGenre);
       }
       return tmdbService.getPopularMovies();
@@ -79,7 +98,10 @@ const Index = () => {
     // Filter managed content by type
     if (contentType === 'movie') {
       filteredManagedContent = managedContent.filter(item => item.type === 'movie');
-      tmdbResults = tmdbResults.filter((movie: Movie) => movie.media_type !== 'tv');
+      tmdbResults = tmdbResults.filter((movie: Movie) => {
+        // For TMDB content, check media_type or assume movie if not specified
+        return !movie.media_type || movie.media_type === 'movie';
+      });
     } else if (contentType === 'tv') {
       filteredManagedContent = managedContent.filter(item => item.type === 'series');
       tmdbResults = tmdbResults.filter((movie: Movie) => movie.media_type === 'tv');
@@ -98,19 +120,23 @@ const Index = () => {
         item.title.toLowerCase().includes('bollywood') || 
         item.description?.toLowerCase().includes('bollywood')
       );
-      tmdbResults = tmdbResults.filter((movie: Movie) => 
-        movie.title.toLowerCase().includes('bollywood') ||
-        movie.overview?.toLowerCase().includes('bollywood')
-      );
+      tmdbResults = tmdbResults.filter((movie: Movie) => {
+        const title = movie.title || movie.name || '';
+        const overview = movie.overview || '';
+        return title.toLowerCase().includes('bollywood') ||
+               overview.toLowerCase().includes('bollywood');
+      });
     } else if (selectedGenre === 998) { // K-Drama
       filteredManagedContent = filteredManagedContent.filter(item => 
         item.title.toLowerCase().includes('korean') || 
         item.description?.toLowerCase().includes('korean')
       );
-      tmdbResults = tmdbResults.filter((movie: Movie) => 
-        movie.title.toLowerCase().includes('korean') ||
-        movie.overview?.toLowerCase().includes('korean')
-      );
+      tmdbResults = tmdbResults.filter((movie: Movie) => {
+        const title = movie.title || movie.name || '';
+        const overview = movie.overview || '';
+        return title.toLowerCase().includes('korean') ||
+               overview.toLowerCase().includes('korean');
+      });
     }
 
     // Search filter
@@ -118,9 +144,10 @@ const Index = () => {
       filteredManagedContent = filteredManagedContent.filter(item =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      tmdbResults = tmdbResults.filter((movie: Movie) =>
-        movie.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      tmdbResults = tmdbResults.filter((movie: Movie) => {
+        const title = movie.title || movie.name || '';
+        return title.toLowerCase().includes(searchQuery.toLowerCase());
+      });
     }
 
     return [...filteredManagedContent, ...tmdbResults];

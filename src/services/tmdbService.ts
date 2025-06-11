@@ -5,14 +5,21 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 export interface Movie {
   id: number;
-  title: string;
+  title?: string;
+  name?: string; // For TV shows
   overview: string;
   poster_path: string;
   backdrop_path: string;
-  release_date: string;
+  release_date?: string;
+  first_air_date?: string; // For TV shows
   genre_ids: number[];
-  vote_average: number;
+  vote_average?: number; // Make optional since managed content might not have it
   vote_count: number;
+  media_type?: string; // 'movie' or 'tv'
+  type?: 'movie' | 'series'; // For managed content
+  streamingLink?: string; // For managed content
+  year?: number; // For managed content
+  description?: string; // For managed content
 }
 
 export interface MovieDetails extends Movie {
@@ -59,8 +66,9 @@ export const tmdbService = {
   },
 
   async searchMovies(query: string): Promise<{ results: Movie[]; total_pages: number }> {
+    // Use multi-search to get both movies and TV shows
     const response = await fetch(
-      `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`
+      `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`
     );
     return response.json();
   },
