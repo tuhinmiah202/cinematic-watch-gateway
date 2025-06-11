@@ -81,10 +81,13 @@ const MovieDetail = () => {
             <h1 className="text-2xl md:text-3xl font-bold mb-3 leading-tight">{movie.title}</h1>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-semibold">{movie.vote_average.toFixed(1)}</span>
-              </div>
+              {/* Only show rating if it exists and is greater than 0 */}
+              {movie.vote_average && movie.vote_average > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-semibold">{movie.vote_average.toFixed(1)}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">{new Date(movie.release_date).getFullYear()}</span>
