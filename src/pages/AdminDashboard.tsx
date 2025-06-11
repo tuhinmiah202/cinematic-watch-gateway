@@ -1,8 +1,9 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
+import { adminService } from '@/services/adminService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,22 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface ManagedContent {
-  id: number;
-  title: string;
-  year: number;
-  streamingLink?: string;
-  type: 'movie' | 'series';
-  tmdbId?: number;
-  description?: string;
-  poster_path?: string;
-}
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  const [managedContent, setManagedContent] = useState<ManagedContent[]>([]);
   
   // Manual form states
   const [manualTitle, setManualTitle] = useState('');
@@ -34,33 +24,23 @@ const AdminDashboard = () => {
   const [manualDescription, setManualDescription] = useState('');
   const [manualPoster, setManualPoster] = useState('');
   const [manualType, setManualType] = useState<'movie' | 'series'>('movie');
+  const [manualCast, setManualCast] = useState('');
+  const [manualStreamingUrl, setManualStreamingUrl] = useState('');
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
     if (!isAuth) {
       navigate('/admin');
     }
-    
-    // Load managed content from localStorage
-    const saved = localStorage.getItem('adminManagedContent');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setManagedContent(Array.isArray(parsed) ? parsed : []);
-      } catch (error) {
-        console.error('Error parsing managed content:', error);
-        setManagedContent([]);
-      }
-    }
   }, [navigate]);
 
-  // Save to localStorage whenever content changes
-  useEffect(() => {
-    localStorage.setItem('adminManagedContent', JSON.stringify(managedContent));
-    // Trigger a storage event to notify other components
-    window.dispatchEvent(new Event('storage'));
-  }, [managedContent]);
+  // Fetch admin content from Supabase
+  const { data: adminContent = [], refetch: refetchContent } = useQuery({
+    queryKey: ['admin-content'],
+    queryFn: adminService.getAllContent
+  });
 
+  // Search TMDB
   const { data: searchResults, refetch: searchMovies } = useQuery({
     queryKey: ['search', searchQuery],
     queryFn: () => tmdbService.searchMovies(searchQuery),
@@ -82,31 +62,31 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddTMDBMovie = (movie: any) => {
-    const title = movie.title || movie.name;
-    const releaseDate = movie.release_date || movie.first_air_date;
-    const year = releaseDate ? new Date(releaseDate).getFullYear() : new Date().getFullYear();
-    const type = movie.media_type === 'tv' ? 'series' : 'movie';
+  const handleAddTMDBMovie = async (movie: any) => {
+    const success = await adminService.addFromTMDB(movie);
     
-    const newContent: ManagedContent = {
-      id: Date.now(),
-      title: title,
-      year: year,
-      type: type,
-      tmdbId: movie.id,
-      poster_path: movie.poster_path,
-      description: movie.overview
-    };
-
-    setManagedContent(prev => [newContent, ...prev]); // Add to beginning
-    
-    toast({
-      title: `${type === 'movie' ? 'Movie' : 'Series'} Added`,
-      description: `${title} has been added. You can add streaming link later from manage page.`,
-    });
+    if (success) {
+      const title = movie.title || movie.name;
+      const type = movie.media_type === 'tv' ? 'series' : 'movie';
+      
+      toast({
+        title: `${type === 'movie' ? 'Movie' : 'Series'} Added`,
+        description: `${title} has been added successfully.`,
+      });
+      
+      // Refresh content list
+      refetchContent();
+      queryClient.invalidateQueries({ queryKey: ['supabase-content'] });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to add content. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddManualContent = (e: React.FormEvent) => {
+  const handleAddManualContent = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!manualTitle.trim()) {
@@ -118,31 +98,46 @@ const AdminDashboard = () => {
       return;
     }
 
-    const newContent: ManagedContent = {
-      id: Date.now(),
-      title: manualTitle.trim(),
-      year: parseInt(manualYear) || new Date().getFullYear(),
-      type: manualType,
-      description: manualDescription.trim(),
-      poster_path: manualPoster.trim()
-    };
+    const castNames = manualCast.split(',').map(name => name.trim()).filter(Boolean);
 
-    setManagedContent(prev => [newContent, ...prev]); // Add to beginning
-    
-    toast({
-      title: `${manualType === 'movie' ? 'Movie' : 'Series'} Added`,
-      description: `${manualTitle} has been added successfully.`,
+    const success = await adminService.addCustomContent({
+      title: manualTitle.trim(),
+      description: manualDescription.trim(),
+      content_type: manualType,
+      release_year: parseInt(manualYear) || new Date().getFullYear(),
+      poster_url: manualPoster.trim(),
+      cast_names: castNames,
+      streaming_url: manualStreamingUrl.trim()
     });
 
-    // Reset form
-    setManualTitle('');
-    setManualYear('');
-    setManualDescription('');
-    setManualPoster('');
+    if (success) {
+      toast({
+        title: `${manualType === 'movie' ? 'Movie' : 'Series'} Added`,
+        description: `${manualTitle} has been added successfully.`,
+      });
+
+      // Reset form
+      setManualTitle('');
+      setManualYear('');
+      setManualDescription('');
+      setManualPoster('');
+      setManualCast('');
+      setManualStreamingUrl('');
+      
+      // Refresh content list
+      refetchContent();
+      queryClient.invalidateQueries({ queryKey: ['supabase-content'] });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to add content. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const movies = managedContent.filter(item => item.type === 'movie');
-  const series = managedContent.filter(item => item.type === 'series');
+  const movies = adminContent.filter(item => item.content_type === 'movie');
+  const series = adminContent.filter(item => item.content_type === 'series');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -152,12 +147,10 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
             <div className="flex items-center gap-2">
-              <Link to="/">
-                <Button variant="outline" size="sm" className="text-white border-white/20">
-                  <Home className="w-4 h-4 mr-1" />
-                  Home
-                </Button>
-              </Link>
+              <Button variant="outline" size="sm" className="text-white border-white/20" onClick={() => navigate('/')}>
+                <Home className="w-4 h-4 mr-1" />
+                Home
+              </Button>
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout
@@ -202,7 +195,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">{managedContent.length}</div>
+              <div className="text-2xl font-bold text-green-400">{adminContent.length}</div>
             </CardContent>
           </Card>
 
@@ -214,11 +207,12 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Link to="/admin/manage">
-                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
-                  Manage Content
-                </Button>
-              </Link>
+              <Button 
+                className="w-full bg-orange-600 hover:bg-orange-700 text-sm"
+                onClick={() => navigate('/admin/manage')}
+              >
+                Manage Content
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -358,6 +352,26 @@ const AdminDashboard = () => {
                   placeholder="https://..."
                   value={manualPoster}
                   onChange={(e) => setManualPoster(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <Label className="text-white text-sm">Cast (comma-separated)</Label>
+                <Input 
+                  className="bg-gray-700 border-gray-600 text-white" 
+                  placeholder="Actor 1, Actor 2, Actor 3..."
+                  value={manualCast}
+                  onChange={(e) => setManualCast(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <Label className="text-white text-sm">Streaming URL</Label>
+                <Input 
+                  className="bg-gray-700 border-gray-600 text-white" 
+                  placeholder="https://..."
+                  value={manualStreamingUrl}
+                  onChange={(e) => setManualStreamingUrl(e.target.value)}
                 />
               </div>
               

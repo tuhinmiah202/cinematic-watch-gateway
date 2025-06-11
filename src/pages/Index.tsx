@@ -1,7 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { tmdbService, Movie, Genre } from '@/services/tmdbService';
+import { contentService, ContentItem } from '@/services/contentService';
+import { migrationService } from '@/services/migrationService';
 import MovieCard from '@/components/MovieCard';
 import GenreFilter from '@/components/GenreFilter';
 import Navbar from '@/components/Navbar';
@@ -13,65 +15,94 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 const ITEMS_PER_PAGE = 24;
 
 const Index = () => {
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
-  const [contentType, setContentType] = useState<'movie' | 'tv' | 'all'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [managedContent, setManagedContent] = useState<any[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // Get state from URL parameters for better navigation
+  const selectedGenre = searchParams.get('genre') ? parseInt(searchParams.get('genre')!) : null;
+  const searchQuery = searchParams.get('search') || '';
+  const contentType = (searchParams.get('type') as 'movie' | 'tv' | 'all') || 'all';
+  const currentPage = parseInt(searchParams.get('page') || '1');
+  
+  const [headerSearchQuery, setHeaderSearchQuery] = useState(searchQuery);
+  const [isMigrating, setIsMigrating] = useState(false);
 
-  // Load managed content from localStorage and set up listener
+  // Run migration on app start
   useEffect(() => {
-    const loadManagedContent = () => {
-      const saved = localStorage.getItem('adminManagedContent');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setManagedContent(Array.isArray(parsed) ? parsed : []);
-        } catch (error) {
-          console.error('Error parsing managed content:', error);
-          setManagedContent([]);
-        }
-      }
+    const runMigration = async () => {
+      setIsMigrating(true);
+      await migrationService.migrateLocalStorageToSupabase();
+      setIsMigrating(false);
     };
-
-    // Load initially
-    loadManagedContent();
-
-    // Listen for localStorage changes
-    const handleStorageChange = () => {
-      loadManagedContent();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom event for same-window updates
-    const handleManagedContentUpdate = () => {
-      loadManagedContent();
-    };
-    
-    window.addEventListener('managedContentUpdate', handleManagedContentUpdate);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('managedContentUpdate', handleManagedContentUpdate);
-    };
+    runMigration();
   }, []);
 
-  const { data: genresData } = useQuery({
-    queryKey: ['genres'],
+  // Update search params helper
+  const updateSearchParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+    
+    // Always reset to page 1 when other params change
+    if (updates.page === undefined) {
+      newParams.set('page', '1');
+    }
+    
+    setSearchParams(newParams);
+  };
+
+  // Fetch Supabase content
+  const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
+    queryKey: ['supabase-content', contentType, selectedGenre, searchQuery],
+    queryFn: async () => {
+      if (searchQuery) {
+        return await contentService.searchContent(searchQuery);
+      }
+      
+      if (selectedGenre) {
+        const supabaseGenres = await contentService.getGenres();
+        const genre = supabaseGenres.find(g => g.tmdb_id === selectedGenre || g.id === selectedGenre.toString());
+        if (genre) {
+          return await contentService.getContentByGenre(genre.id);
+        }
+        return [];
+      }
+      
+      if (contentType === 'all') {
+        return await contentService.getApprovedContent();
+      } else {
+        return await contentService.getContentByType(contentType);
+      }
+    }
+  });
+
+  // Fetch TMDB genres
+  const { data: tmdbGenresData } = useQuery({
+    queryKey: ['tmdb-genres'],
     queryFn: tmdbService.getGenres
   });
 
-  const { data: moviesData, isLoading, error } = useQuery({
-    queryKey: ['movies', selectedGenre, searchQuery, contentType, currentPage],
+  // Fetch Supabase genres
+  const { data: supabaseGenres } = useQuery({
+    queryKey: ['supabase-genres'],
+    queryFn: contentService.getGenres
+  });
+
+  // Fetch TMDB content
+  const { data: tmdbData, isLoading: isLoadingTmdb } = useQuery({
+    queryKey: ['tmdb-movies', selectedGenre, searchQuery, contentType],
     queryFn: async () => {
       if (searchQuery) {
         return tmdbService.searchMovies(searchQuery);
       }
       
       if (selectedGenre && selectedGenre < 900) {
-        // For specific genres, get both movies and TV shows if contentType is 'all'
         if (contentType === 'all') {
           const [movieResults, tvResults] = await Promise.all([
             tmdbService.getMoviesByGenre(selectedGenre),
@@ -88,7 +119,6 @@ const Index = () => {
         }
       }
       
-      // Default popular content
       if (contentType === 'all') {
         const [movieResults, tvResults] = await Promise.all([
           tmdbService.getPopularMovies(),
@@ -109,9 +139,11 @@ const Index = () => {
   });
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setSelectedGenre(null);
-    setCurrentPage(1);
+    updateSearchParams({
+      search: query,
+      genre: null,
+      page: '1'
+    });
   };
 
   const handleHeaderSearch = (e: React.FormEvent) => {
@@ -122,44 +154,72 @@ const Index = () => {
   };
 
   const handleGenreSelect = (genreId: number | null) => {
-    setSelectedGenre(genreId);
-    setSearchQuery('');
+    updateSearchParams({
+      genre: genreId?.toString() || null,
+      search: null,
+      page: '1'
+    });
     setHeaderSearchQuery('');
-    setCurrentPage(1);
   };
 
   const handleContentTypeChange = (type: 'movie' | 'tv' | 'all') => {
-    setContentType(type);
-    setCurrentPage(1);
+    updateSearchParams({
+      type: type,
+      page: '1'
+    });
   };
 
-  // Combine TMDB data with managed content, putting managed content first
-  const combinedContent = () => {
-    let tmdbResults = moviesData?.results || [];
-    let filteredManagedContent = managedContent;
+  // Convert Supabase content to Movie format for compatibility
+  const convertSupabaseToMovie = (item: ContentItem): Movie => ({
+    id: parseInt(item.id.replace(/-/g, '').substring(0, 8), 16), // Create numeric ID from UUID
+    title: item.content_type === 'movie' ? item.title : undefined,
+    name: item.content_type === 'series' ? item.title : undefined,
+    overview: item.description || '',
+    poster_path: item.poster_url || '',
+    backdrop_path: item.thumbnail_url || '',
+    release_date: item.content_type === 'movie' ? `${item.release_year}-01-01` : undefined,
+    first_air_date: item.content_type === 'series' ? `${item.release_year}-01-01` : undefined,
+    genre_ids: item.genres?.map(g => g.tmdb_id).filter(Boolean) as number[] || [],
+    vote_average: 8.0, // Default rating for admin content
+    vote_count: 100,
+    media_type: item.content_type === 'movie' ? 'movie' : 'tv',
+    type: item.content_type,
+    streamingLink: item.streaming_links?.[0]?.url,
+    year: item.release_year,
+    description: item.description,
+    supabaseId: item.id // Add reference to original Supabase ID
+  });
 
-    // Filter managed content by type
-    if (contentType === 'movie') {
-      filteredManagedContent = managedContent.filter(item => item.type === 'movie');
-      tmdbResults = tmdbResults.filter((movie: Movie) => {
-        return !movie.media_type || movie.media_type === 'movie';
-      });
-    } else if (contentType === 'tv') {
-      filteredManagedContent = managedContent.filter(item => item.type === 'series');
-      tmdbResults = tmdbResults.filter((movie: Movie) => movie.media_type === 'tv');
+  // Combine content sources
+  const combinedContent = () => {
+    let supabaseItems: Movie[] = [];
+    let tmdbResults: Movie[] = [];
+
+    // Convert Supabase content
+    if (supabaseContent) {
+      supabaseItems = supabaseContent.map(convertSupabaseToMovie);
     }
 
-    // Filter by genre if selected
-    if (selectedGenre && selectedGenre < 900) {
-      tmdbResults = tmdbResults.filter((movie: Movie) => 
-        movie.genre_ids?.includes(selectedGenre)
-      );
+    // Get TMDB results
+    if (tmdbData?.results) {
+      tmdbResults = tmdbData.results;
+      
+      // Filter TMDB by content type
+      if (contentType === 'movie') {
+        tmdbResults = tmdbResults.filter((movie: Movie) => 
+          !movie.media_type || movie.media_type === 'movie'
+        );
+      } else if (contentType === 'tv') {
+        tmdbResults = tmdbResults.filter((movie: Movie) => 
+          movie.media_type === 'tv'
+        );
+      }
     }
 
     // Handle custom genres (Bollywood, K-Drama)
     if (selectedGenre === 999) { // Bollywood
-      filteredManagedContent = filteredManagedContent.filter(item => 
-        item.title.toLowerCase().includes('bollywood') || 
+      supabaseItems = supabaseItems.filter(item => 
+        item.title?.toLowerCase().includes('bollywood') || 
         item.description?.toLowerCase().includes('bollywood')
       );
       tmdbResults = tmdbResults.filter((movie: Movie) => {
@@ -169,8 +229,8 @@ const Index = () => {
                overview.toLowerCase().includes('bollywood');
       });
     } else if (selectedGenre === 998) { // K-Drama
-      filteredManagedContent = filteredManagedContent.filter(item => 
-        item.title.toLowerCase().includes('korean') || 
+      supabaseItems = supabaseItems.filter(item => 
+        item.title?.toLowerCase().includes('korean') || 
         item.description?.toLowerCase().includes('korean')
       );
       tmdbResults = tmdbResults.filter((movie: Movie) => {
@@ -181,18 +241,8 @@ const Index = () => {
       });
     }
 
-    // Search filter
-    if (searchQuery) {
-      filteredManagedContent = filteredManagedContent.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      tmdbResults = tmdbResults.filter((movie: Movie) => {
-        const title = movie.title || movie.name || '';
-        return title.toLowerCase().includes(searchQuery.toLowerCase());
-      });
-    }
-
-    return [...filteredManagedContent, ...tmdbResults];
+    // Prioritize Supabase content (admin-approved) first
+    return [...supabaseItems, ...tmdbResults];
   };
 
   const allContent = combinedContent();
@@ -201,9 +251,19 @@ const Index = () => {
   const paginatedContent = allContent.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    updateSearchParams({ page: page.toString() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const isLoading = isLoadingSupabase || isLoadingTmdb || isMigrating;
+
+  // Combine genres from both sources
+  const allGenres = [
+    ...(tmdbGenresData?.genres || []),
+    ...(supabaseGenres || []).map(g => ({ id: g.tmdb_id || parseInt(g.id), name: g.name }))
+  ].filter((genre, index, self) => 
+    index === self.findIndex(g => g.id === genre.id)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -284,9 +344,9 @@ const Index = () => {
         </div>
 
         {/* Compact Genre Filter */}
-        {genresData && (
+        {allGenres.length > 0 && (
           <GenreFilter 
-            genres={genresData.genres} 
+            genres={allGenres} 
             selectedGenre={selectedGenre}
             onGenreSelect={handleGenreSelect}
           />
@@ -296,10 +356,7 @@ const Index = () => {
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-400">
-            Error loading content. Please try again later.
+            {isMigrating && <span className="ml-2 text-white text-sm">Migrating content...</span>}
           </div>
         ) : (
           <>
@@ -308,7 +365,7 @@ const Index = () => {
               <p className="text-gray-300 text-sm">
                 Showing {paginatedContent.length} of {allContent.length} {contentType === 'movie' ? 'movies' : contentType === 'tv' ? 'series' : 'items'} 
                 {searchQuery && ` for "${searchQuery}"`}
-                {selectedGenre && genresData && ` in ${genresData.genres.find(g => g.id === selectedGenre)?.name || 'selected genre'}`}
+                {selectedGenre && allGenres && ` in ${allGenres.find(g => g.id === selectedGenre)?.name || 'selected genre'}`}
                 (Page {currentPage} of {totalPages})
               </p>
             </div>
@@ -316,7 +373,7 @@ const Index = () => {
             {/* Movies Grid */}
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-2">
               {paginatedContent.map((movie: any, index: number) => (
-                <MovieCard key={movie.id || `managed-${index}`} movie={movie} />
+                <MovieCard key={movie.supabaseId || movie.id || `item-${index}`} movie={movie} />
               ))}
             </div>
 

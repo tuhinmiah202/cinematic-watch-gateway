@@ -1,6 +1,6 @@
 
 import { Movie, tmdbService } from '@/services/tmdbService';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Star, Calendar, Tv } from 'lucide-react';
 
 interface MovieCardProps {
@@ -8,21 +8,46 @@ interface MovieCardProps {
 }
 
 const MovieCard = ({ movie }: MovieCardProps) => {
+  const [searchParams] = useSearchParams();
+  
+  // Preserve current search parameters in the link
+  const currentSearch = searchParams.get('search') || '';
+  const currentGenre = searchParams.get('genre') || '';
+  const currentType = searchParams.get('type') || '';
+  const currentPage = searchParams.get('page') || '';
+  
+  // Build query string to preserve state
+  const queryParams = new URLSearchParams();
+  if (currentSearch) queryParams.set('search', currentSearch);
+  if (currentGenre) queryParams.set('genre', currentGenre);
+  if (currentType) queryParams.set('type', currentType);
+  if (currentPage) queryParams.set('page', currentPage);
+  
+  const backParams = queryParams.toString();
+  
+  // Determine the correct link path
+  const linkPath = (movie as any).supabaseId 
+    ? `/movie/${(movie as any).supabaseId}${backParams ? `?back=${encodeURIComponent(backParams)}` : ''}`
+    : `/movie/${movie.id}${backParams ? `?back=${encodeURIComponent(backParams)}` : ''}`;
+
   // Get the correct title and release date based on movie type
   const title = movie.title || movie.name || 'Untitled';
   const releaseDate = movie.release_date || movie.first_air_date;
   const year = movie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
   const rating = movie.vote_average || 0;
   const isTV = movie.media_type === 'tv' || movie.type === 'series' || movie.name;
+  
+  // Handle poster URL for both TMDB and Supabase content
+  const posterUrl = (movie as any).poster_url || tmdbService.getImageUrl(movie.poster_path);
 
   return (
     <Link 
-      to={`/movie/${movie.id}`} 
+      to={linkPath}
       className="group relative overflow-hidden rounded-xl bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
     >
       <div className="aspect-[2/3] relative">
         <img
-          src={tmdbService.getImageUrl(movie.poster_path)}
+          src={posterUrl}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           loading="lazy"
@@ -42,6 +67,13 @@ const MovieCard = ({ movie }: MovieCardProps) => {
           <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
             <Tv className="w-3 h-3" />
             TV
+          </div>
+        )}
+
+        {/* Admin content indicator */}
+        {(movie as any).supabaseId && (
+          <div className="absolute bottom-2 right-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+            ✓
           </div>
         )}
       </div>
