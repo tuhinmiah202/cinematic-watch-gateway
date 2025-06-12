@@ -25,6 +25,8 @@ export const adminService = {
   // Add content from TMDB
   async addFromTMDB(tmdbMovie: any): Promise<boolean> {
     try {
+      console.log('Adding TMDB content:', tmdbMovie);
+      
       const title = tmdbMovie.title || tmdbMovie.name;
       const releaseDate = tmdbMovie.release_date || tmdbMovie.first_air_date;
       const year = releaseDate ? new Date(releaseDate).getFullYear() : new Date().getFullYear();
@@ -41,14 +43,19 @@ export const adminService = {
       });
 
       if (contentId) {
+        console.log('Content added successfully with ID:', contentId);
+        
         // Add some default cast members
-        await contentService.addCastToContent(contentId, [
+        const castSuccess = await contentService.addCastToContent(contentId, [
           { name: 'Cast Member 1', role: 'Actor', character_name: 'Main Character' },
           { name: 'Cast Member 2', role: 'Actor', character_name: 'Supporting Role' }
         ]);
-
+        
+        console.log('Cast added:', castSuccess);
         return true;
       }
+      
+      console.error('Failed to get content ID');
       return false;
     } catch (error) {
       console.error('Error adding TMDB content:', error);
@@ -59,6 +66,8 @@ export const adminService = {
   // Add custom content
   async addCustomContent(content: AdminContentItem): Promise<boolean> {
     try {
+      console.log('Adding custom content:', content);
+      
       const contentId = await contentService.addContent({
         title: content.title,
         description: content.description,
@@ -70,13 +79,16 @@ export const adminService = {
       });
 
       if (contentId) {
+        console.log('Custom content added successfully with ID:', contentId);
+        
         // Add streaming link if provided
         if (content.streaming_url) {
-          await contentService.addStreamingLink(
+          const linkSuccess = await contentService.addStreamingLink(
             contentId, 
             content.streaming_url, 
             content.platform_name
           );
+          console.log('Streaming link added:', linkSuccess);
         }
 
         // Add cast members if provided
@@ -85,11 +97,14 @@ export const adminService = {
             name: name.trim(),
             role: 'Actor'
           }));
-          await contentService.addCastToContent(contentId, castMembers);
+          const castSuccess = await contentService.addCastToContent(contentId, castMembers);
+          console.log('Cast members added:', castSuccess);
         }
 
         return true;
       }
+      
+      console.error('Failed to get content ID for custom content');
       return false;
     } catch (error) {
       console.error('Error adding custom content:', error);

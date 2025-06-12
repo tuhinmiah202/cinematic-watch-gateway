@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService, ContentItem } from '@/services/contentService';
-import { migrationService } from '@/services/migrationService';
 import MovieCard from '@/components/MovieCard';
 import Navbar from '@/components/Navbar';
 import { Loader2, Film, Tv, Search } from 'lucide-react';
@@ -21,20 +20,10 @@ const Index = () => {
   // Get state from URL parameters for better navigation
   const searchQuery = searchParams.get('search') || '';
   const contentType = (searchParams.get('type') as 'movie' | 'tv' | 'all') || 'all';
+  const selectedGenre = searchParams.get('genre') || '';
   const currentPage = parseInt(searchParams.get('page') || '1');
   
   const [headerSearchQuery, setHeaderSearchQuery] = useState(searchQuery);
-  const [isClearing, setIsClearing] = useState(false);
-
-  // Clear all existing content on app start
-  useEffect(() => {
-    const clearContent = async () => {
-      setIsClearing(true);
-      await migrationService.clearAllExistingContent();
-      setIsClearing(false);
-    };
-    clearContent();
-  }, []);
 
   // Update search params helper
   const updateSearchParams = (updates: Record<string, string | null>) => {
@@ -56,9 +45,9 @@ const Index = () => {
     setSearchParams(newParams);
   };
 
-  // Fetch Supabase content
+  // Fetch Supabase content (admin-approved only)
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
-    queryKey: ['supabase-content', contentType, searchQuery],
+    queryKey: ['supabase-content', contentType, searchQuery, selectedGenre],
     queryFn: async () => {
       if (searchQuery) {
         return await contentService.searchContent(searchQuery);
@@ -73,10 +62,21 @@ const Index = () => {
     }
   });
 
-  // Fetch TMDB content
+  // Fetch genres
+  const { data: genres } = useQuery({
+    queryKey: ['genres'],
+    queryFn: contentService.getGenres
+  });
+
+  // Fetch TMDB content only if no Supabase content
   const { data: tmdbData, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-movies', searchQuery, contentType],
     queryFn: async () => {
+      // Only fetch TMDB if no Supabase content available
+      if (supabaseContent && supabaseContent.length > 0) {
+        return { results: [] };
+      }
+
       if (searchQuery) {
         return tmdbService.searchMovies(searchQuery);
       }
@@ -97,7 +97,8 @@ const Index = () => {
       }
       
       return tmdbService.getPopularMovies();
-    }
+    },
+    enabled: !isLoadingSupabase
   });
 
   const handleSearch = (query: string) => {
@@ -117,6 +118,13 @@ const Index = () => {
   const handleContentTypeChange = (type: 'movie' | 'tv' | 'all') => {
     updateSearchParams({
       type: type,
+      page: '1'
+    });
+  };
+
+  const handleGenreChange = (genreName: string) => {
+    updateSearchParams({
+      genre: genreName === selectedGenre ? '' : genreName,
       page: '1'
     });
   };
@@ -147,13 +155,13 @@ const Index = () => {
     let supabaseItems: (Movie & { supabaseId: string })[] = [];
     let tmdbResults: Movie[] = [];
 
-    // Convert Supabase content
+    // Convert Supabase content (prioritize admin-approved content)
     if (supabaseContent) {
       supabaseItems = supabaseContent.map(convertSupabaseToMovie);
     }
 
-    // Get TMDB results
-    if (tmdbData?.results) {
+    // Get TMDB results only if no Supabase content
+    if ((!supabaseContent || supabaseContent.length === 0) && tmdbData?.results) {
       tmdbResults = tmdbData.results;
       
       // Filter TMDB by content type
@@ -168,8 +176,19 @@ const Index = () => {
       }
     }
 
-    // Prioritize Supabase content (admin-approved) first
-    return [...supabaseItems, ...tmdbResults];
+    // Filter by genre if selected
+    let allContent = [...supabaseItems, ...tmdbResults];
+    
+    if (selectedGenre && genres) {
+      const genre = genres.find(g => g.name === selectedGenre);
+      if (genre && genre.tmdb_id) {
+        allContent = allContent.filter(item => 
+          item.genre_ids?.includes(genre.tmdb_id!)
+        );
+      }
+    }
+
+    return allContent;
   };
 
   const allContent = combinedContent();
@@ -182,7 +201,10 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isLoading = isLoadingSupabase || isLoadingTmdb || isClearing;
+  const isLoading = isLoadingSupabase || isLoadingTmdb;
+
+  // Common genres to display
+  const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Thriller', 'Adventure', 'Crime'];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -255,6 +277,24 @@ const Index = () => {
               Series
             </Button>
           </div>
+
+          {/* Genre Selector */}
+          <div className="flex flex-wrap justify-center gap-2 mb-3">
+            {commonGenres.map((genre) => (
+              <Button
+                key={genre}
+                onClick={() => handleGenreChange(genre)}
+                variant={selectedGenre === genre ? "default" : "outline"}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 h-6 ${
+                  selectedGenre === genre
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg'
+                    : 'bg-transparent border border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white'
+                }`}
+              >
+                {genre}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* AdSense Placeholder */}
@@ -266,7 +306,6 @@ const Index = () => {
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-            {isClearing && <span className="ml-2 text-white text-sm">Clearing existing content...</span>}
           </div>
         ) : (
           <>
@@ -275,16 +314,24 @@ const Index = () => {
               <p className="text-gray-300 text-sm">
                 Showing {paginatedContent.length} of {allContent.length} {contentType === 'movie' ? 'movies' : contentType === 'tv' ? 'series' : 'items'} 
                 {searchQuery && ` for "${searchQuery}"`}
+                {selectedGenre && ` in ${selectedGenre}`}
                 (Page {currentPage} of {totalPages})
               </p>
             </div>
 
             {/* Movies Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-3">
-              {paginatedContent.map((movie: any, index: number) => (
-                <MovieCard key={movie.supabaseId || movie.id || `item-${index}`} movie={movie} />
-              ))}
-            </div>
+            {paginatedContent.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-lg mb-2">No content available</p>
+                <p className="text-gray-500 text-sm">Add movies and series through the admin panel</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-3">
+                {paginatedContent.map((movie: any, index: number) => (
+                  <MovieCard key={movie.supabaseId || movie.id || `item-${index}`} movie={movie} />
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
             {totalPages > 1 && (

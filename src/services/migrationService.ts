@@ -5,17 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 export const migrationService = {
   async clearAllExistingContent(): Promise<void> {
     try {
-      console.log('Clearing all existing content from database...');
-      
-      // Clear all existing content
-      await contentService.clearAllContent();
-      
-      // Also clear localStorage
-      localStorage.removeItem('adminManagedContent');
-      
-      console.log('All existing content cleared successfully');
+      console.log('Migration service ready - no automatic clearing');
+      // Remove automatic clearing - user will manually add content
     } catch (error) {
-      console.error('Error clearing content:', error);
+      console.error('Error in migration service:', error);
     }
   }
 };
