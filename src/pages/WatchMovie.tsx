@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Clock } from 'lucide-react';
+import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 const WatchMovie = () => {
@@ -18,7 +18,6 @@ const WatchMovie = () => {
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-watch', movieId],
     queryFn: async () => {
-      // Check if this looks like a Supabase UUID
       if (movieId.includes('-') && movieId.length === 36) {
         return await contentService.getContentById(movieId);
       }
@@ -31,7 +30,7 @@ const WatchMovie = () => {
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-content-watch', movieId],
     queryFn: async () => {
-      if (supabaseContent) return null; // Skip if we have Supabase content
+      if (supabaseContent) return null;
       
       const numericId = parseInt(movieId);
       if (isNaN(numericId)) return null;
@@ -68,9 +67,17 @@ const WatchMovie = () => {
   }, []);
 
   const handleWatchNow = () => {
-    // Get streaming URL from Supabase content or use default
-    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url || 'https://example-streaming-platform.com';
-    window.open(streamingUrl, '_blank');
+    // Get streaming URL from Supabase content or show alternatives
+    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
+    
+    if (streamingUrl) {
+      window.open(streamingUrl, '_blank');
+    } else {
+      // Show popular streaming platforms in a new tab search
+      const title = (movie as any)?.title || (movie as any)?.name || 'movie';
+      const searchQuery = encodeURIComponent(`watch ${title} online`);
+      window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -94,12 +101,13 @@ const WatchMovie = () => {
     );
   }
 
-  // Handle both Supabase and TMDB content formats
   const isSupabaseContent = !!(movie as any).content_type;
   const title = isSupabaseContent ? (movie as any).title : ((movie as any).title || (movie as any).name);
   const posterUrl = isSupabaseContent 
     ? (movie as any).poster_url || '/placeholder.svg'
     : tmdbService.getImageUrl((movie as any).poster_path);
+
+  const hasStreamingLink = (movie as any)?.streaming_links?.[0]?.url;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -130,7 +138,9 @@ const WatchMovie = () => {
               className="w-48 h-72 object-cover rounded-xl shadow-2xl mx-auto mb-6"
             />
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>
-            <p className="text-xl text-gray-300">Watch on main streaming platform</p>
+            <p className="text-xl text-gray-300">
+              {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
+            </p>
           </div>
 
           {/* AdSense Placeholder */}
@@ -145,7 +155,7 @@ const WatchMovie = () => {
                 <Clock className="w-16 h-16 text-purple-400 mx-auto mb-6" />
                 <h2 className="text-3xl font-bold text-white mb-4">Preparing your stream...</h2>
                 <div className="text-6xl font-bold text-purple-400 mb-4">{countdown}</div>
-                <p className="text-gray-300 text-lg">Please wait while we connect you to the streaming platform</p>
+                <p className="text-gray-300 text-lg">Please wait while we prepare the best viewing options</p>
               </div>
             ) : (
               <div className="text-center">
@@ -156,10 +166,24 @@ const WatchMovie = () => {
                   size="lg" 
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-2xl px-12 py-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                 >
-                  <Play className="w-8 h-8 mr-3" />
-                  Watch Now
+                  {hasStreamingLink ? (
+                    <>
+                      <Play className="w-8 h-8 mr-3" />
+                      Watch Now
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-8 h-8 mr-3" />
+                      Find Streaming Options
+                    </>
+                  )}
                 </Button>
-                <p className="text-gray-300 text-sm mt-4">You will be redirected to the streaming platform</p>
+                <p className="text-gray-300 text-sm mt-4">
+                  {hasStreamingLink 
+                    ? 'You will be redirected to the streaming platform' 
+                    : 'You will be redirected to search for streaming options'
+                  }
+                </p>
               </div>
             )}
           </div>

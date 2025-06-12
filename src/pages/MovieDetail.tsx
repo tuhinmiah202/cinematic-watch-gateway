@@ -30,7 +30,6 @@ const MovieDetail = () => {
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-detail', movieId],
     queryFn: async () => {
-      // Check if this looks like a Supabase UUID
       if (movieId.includes('-') && movieId.length === 36) {
         return await contentService.getContentById(movieId);
       }
@@ -43,7 +42,7 @@ const MovieDetail = () => {
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-content-detail', movieId],
     queryFn: async () => {
-      if (supabaseContent) return null; // Skip if we have Supabase content
+      if (supabaseContent) return null;
       
       const numericId = parseInt(movieId);
       if (isNaN(numericId)) return null;
@@ -61,32 +60,68 @@ const MovieDetail = () => {
     enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
-  // Fetch additional cast data from TMDB for better details
-  const { data: tmdbCast } = useQuery({
-    queryKey: ['tmdb-cast', movieId],
+  // Fetch cast data from TMDB for both Supabase and TMDB content
+  const { data: tmdbCast, isLoading: isLoadingCast } = useQuery({
+    queryKey: ['tmdb-cast', movieId, supabaseContent?.tmdb_id],
     queryFn: async () => {
-      const numericId = parseInt(movieId);
-      if (isNaN(numericId)) return [];
+      let tmdbId = null;
+      
+      // Get TMDB ID from either source
+      if (supabaseContent?.tmdb_id) {
+        tmdbId = supabaseContent.tmdb_id;
+      } else if (!isNaN(parseInt(movieId))) {
+        tmdbId = parseInt(movieId);
+      }
+      
+      if (!tmdbId) return [];
       
       try {
+        // Try movie first
         const response = await fetch(
-          `https://api.themoviedb.org/3/movie/${numericId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
+          `https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
         );
-        const data = await response.json();
-        return data.cast?.slice(0, 6) || [];
-      } catch (error) {
-        try {
-          const response = await fetch(
-            `https://api.themoviedb.org/3/tv/${numericId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
-          );
+        if (response.ok) {
           const data = await response.json();
-          return data.cast?.slice(0, 6) || [];
-        } catch (tvError) {
-          return [];
+          return data.cast?.slice(0, 8) || [];
         }
+        
+        // Try TV show if movie fails
+        const tvResponse = await fetch(
+          `https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
+        );
+        if (tvResponse.ok) {
+          const tvData = await tvResponse.json();
+          return tvData.cast?.slice(0, 8) || [];
+        }
+        
+        return [];
+      } catch (error) {
+        console.error('Error fetching cast:', error);
+        return [];
       }
     },
-    enabled: !supabaseContent && !!movieId && !isNaN(parseInt(movieId))
+    enabled: !!(supabaseContent?.tmdb_id || (!isNaN(parseInt(movieId)) && !supabaseContent))
+  });
+
+  // Fetch additional movie details for rating if we have Supabase content
+  const { data: tmdbDetails } = useQuery({
+    queryKey: ['tmdb-details', supabaseContent?.tmdb_id],
+    queryFn: async () => {
+      if (!supabaseContent?.tmdb_id) return null;
+      
+      try {
+        const isTV = supabaseContent.content_type === 'series';
+        if (isTV) {
+          return await tmdbService.getTVShowDetails(supabaseContent.tmdb_id);
+        } else {
+          return await tmdbService.getMovieDetails(supabaseContent.tmdb_id);
+        }
+      } catch (error) {
+        console.error('Error fetching TMDB details:', error);
+        return null;
+      }
+    },
+    enabled: !!(supabaseContent?.tmdb_id)
   });
 
   const movie = supabaseContent || tmdbContent;
@@ -120,10 +155,12 @@ const MovieDetail = () => {
     title = supabaseMovie.title;
     overview = supabaseMovie.description || 'No description available';
     year = supabaseMovie.release_year;
-    rating = 8.5; // Default rating for admin content
+    // Use TMDB rating if available, otherwise default
+    rating = tmdbDetails?.vote_average || 8.5;
     isTV = supabaseMovie.content_type === 'series';
-    cast = supabaseMovie.cast_members || [];
-    genres = supabaseMovie.genres || [];
+    // Use TMDB cast if available, otherwise fall back to Supabase cast
+    cast = tmdbCast || supabaseMovie.cast_members || [];
+    genres = tmdbDetails?.genres || supabaseMovie.genres || [];
   } else {
     const tmdbMovie = movie as any;
     title = tmdbMovie.title || tmdbMovie.name || 'Untitled';
@@ -232,12 +269,12 @@ const MovieDetail = () => {
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-4">
           <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <User className="w-5 h-5" />
-            Cast
+            Cast {isLoadingCast && <Loader2 className="w-4 h-4 animate-spin" />}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {cast.slice(0, 6).map((actor: any, index: number) => (
+            {cast.slice(0, 8).map((actor: any, index: number) => (
               <div key={actor.id || index} className="text-center">
-                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 overflow-hidden">
                   {actor.profile_path || actor.profile_image_url ? (
                     <img 
                       src={actor.profile_path ? tmdbService.getImageUrl(actor.profile_path) : actor.profile_image_url} 
@@ -248,11 +285,14 @@ const MovieDetail = () => {
                     <User className="w-8 h-8 text-gray-400" />
                   )}
                 </div>
-                <h4 className="text-white text-sm font-semibold">{actor.name}</h4>
-                <p className="text-gray-400 text-xs">{actor.character || actor.character_name || actor.role}</p>
+                <h4 className="text-white text-sm font-semibold line-clamp-1">{actor.name}</h4>
+                <p className="text-gray-400 text-xs line-clamp-1">{actor.character || actor.character_name || actor.role || 'Actor'}</p>
               </div>
             ))}
           </div>
+          {cast.length === 0 && !isLoadingCast && (
+            <p className="text-gray-400 text-center">No cast information available</p>
+          )}
         </div>
 
         {/* Production Details */}
@@ -264,20 +304,6 @@ const MovieDetail = () => {
                 <span key={company.id} className="text-gray-300 text-sm bg-gray-700 px-2 py-1 rounded">
                   {company.name}
                 </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Episodes for series */}
-        {isSupabaseContent && isTV && (movie as any).episodes && (movie as any).episodes.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-bold text-white mb-3">Episodes</h3>
-            <div className="space-y-2">
-              {(movie as any).episodes.slice(0, 5).map((episode: any) => (
-                <div key={episode.id} className="text-gray-300 text-sm bg-gray-700 px-3 py-2 rounded">
-                  S{episode.season_number}E{episode.episode_number}: {episode.title || 'Episode ' + episode.episode_number}
-                </div>
               ))}
             </div>
           </div>
