@@ -22,8 +22,8 @@ const MovieDetail = () => {
     }
   };
 
-  const handleWatchNow = (streamingUrl: string) => {
-    navigate(`/watch/${movieId}?url=${encodeURIComponent(streamingUrl)}`);
+  const handleWatchNow = () => {
+    navigate(`/watch/${movieId}`);
   };
 
   // Try to fetch from Supabase first (for admin content)
@@ -93,7 +93,7 @@ const MovieDetail = () => {
 
   // Handle both Supabase and TMDB content formats
   const isSupabaseContent = !!(movie as any).content_type;
-  let title, overview, releaseDate, year, rating, isTV, cast, genres, streamingUrl;
+  let title, overview, releaseDate, year, rating, isTV, cast, genres;
 
   if (isSupabaseContent) {
     const supabaseMovie = movie as any;
@@ -104,7 +104,6 @@ const MovieDetail = () => {
     isTV = supabaseMovie.content_type === 'series';
     cast = supabaseMovie.cast_members || [];
     genres = supabaseMovie.genres || [];
-    streamingUrl = supabaseMovie.streaming_links?.[0]?.url;
   } else {
     const tmdbMovie = movie as any;
     title = tmdbMovie.title || tmdbMovie.name || 'Untitled';
@@ -115,7 +114,6 @@ const MovieDetail = () => {
     isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name;
     cast = mockCast;
     genres = tmdbMovie.genres || [];
-    streamingUrl = tmdbMovie.streamingLink;
   }
 
   const posterUrl = isSupabaseContent 
@@ -199,25 +197,14 @@ const MovieDetail = () => {
 
             <p className="text-sm text-gray-300 leading-relaxed mb-4">{overview}</p>
 
-            {streamingUrl ? (
-              <Button 
-                size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 w-full md:w-auto"
-                onClick={() => handleWatchNow(streamingUrl)}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Watch Now
-              </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                className="bg-gray-600 text-white px-6 py-3 w-full md:w-auto cursor-not-allowed"
-                disabled
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Coming Soon
-              </Button>
-            )}
+            <Button 
+              size="lg" 
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 w-full md:w-auto"
+              onClick={handleWatchNow}
+            >
+              <Play className="w-5 h-5 mr-2" />
+              Watch Now
+            </Button>
           </div>
         </div>
 

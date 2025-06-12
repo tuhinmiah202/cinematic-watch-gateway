@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ContentItem {
@@ -80,19 +79,18 @@ export const contentService = {
       .from('content')
       .select(`
         *,
-        content_cast!inner(
+        content_cast(
           role,
           character_name,
           cast_members(id, name, profile_image_url)
         ),
-        content_genres!inner(
+        content_genres(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(id, url, platform_name, is_active),
+        streaming_links(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
-      .eq('streaming_links.is_active', true)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -118,20 +116,19 @@ export const contentService = {
       .from('content')
       .select(`
         *,
-        content_cast!inner(
+        content_cast(
           role,
           character_name,
           cast_members(id, name, profile_image_url)
         ),
-        content_genres!inner(
+        content_genres(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(id, url, platform_name, is_active),
+        streaming_links(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
       .eq('content_type', type)
-      .eq('streaming_links.is_active', true)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -157,19 +154,18 @@ export const contentService = {
       .from('content')
       .select(`
         *,
-        content_cast!inner(
+        content_cast(
           role,
           character_name,
           cast_members(id, name, profile_image_url)
         ),
-        content_genres!inner(
+        content_genres(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(id, url, platform_name, is_active),
+        streaming_links(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('is_admin_approved', true)
-      .eq('streaming_links.is_active', true)
       .ilike('title', `%${query}%`)
       .order('updated_at', { ascending: false });
 
@@ -196,20 +192,19 @@ export const contentService = {
       .from('content')
       .select(`
         *,
-        content_cast!inner(
+        content_cast(
           role,
           character_name,
           cast_members(id, name, profile_image_url)
         ),
-        content_genres!inner(
+        content_genres(
           genres(id, name, tmdb_id)
         ),
-        streaming_links!inner(id, url, platform_name, is_active),
+        streaming_links(id, url, platform_name, is_active),
         episodes(*)
       `)
       .eq('id', id)
       .eq('is_admin_approved', true)
-      .eq('streaming_links.is_active', true)
       .single();
 
     if (error) {
@@ -304,7 +299,6 @@ export const contentService = {
   async addCastToContent(contentId: string, castMembers: { name: string; role?: string; character_name?: string }[]): Promise<boolean> {
     try {
       for (const cast of castMembers) {
-        // First, ensure cast member exists
         let { data: existingCast } = await supabase
           .from('cast_members')
           .select('id')
@@ -324,7 +318,6 @@ export const contentService = {
           castMemberId = newCast?.id;
         }
 
-        // Add relationship
         if (castMemberId) {
           await supabase
             .from('content_cast')

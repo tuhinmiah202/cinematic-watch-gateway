@@ -3,21 +3,54 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
+import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
-  const movieId = parseInt(id || '0');
+  const movieId = id || '0';
   const [countdown, setCountdown] = useState(5);
   const [showWatchButton, setShowWatchButton] = useState(false);
 
-  const { data: movie, isLoading } = useQuery({
-    queryKey: ['movie', movieId],
-    queryFn: () => tmdbService.getMovieDetails(movieId),
+  // Try to fetch from Supabase first (for admin content)
+  const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
+    queryKey: ['supabase-content-watch', movieId],
+    queryFn: async () => {
+      // Check if this looks like a Supabase UUID
+      if (movieId.includes('-') && movieId.length === 36) {
+        return await contentService.getContentById(movieId);
+      }
+      return null;
+    },
     enabled: !!movieId
   });
+
+  // Fetch from TMDB if not found in Supabase
+  const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
+    queryKey: ['tmdb-content-watch', movieId],
+    queryFn: async () => {
+      if (supabaseContent) return null; // Skip if we have Supabase content
+      
+      const numericId = parseInt(movieId);
+      if (isNaN(numericId)) return null;
+      
+      try {
+        return await tmdbService.getMovieDetails(numericId);
+      } catch (movieError) {
+        try {
+          return await tmdbService.getTVShowDetails(numericId);
+        } catch (tvError) {
+          throw new Error('Content not found');
+        }
+      }
+    },
+    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+  });
+
+  const movie = supabaseContent || tmdbContent;
+  const isLoading = isLoadingSupabase || isLoadingTmdb;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -35,8 +68,9 @@ const WatchMovie = () => {
   }, []);
 
   const handleWatchNow = () => {
-    // In a real app, this would redirect to the streaming link from admin panel
-    window.open('https://example-streaming-platform.com', '_blank');
+    // Get streaming URL from Supabase content or use default
+    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url || 'https://example-streaming-platform.com';
+    window.open(streamingUrl, '_blank');
   };
 
   if (isLoading) {
@@ -46,6 +80,26 @@ const WatchMovie = () => {
       </div>
     );
   }
+
+  if (!movie) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
+        <div className="text-center text-white">
+          <h1 className="text-xl font-bold mb-4">Content not found</h1>
+          <Link to="/">
+            <Button>Return Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle both Supabase and TMDB content formats
+  const isSupabaseContent = !!(movie as any).content_type;
+  const title = isSupabaseContent ? (movie as any).title : ((movie as any).title || (movie as any).name);
+  const posterUrl = isSupabaseContent 
+    ? (movie as any).poster_url || '/placeholder.svg'
+    : tmdbService.getImageUrl((movie as any).poster_path);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -69,17 +123,15 @@ const WatchMovie = () => {
 
         <div className="max-w-4xl mx-auto text-center">
           {/* Movie Info */}
-          {movie && (
-            <div className="mb-12">
-              <img
-                src={tmdbService.getImageUrl(movie.poster_path)}
-                alt={movie.title}
-                className="w-48 h-72 object-cover rounded-xl shadow-2xl mx-auto mb-6"
-              />
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{movie.title}</h1>
-              <p className="text-xl text-gray-300">Watch on main streaming platform</p>
-            </div>
-          )}
+          <div className="mb-12">
+            <img
+              src={posterUrl}
+              alt={title}
+              className="w-48 h-72 object-cover rounded-xl shadow-2xl mx-auto mb-6"
+            />
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>
+            <p className="text-xl text-gray-300">Watch on main streaming platform</p>
+          </div>
 
           {/* AdSense Placeholder */}
           <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
