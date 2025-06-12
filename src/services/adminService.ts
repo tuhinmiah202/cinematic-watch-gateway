@@ -22,10 +22,27 @@ export const adminService = {
     return await contentService.getApprovedContent();
   },
 
-  // Add content from TMDB
+  // Check if content already exists by TMDB ID
+  async checkContentExists(tmdbId: number): Promise<boolean> {
+    try {
+      const existingContent = await contentService.getApprovedContent();
+      return existingContent.some(content => content.tmdb_id === tmdbId);
+    } catch (error) {
+      console.error('Error checking if content exists:', error);
+      return false;
+    }
+  },
+
+  // Add content from TMDB with duplicate check
   async addFromTMDB(tmdbMovie: any): Promise<boolean> {
     try {
       console.log('Adding TMDB content:', tmdbMovie);
+      
+      // Check if content already exists
+      if (tmdbMovie.id && await this.checkContentExists(tmdbMovie.id)) {
+        console.log('Content already exists with TMDB ID:', tmdbMovie.id);
+        return false; // Return false to indicate duplicate
+      }
       
       const title = tmdbMovie.title || tmdbMovie.name;
       const releaseDate = tmdbMovie.release_date || tmdbMovie.first_air_date;
@@ -63,10 +80,21 @@ export const adminService = {
     }
   },
 
-  // Add custom content
+  // Add custom content with duplicate check by title
   async addCustomContent(content: AdminContentItem): Promise<boolean> {
     try {
       console.log('Adding custom content:', content);
+      
+      // Check if content with same title already exists
+      const existingContent = await contentService.getApprovedContent();
+      const titleExists = existingContent.some(item => 
+        item.title.toLowerCase().trim() === content.title.toLowerCase().trim()
+      );
+      
+      if (titleExists) {
+        console.log('Content already exists with title:', content.title);
+        return false; // Return false to indicate duplicate
+      }
       
       const contentId = await contentService.addContent({
         title: content.title,

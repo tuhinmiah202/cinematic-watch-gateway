@@ -61,16 +61,36 @@ const MovieDetail = () => {
     enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
+  // Fetch additional cast data from TMDB for better details
+  const { data: tmdbCast } = useQuery({
+    queryKey: ['tmdb-cast', movieId],
+    queryFn: async () => {
+      const numericId = parseInt(movieId);
+      if (isNaN(numericId)) return [];
+      
+      try {
+        const response = await fetch(
+          `https://api.themoviedb.org/3/movie/${numericId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
+        );
+        const data = await response.json();
+        return data.cast?.slice(0, 6) || [];
+      } catch (error) {
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/tv/${numericId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`
+          );
+          const data = await response.json();
+          return data.cast?.slice(0, 6) || [];
+        } catch (tvError) {
+          return [];
+        }
+      }
+    },
+    enabled: !supabaseContent && !!movieId && !isNaN(parseInt(movieId))
+  });
+
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || isLoadingTmdb;
-
-  // Mock cast data for TMDB content
-  const mockCast = [
-    { name: "John Doe", character: "Main Character", profile_path: null },
-    { name: "Jane Smith", character: "Supporting Role", profile_path: null },
-    { name: "Mike Johnson", character: "Villain", profile_path: null },
-    { name: "Sarah Williams", character: "Love Interest", profile_path: null }
-  ];
 
   if (isLoading) {
     return (
@@ -100,7 +120,7 @@ const MovieDetail = () => {
     title = supabaseMovie.title;
     overview = supabaseMovie.description || 'No description available';
     year = supabaseMovie.release_year;
-    rating = 8.0; // Default rating for admin content
+    rating = 8.5; // Default rating for admin content
     isTV = supabaseMovie.content_type === 'series';
     cast = supabaseMovie.cast_members || [];
     genres = supabaseMovie.genres || [];
@@ -112,7 +132,7 @@ const MovieDetail = () => {
     year = tmdbMovie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
     rating = tmdbMovie.vote_average || 0;
     isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name;
-    cast = mockCast;
+    cast = tmdbCast || [];
     genres = tmdbMovie.genres || [];
   }
 
@@ -214,13 +234,13 @@ const MovieDetail = () => {
             <User className="w-5 h-5" />
             Cast
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {cast.slice(0, 4).map((actor: any, index: number) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {cast.slice(0, 6).map((actor: any, index: number) => (
               <div key={actor.id || index} className="text-center">
                 <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2">
-                  {actor.profile_image_url ? (
+                  {actor.profile_path || actor.profile_image_url ? (
                     <img 
-                      src={actor.profile_image_url} 
+                      src={actor.profile_path ? tmdbService.getImageUrl(actor.profile_path) : actor.profile_image_url} 
                       alt={actor.name}
                       className="w-16 h-16 rounded-full object-cover"
                     />
@@ -229,7 +249,7 @@ const MovieDetail = () => {
                   )}
                 </div>
                 <h4 className="text-white text-sm font-semibold">{actor.name}</h4>
-                <p className="text-gray-400 text-xs">{actor.character_name || actor.character || actor.role}</p>
+                <p className="text-gray-400 text-xs">{actor.character || actor.character_name || actor.role}</p>
               </div>
             ))}
           </div>
