@@ -149,36 +149,37 @@ const WatchMovie = () => {
           </div>
 
           {/* Countdown or Watch Button */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-12 border border-purple-500/20">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-purple-500/20 mx-2">
             {!showWatchButton ? (
               <div className="text-center">
                 <Clock className="w-16 h-16 text-purple-400 mx-auto mb-6" />
-                <h2 className="text-3xl font-bold text-white mb-4">Preparing your stream...</h2>
-                <div className="text-6xl font-bold text-purple-400 mb-4">{countdown}</div>
-                <p className="text-gray-300 text-lg">Please wait while we prepare the best viewing options</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Preparing your stream...</h2>
+                <div className="text-5xl md:text-6xl font-bold text-purple-400 mb-4">{countdown}</div>
+                <p className="text-gray-300 text-base md:text-lg">Please wait while we prepare the best viewing options</p>
               </div>
             ) : (
               <div className="text-center">
                 <Play className="w-16 h-16 text-green-400 mx-auto mb-6" />
-                <h2 className="text-3xl font-bold text-white mb-6">Ready to Watch!</h2>
-                <Button 
-                  onClick={handleWatchNow}
-                  size="lg" 
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-2xl px-12 py-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                >
-                  {hasStreamingLink ? (
-                    <>
-                      <Play className="w-8 h-8 mr-3" />
-                      Watch Now
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-8 h-8 mr-3" />
-                      Find Streaming Options
-                    </>
-                  )}
-                </Button>
-                <p className="text-gray-300 text-sm mt-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">Ready to Watch!</h2>
+                <div className="w-full max-w-sm mx-auto">
+                  <Button 
+                    onClick={handleWatchNow}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-lg md:text-xl px-8 py-4 md:py-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  >
+                    {hasStreamingLink ? (
+                      <>
+                        <Play className="w-6 h-6 mr-3" />
+                        Watch Now
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-6 h-6 mr-3" />
+                        Find Streaming Options
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-gray-300 text-sm mt-4 px-4">
                   {hasStreamingLink 
                     ? 'You will be redirected to the streaming platform' 
                     : 'You will be redirected to search for streaming options'
