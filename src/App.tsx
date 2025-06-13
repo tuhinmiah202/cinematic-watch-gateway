@@ -11,6 +11,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminManage from "./pages/AdminManage";
 import NotFound from "./pages/NotFound";
+import SitemapXML from "./pages/SitemapXML";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/manage" element={<AdminManage />} />
+          <Route path="/sitemap.xml" element={<SitemapXML />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

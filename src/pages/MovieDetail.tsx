@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -274,20 +273,9 @@ const MovieDetail = () => {
             <User className="w-5 h-5" />
             Cast {isLoadingCast && <Loader2 className="w-4 h-4 animate-spin" />}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {cast.slice(0, 8).map((actor: any, index: number) => (
               <div key={actor.id || index} className="text-center">
-                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 overflow-hidden">
-                  {actor.profile_path || actor.profile_image_url ? (
-                    <img 
-                      src={actor.profile_path ? tmdbService.getImageUrl(actor.profile_path) : actor.profile_image_url} 
-                      alt={actor.name}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-gray-400" />
-                  )}
-                </div>
                 <h4 className="text-white text-sm font-semibold line-clamp-1">{actor.name}</h4>
                 <p className="text-gray-400 text-xs line-clamp-1">{actor.character || actor.character_name || actor.role || 'Actor'}</p>
               </div>
