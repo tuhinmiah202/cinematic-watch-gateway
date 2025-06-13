@@ -44,9 +44,9 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
- preview: {
-  host: "0.0.0.0",
-  port: 4173,
-  allowedHosts: ['cinestreambd.onrender.com']
- },
+  preview: {
+    host: "0.0.0.0",
+    port: 4173,
+    allowedHosts: ['cinestreambd.onrender.com']
+  },
 }));

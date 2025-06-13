@@ -61,27 +61,30 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Create blob and download
-      const blob = new Blob([sitemap], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
+      // Set proper headers for XML response
+      const newDoc = document.implementation.createHTMLDocument();
+      newDoc.documentElement.innerHTML = `<head><meta http-equiv="Content-Type" content="application/xml; charset=utf-8"></head><body><pre>${sitemap.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body>`;
       
-      // Replace page content with XML
+      // Replace current document
       document.open();
-      document.write(sitemap);
+      document.write('<?xml version="1.0" encoding="UTF-8"?>\n' + sitemap);
       document.close();
-      
-      // Set proper content type
-      if (document.contentType !== 'application/xml') {
-        document.contentType = 'application/xml';
-      }
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
   if (isLoadingSupabase || isLoadingTmdb) {
-    return <div>Generating sitemap...</div>;
+    return (
+      <div style={{ fontFamily: 'monospace', padding: '20px' }}>
+        Generating sitemap...
+      </div>
+    );
   }
 
-  return null;
+  return (
+    <div style={{ fontFamily: 'monospace', padding: '20px' }}>
+      Loading sitemap data...
+    </div>
+  );
 };
 
 export default SitemapXML;
