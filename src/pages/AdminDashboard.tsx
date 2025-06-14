@@ -323,8 +323,8 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Select a genre" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600">
-                    {genresData?.genres.map((genre) => (
-                      <SelectItem key={genre.id} value={genre.id.toString() } className="text-white">
+                    {genresData && genresData.genres && genresData.genres.map((genre) => (
+                      <SelectItem key={genre.id} value={genre.id.toString()} className="text-white">
                         {genre.name}
                       </SelectItem>
                     ))}
@@ -349,11 +349,11 @@ const AdminDashboard = () => {
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-white font-semibold">
-                    Results ({genreResults.results.length})
+                    Results ({genreResults.results?.length || 0})
                   </h3>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => setSelectedItems(new Set(genreResults.results.map(item => item.id)))}
+                      onClick={() => setSelectedItems(new Set(genreResults.results?.map(item => item.id) || []))}
                       variant="outline"
                       size="sm"
                       className="text-white border-white/20"
@@ -379,7 +379,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
-                  {genreResults.results.slice(0, 20).map((item) => {
+                  {genreResults.results && genreResults.results.slice(0, 20).map((item) => {
                     const title = item.title || item.name;
                     const releaseDate = item.release_date || item.first_air_date;
                     const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
@@ -440,7 +440,7 @@ const AdminDashboard = () => {
               <div className="mt-4">
                 <h3 className="text-white font-semibold mb-3 text-sm">Search Results:</h3>
                 <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
-                  {searchResults.results.slice(0, 6).map((movie) => {
+                  {searchResults.results && searchResults.results.slice(0, 6).map((movie) => {
                     const title = movie.title || movie.name;
                     const releaseDate = movie.release_date || movie.first_air_date;
                     const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
