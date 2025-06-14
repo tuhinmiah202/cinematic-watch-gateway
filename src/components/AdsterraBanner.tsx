@@ -9,9 +9,10 @@ interface AdsterraBannerProps {
 const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const scriptLoadedRef = useRef(false);
 
-  // Responsive dimensions based on screen size
+  // Get responsive dimensions
   const getAdDimensions = () => {
     if (typeof window !== 'undefined') {
       const width = window.innerWidth;
@@ -26,82 +27,93 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
   };
 
   useEffect(() => {
-    const loadAd = () => {
-      if (!adContainerRef.current) return;
+    if (!adContainerRef.current || scriptLoadedRef.current) return;
 
-      const dimensions = getAdDimensions();
-      
-      // Clear any existing content
-      adContainerRef.current.innerHTML = '';
-      
-      // Set up the atOptions for Adsterra
-      (window as any).atOptions = {
-        'key': '7b79a2783b27a651e01416f91705d630',
-        'format': 'iframe',
-        'height': dimensions.height,
-        'width': dimensions.width,
-        'params': {}
-      };
+    const dimensions = getAdDimensions();
+    console.log('Loading Adsterra banner with dimensions:', dimensions);
 
-      // Create the script element
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = '//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js';
-      script.async = true;
-      
-      // Set up timeout to handle slow/failed loads
-      const timeout = setTimeout(() => {
-        console.log('Ad loading timeout - showing fallback');
-        setHasError(true);
-        setIsLoading(false);
-      }, 10000); // 10 second timeout
+    // Clear container
+    adContainerRef.current.innerHTML = '';
 
-      script.onload = () => {
-        console.log('Adsterra script loaded successfully');
-        clearTimeout(timeout);
-        setIsLoading(false);
-      };
-
-      script.onerror = () => {
-        console.error('Failed to load Adsterra script');
-        clearTimeout(timeout);
-        setHasError(true);
-        setIsLoading(false);
-      };
-
-      // Append to container
-      adContainerRef.current.appendChild(script);
-      console.log('Adsterra script added to DOM');
+    // Set global atOptions
+    (window as any).atOptions = {
+      'key': '7b79a2783b27a651e01416f91705d630',
+      'format': 'iframe',
+      'height': dimensions.height,
+      'width': dimensions.width,
+      'params': {}
     };
 
-    // Load the ad after a small delay to ensure DOM is ready
-    const timer = setTimeout(loadAd, 500);
+    // Create and load script
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = '//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js';
+    script.async = true;
+
+    // Set loading timeout
+    const loadingTimeout = setTimeout(() => {
+      console.log('Ad loading timeout - showing fallback');
+      setShowFallback(true);
+      setIsLoading(false);
+    }, 15000); // Increased to 15 seconds
+
+    // Success handler
+    const handleSuccess = () => {
+      console.log('Adsterra script loaded successfully');
+      clearTimeout(loadingTimeout);
+      scriptLoadedRef.current = true;
+      setIsLoading(false);
+      
+      // Additional check after script loads
+      setTimeout(() => {
+        if (adContainerRef.current && adContainerRef.current.children.length === 0) {
+          console.log('No ad content rendered, showing fallback');
+          setShowFallback(true);
+        }
+      }, 2000);
+    };
+
+    // Error handler
+    const handleError = () => {
+      console.error('Failed to load Adsterra script');
+      clearTimeout(loadingTimeout);
+      setShowFallback(true);
+      setIsLoading(false);
+    };
+
+    script.onload = handleSuccess;
+    script.onerror = handleError;
+
+    // Append script
+    adContainerRef.current.appendChild(script);
+    console.log('Adsterra script appended to container');
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(loadingTimeout);
     };
   }, []);
 
   const dimensions = getAdDimensions();
 
-  if (hasError) {
+  // Show fallback if needed
+  if (showFallback) {
     return (
       <div 
         className={`w-full bg-gray-800/30 border border-purple-500/10 rounded-lg flex items-center justify-center ${className}`}
         style={{ height: `${dimensions.height}px`, maxWidth: `${dimensions.width}px`, margin: '0 auto' }}
       >
-        <span className="text-gray-500 text-xs">Ad space</span>
+        <span className="text-gray-500 text-xs">Advertisement</span>
       </div>
     );
   }
 
   return (
     <div 
-      className={`w-full bg-gray-800/50 border border-purple-500/20 rounded-lg overflow-hidden ${className}`}
+      className={`relative w-full bg-gray-800/50 border border-purple-500/20 rounded-lg overflow-hidden ${className}`}
       style={{ height: `${dimensions.height}px`, maxWidth: `${dimensions.width}px`, margin: '0 auto' }}
     >
       {isLoading && (
-        <div className="w-full h-full flex items-center justify-center absolute">
+        <div className="absolute inset-0 flex items-center justify-center">
           <Skeleton className="w-full h-full bg-gray-700/50" />
         </div>
       )}
