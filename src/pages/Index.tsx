@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
-import { MovieCard } from '@/components/MovieCard';
-import { Navbar } from '@/components/Navbar';
+import MovieCard from '@/components/MovieCard';
+import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,7 +19,7 @@ const Index = () => {
   // Fetch genres from TMDB
   const { data: genres } = useQuery({
     queryKey: ['genres'],
-    queryFn: tmdbService.getMovieGenres,
+    queryFn: () => tmdbService.getGenres().then(data => data.genres),
     initialData: []
   });
 
@@ -32,10 +33,14 @@ const Index = () => {
   } = useQuery({
     queryKey: ['supabase-content-initial'],
     queryFn: () => contentService.getApprovedContent(),
-    onSuccess: (data) => {
-      setSupabaseMovies(data);
-    },
   });
+
+  // Update supabaseMovies when data is fetched
+  useEffect(() => {
+    if (initialSupabaseData) {
+      setSupabaseMovies(initialSupabaseData);
+    }
+  }, [initialSupabaseData]);
 
   // Infinite query for TMDB movies
   const {
@@ -46,6 +51,7 @@ const Index = () => {
   } = useInfiniteQuery({
     queryKey: ['tmdb-movies', selectedGenre, searchTerm],
     queryFn: ({ pageParam = 1 }) => tmdbService.getPopularMovies(pageParam),
+    initialPageParam: 1,
     getNextPageParam: (lastPage: any) => {
       if (lastPage && lastPage.page < lastPage.total_pages) {
         return lastPage.page + 1;
@@ -143,7 +149,6 @@ const Index = () => {
             <MovieCard
               key={`${movie.id}-${index}`}
               movie={movie}
-              isSupabaseContent={isSupabaseContent(movie)}
             />
           ))}
         </div>

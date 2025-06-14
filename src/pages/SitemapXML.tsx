@@ -74,9 +74,6 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set the content type
-      document.contentType = 'application/xml';
-      
       // Clear existing content and display XML
       document.body.innerHTML = '';
       document.body.style.cssText = 'font-family: monospace; white-space: pre-wrap; margin: 0; padding: 10px; background: #f5f5f5;';
@@ -88,6 +85,12 @@ const SitemapXML = () => {
       
       // Set title
       document.title = 'Sitemap - CineStreamBD';
+      
+      // Create and append a meta tag for content type
+      const metaTag = document.createElement('meta');
+      metaTag.setAttribute('http-equiv', 'Content-Type');
+      metaTag.setAttribute('content', 'application/xml; charset=utf-8');
+      document.head.appendChild(metaTag);
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
