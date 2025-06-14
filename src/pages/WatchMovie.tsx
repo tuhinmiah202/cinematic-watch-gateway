@@ -6,6 +6,7 @@ import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import AdsterraBanner from '@/components/AdsterraBanner';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
@@ -141,24 +142,7 @@ const WatchMovie = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Adsterra Banner */}
-        <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
-          <div 
-            dangerouslySetInnerHTML={{
-              __html: `
-                <script type="text/javascript">
-                  atOptions = {
-                    'key' : '7b79a2783b27a651e01416f91705d630',
-                    'format' : 'iframe',
-                    'height' : 50,
-                    'width' : 320,
-                    'params' : {}
-                  };
-                </script>
-                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
-              `
-            }}
-          />
-        </div>
+        <AdsterraBanner className="mb-8" />
 
         <div className="max-w-4xl mx-auto text-center">
           {/* Movie Info */}
@@ -175,24 +159,7 @@ const WatchMovie = () => {
           </div>
 
           {/* Adsterra Banner */}
-          <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
-            <div 
-              dangerouslySetInnerHTML={{
-                __html: `
-                  <script type="text/javascript">
-                    atOptions = {
-                      'key' : '7b79a2783b27a651e01416f91705d630',
-                      'format' : 'iframe',
-                      'height' : 50,
-                      'width' : 320,
-                      'params' : {}
-                    };
-                  </script>
-                  <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
-                `
-              }}
-            />
-          </div>
+          <AdsterraBanner className="mb-8" />
 
           {/* Countdown or Watch Button */}
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-purple-500/20 mx-2">
@@ -246,24 +213,7 @@ const WatchMovie = () => {
           </div>
 
           {/* Adsterra Footer Banner */}
-          <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mt-8">
-            <div 
-              dangerouslySetInnerHTML={{
-                __html: `
-                  <script type="text/javascript">
-                    atOptions = {
-                      'key' : '7b79a2783b27a651e01416f91705d630',
-                      'format' : 'iframe',
-                      'height' : 50,
-                      'width' : 320,
-                      'params' : {}
-                    };
-                  </script>
-                  <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
-                `
-              }}
-            />
-          </div>
+          <AdsterraBanner className="mt-8" />
         </div>
       </div>
     </div>

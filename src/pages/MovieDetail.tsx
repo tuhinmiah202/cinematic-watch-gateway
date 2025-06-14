@@ -5,6 +5,7 @@ import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import AdsterraBanner from '@/components/AdsterraBanner';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -212,24 +213,7 @@ const MovieDetail = () => {
 
       <div className="container mx-auto px-4 py-4">
         {/* Adsterra Banner */}
-        <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-          <div 
-            dangerouslySetInnerHTML={{
-              __html: `
-                <script type="text/javascript">
-                  atOptions = {
-                    'key' : '7b79a2783b27a651e01416f91705d630',
-                    'format' : 'iframe',
-                    'height' : 50,
-                    'width' : 320,
-                    'params' : {}
-                  };
-                </script>
-                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
-              `
-            }}
-          />
-        </div>
+        <AdsterraBanner className="mb-4" />
 
         {/* Movie Info */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -333,24 +317,7 @@ const MovieDetail = () => {
         )}
 
         {/* Adsterra Footer Banner */}
-        <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center">
-          <div 
-            dangerouslySetInnerHTML={{
-              __html: `
-                <script type="text/javascript">
-                  atOptions = {
-                    'key' : '7b79a2783b27a651e01416f91705d630',
-                    'format' : 'iframe',
-                    'height' : 50,
-                    'width' : 320,
-                    'params' : {}
-                  };
-                </script>
-                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
-              `
-            }}
-          />
-        </div>
+        <AdsterraBanner />
       </div>
     </div>
   );
