@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
@@ -10,9 +10,14 @@ import { Loader2 } from 'lucide-react';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const movieId = id || '0';
   const [countdown, setCountdown] = useState(5);
   const [showWatchButton, setShowWatchButton] = useState(false);
+
+  const handleBack = () => {
+    navigate(`/movie/${movieId}`);
+  };
 
   // Try to fetch from Supabase first (for admin content)
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
@@ -93,9 +98,12 @@ const WatchMovie = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
         <div className="text-center text-white">
           <h1 className="text-xl font-bold mb-4">Content not found</h1>
-          <Link to="/">
-            <Button>Return Home</Button>
-          </Link>
+          <Button 
+            onClick={handleBack}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            Return Home
+          </Button>
         </div>
       </div>
     );
@@ -114,12 +122,15 @@ const WatchMovie = () => {
       {/* Header */}
       <div className="bg-black/50 backdrop-blur-md border-b border-purple-500/20">
         <div className="container mx-auto px-4 py-4">
-          <Link to={`/movie/${movieId}`}>
-            <Button variant="outline" size="sm" className="text-white border-white/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Movie
-            </Button>
-          </Link>
+          <Button 
+            onClick={handleBack}
+            variant="outline" 
+            size="sm" 
+            className="bg-black/50 text-white border-white/20 hover:bg-white/10"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Movie
+          </Button>
         </div>
       </div>
 

@@ -61,28 +61,52 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set proper headers for XML response
-      const newDoc = document.implementation.createHTMLDocument();
-      newDoc.documentElement.innerHTML = `<head><meta http-equiv="Content-Type" content="application/xml; charset=utf-8"></head><body><pre>${sitemap.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body>`;
+      // Create and download the sitemap as a file
+      const element = document.createElement('a');
+      const file = new Blob([sitemap], { type: 'application/xml' });
+      element.href = URL.createObjectURL(file);
+      element.download = 'sitemap.xml';
       
-      // Replace current document
+      // Replace the entire page content with raw XML
       document.open();
-      document.write('<?xml version="1.0" encoding="UTF-8"?>\n' + sitemap);
+      document.write(sitemap);
       document.close();
+      
+      // Set the content type header
+      if (document.querySelector('meta[http-equiv="Content-Type"]')) {
+        document.querySelector('meta[http-equiv="Content-Type"]')?.setAttribute('content', 'application/xml; charset=utf-8');
+      } else {
+        const meta = document.createElement('meta');
+        meta.setAttribute('http-equiv', 'Content-Type');
+        meta.setAttribute('content', 'application/xml; charset=utf-8');
+        document.head?.appendChild(meta);
+      }
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
   if (isLoadingSupabase || isLoadingTmdb) {
     return (
-      <div style={{ fontFamily: 'monospace', padding: '20px' }}>
+      <div style={{ 
+        fontFamily: 'monospace', 
+        padding: '20px',
+        backgroundColor: '#000',
+        color: '#fff',
+        minHeight: '100vh'
+      }}>
         Generating sitemap...
       </div>
     );
   }
 
   return (
-    <div style={{ fontFamily: 'monospace', padding: '20px' }}>
-      Loading sitemap data...
+    <div style={{ 
+      fontFamily: 'monospace', 
+      padding: '20px',
+      backgroundColor: '#000',
+      color: '#fff',
+      minHeight: '100vh'
+    }}>
+      Sitemap loading...
     </div>
   );
 };
