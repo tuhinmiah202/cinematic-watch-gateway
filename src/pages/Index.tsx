@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -236,6 +237,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       <Navbar onSearch={handleSearch} />
+      
+      {/* Upper section banner ad */}
+      <div className="container mx-auto px-4 pt-6">
+        <AdsterraBanner className="mb-6" />
+      </div>
       
       <div className="container mx-auto px-4 py-6">
         {/* Genre Filter and Search */}
