@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -266,6 +265,9 @@ const Index = () => {
           </Select>
         </div>
 
+        {/* Adsterra Banner after search/filter */}
+        <AdsterraBanner className="mb-6" />
+
         {/* Loading state */}
         {(isLoadingSupabaseInitial || isLoadingTmdb) && (
           <div className="flex justify-center items-center py-8">
@@ -282,6 +284,9 @@ const Index = () => {
             />
           ))}
         </div>
+
+        {/* Adsterra Banner after movies grid */}
+        <AdsterraBanner className="mb-6" />
 
         {/* Pagination */}
         {totalPages > 1 && !isLoadingSupabaseInitial && !isLoadingTmdb && (
