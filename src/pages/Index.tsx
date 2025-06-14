@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -22,7 +23,7 @@ const Index = () => {
   // Fetch genres from TMDB
   const { data: genres } = useQuery({
     queryKey: ['genres'],
-    queryFn: () => tmdbService.getGenres().then(data => data.genres),
+    queryFn: () => tmdbService.getGenres().then(data => data.genres || []),
   });
 
   // Function to determine if content is from Supabase
@@ -243,7 +244,7 @@ const Index = () => {
             </SelectTrigger>
             <SelectContent className="bg-gray-800 text-white border-purple-500/20 rounded-lg">
               <SelectItem value="all">All Genres</SelectItem>
-              {genres?.map((genre) => (
+              {(genres || []).map((genre) => (
                 <SelectItem key={genre.id} value={genre.id.toString()}>
                   {genre.name}
                 </SelectItem>
