@@ -7,22 +7,29 @@ import { useEffect } from 'react';
 const SitemapXML = () => {
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-sitemap'],
-    queryFn: () => contentService.getApprovedContent()
+    queryFn: () => contentService.getApprovedContent(),
+    retry: false
   });
 
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-popular-sitemap'],
     queryFn: async () => {
-      const [movies, tvShows] = await Promise.all([
-        tmdbService.getPopularMovies(),
-        tmdbService.getPopularTVShows()
-      ]);
-      return [...movies.results.slice(0, 100), ...tvShows.results.slice(0, 100)];
-    }
+      try {
+        const [movies, tvShows] = await Promise.all([
+          tmdbService.getPopularMovies(),
+          tmdbService.getPopularTVShows()
+        ]);
+        return [...movies.results.slice(0, 100), ...tvShows.results.slice(0, 100)];
+      } catch (error) {
+        console.error('Error fetching TMDB content:', error);
+        return [];
+      }
+    },
+    retry: false
   });
 
   useEffect(() => {
-    if (!isLoadingSupabase && !isLoadingTmdb && supabaseContent && tmdbContent) {
+    if (!isLoadingSupabase && !isLoadingTmdb) {
       const baseUrl = 'https://cinestreambd.onrender.com';
       const currentDate = new Date().toISOString().split('T')[0];
       
@@ -35,45 +42,52 @@ const SitemapXML = () => {
     <priority>1.0</priority>
   </url>`;
 
-      // Add Supabase content
-      supabaseContent.forEach((item) => {
-        const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
-        sitemap += `
+      // Add Supabase content if available
+      if (supabaseContent && Array.isArray(supabaseContent)) {
+        supabaseContent.forEach((item) => {
+          const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
+          sitemap += `
   <url>
     <loc>${baseUrl}/movie/${item.id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
-      });
+        });
+      }
 
-      // Add TMDB content
-      tmdbContent.forEach((item) => {
-        sitemap += `
+      // Add TMDB content if available
+      if (tmdbContent && Array.isArray(tmdbContent)) {
+        tmdbContent.forEach((item) => {
+          if (item && item.id) {
+            sitemap += `
   <url>
     <loc>${baseUrl}/movie/${item.id}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
-      });
+          }
+        });
+      }
 
       sitemap += `
 </urlset>`;
 
-      // Set the content type and write the XML
-      const head = document.head || document.getElementsByTagName('head')[0];
-      const meta = document.createElement('meta');
-      meta.httpEquiv = 'Content-Type';
-      meta.content = 'application/xml; charset=utf-8';
-      head.appendChild(meta);
+      // Set the content type
+      document.contentType = 'application/xml';
       
-      // Write XML content
-      document.body.innerHTML = `<pre>${sitemap.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
-      document.body.style.fontFamily = 'monospace';
-      document.body.style.whiteSpace = 'pre-wrap';
-      document.body.style.margin = '0';
-      document.body.style.padding = '10px';
+      // Clear existing content and display XML
+      document.body.innerHTML = '';
+      document.body.style.cssText = 'font-family: monospace; white-space: pre-wrap; margin: 0; padding: 10px; background: #f5f5f5;';
+      
+      const pre = document.createElement('pre');
+      pre.textContent = sitemap;
+      pre.style.cssText = 'margin: 0; font-size: 12px; line-height: 1.4;';
+      document.body.appendChild(pre);
+      
+      // Set title
+      document.title = 'Sitemap - CineStreamBD';
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
@@ -82,11 +96,12 @@ const SitemapXML = () => {
       <div style={{ 
         fontFamily: 'monospace', 
         padding: '20px',
-        backgroundColor: '#000',
-        color: '#fff',
+        backgroundColor: '#f5f5f5',
+        color: '#333',
         minHeight: '100vh'
       }}>
-        Generating sitemap...
+        <h1>Generating sitemap...</h1>
+        <p>Please wait while we fetch the latest content.</p>
       </div>
     );
   }
