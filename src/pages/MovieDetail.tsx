@@ -22,6 +22,16 @@ const MovieDetail = () => {
   };
 
   const handleWatchNow = () => {
+    const adShown = sessionStorage.getItem('adShown');
+    
+    if (!adShown) {
+      // First click - show ad
+      sessionStorage.setItem('adShown', 'true');
+      window.open('https://www.profitableratecpm.com/hx4zcv49sx?key=c21ff84dc56c77f932876f2b0cacbe19', '_blank');
+      return;
+    }
+    
+    // Second click onwards - normal behavior
     const currentParams = searchParams.toString();
     if (currentParams) {
       navigate(`/watch/${movieId}?back=${encodeURIComponent(currentParams)}`);

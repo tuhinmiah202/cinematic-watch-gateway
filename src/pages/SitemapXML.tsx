@@ -61,13 +61,14 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Clear the document and write clean XML
+      // Create a blob and set up download
+      const blob = new Blob([sitemap], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      
+      // Clear document and write XML
       document.open();
       document.write(sitemap);
       document.close();
-      
-      // Set proper content type
-      document.contentType = 'application/xml';
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
