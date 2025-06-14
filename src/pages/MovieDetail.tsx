@@ -22,16 +22,18 @@ const MovieDetail = () => {
   };
 
   const handleWatchNow = () => {
-    const adShown = sessionStorage.getItem('adShown');
+    // Check if ad was shown for this specific movie
+    const adShownKey = `adShown_${movieId}`;
+    const adShown = sessionStorage.getItem(adShownKey);
     
     if (!adShown) {
-      // First click - show ad
-      sessionStorage.setItem('adShown', 'true');
+      // First click for this movie - show ad
+      sessionStorage.setItem(adShownKey, 'true');
       window.open('https://www.profitableratecpm.com/hx4zcv49sx?key=c21ff84dc56c77f932876f2b0cacbe19', '_blank');
       return;
     }
     
-    // Second click onwards - normal behavior
+    // Second click onwards for this movie - normal behavior
     const currentParams = searchParams.toString();
     if (currentParams) {
       navigate(`/watch/${movieId}?back=${encodeURIComponent(currentParams)}`);
@@ -209,9 +211,24 @@ const MovieDetail = () => {
       </div>
 
       <div className="container mx-auto px-4 py-4">
-        {/* AdSense Placeholder */}
-        <div className="w-full h-12 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-          <p className="text-gray-400 text-xs">AdSense Advertisement</p>
+        {/* Adsterra Banner */}
+        <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+          <div 
+            dangerouslySetInnerHTML={{
+              __html: `
+                <script type="text/javascript">
+                  atOptions = {
+                    'key' : '7b79a2783b27a651e01416f91705d630',
+                    'format' : 'iframe',
+                    'height' : 50,
+                    'width' : 320,
+                    'params' : {}
+                  };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
+              `
+            }}
+          />
         </div>
 
         {/* Movie Info */}
@@ -315,9 +332,24 @@ const MovieDetail = () => {
           </div>
         )}
 
-        {/* AdSense Placeholder */}
-        <div className="w-full h-12 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center">
-          <p className="text-gray-400 text-xs">AdSense Footer Advertisement</p>
+        {/* Adsterra Footer Banner */}
+        <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center">
+          <div 
+            dangerouslySetInnerHTML={{
+              __html: `
+                <script type="text/javascript">
+                  atOptions = {
+                    'key' : '7b79a2783b27a651e01416f91705d630',
+                    'format' : 'iframe',
+                    'height' : 50,
+                    'width' : 320,
+                    'params' : {}
+                  };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
+              `
+            }}
+          />
         </div>
       </div>
     </div>

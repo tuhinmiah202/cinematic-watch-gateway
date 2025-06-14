@@ -140,9 +140,24 @@ const WatchMovie = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* AdSense Placeholder */}
-        <div className="w-full h-24 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
-          <p className="text-gray-400 text-sm">AdSense Advertisement Space</p>
+        {/* Adsterra Banner */}
+        <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
+          <div 
+            dangerouslySetInnerHTML={{
+              __html: `
+                <script type="text/javascript">
+                  atOptions = {
+                    'key' : '7b79a2783b27a651e01416f91705d630',
+                    'format' : 'iframe',
+                    'height' : 50,
+                    'width' : 320,
+                    'params' : {}
+                  };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
+              `
+            }}
+          />
         </div>
 
         <div className="max-w-4xl mx-auto text-center">
@@ -159,9 +174,24 @@ const WatchMovie = () => {
             </p>
           </div>
 
-          {/* AdSense Placeholder */}
-          <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
-            <p className="text-gray-400 text-sm">AdSense Banner</p>
+          {/* Adsterra Banner */}
+          <div className="w-full h-16 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mb-8">
+            <div 
+              dangerouslySetInnerHTML={{
+                __html: `
+                  <script type="text/javascript">
+                    atOptions = {
+                      'key' : '7b79a2783b27a651e01416f91705d630',
+                      'format' : 'iframe',
+                      'height' : 50,
+                      'width' : 320,
+                      'params' : {}
+                    };
+                  </script>
+                  <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
+                `
+              }}
+            />
           </div>
 
           {/* Countdown or Watch Button */}
@@ -215,9 +245,24 @@ const WatchMovie = () => {
             )}
           </div>
 
-          {/* AdSense Placeholder */}
-          <div className="w-full h-24 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mt-8">
-            <p className="text-gray-400 text-sm">AdSense Footer Advertisement</p>
+          {/* Adsterra Footer Banner */}
+          <div className="w-full h-20 bg-gray-800/50 border border-purple-500/20 rounded-lg flex items-center justify-center mt-8">
+            <div 
+              dangerouslySetInnerHTML={{
+                __html: `
+                  <script type="text/javascript">
+                    atOptions = {
+                      'key' : '7b79a2783b27a651e01416f91705d630',
+                      'format' : 'iframe',
+                      'height' : 50,
+                      'width' : 320,
+                      'params' : {}
+                    };
+                  </script>
+                  <script type="text/javascript" src="//www.highperformanceformat.com/7b79a2783b27a651e01416f91705d630/invoke.js"></script>
+                `
+              }}
+            />
           </div>
         </div>
       </div>

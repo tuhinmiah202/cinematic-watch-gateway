@@ -61,14 +61,19 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Create a blob and set up download
-      const blob = new Blob([sitemap], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
+      // Set the content type and write the XML
+      const head = document.head || document.getElementsByTagName('head')[0];
+      const meta = document.createElement('meta');
+      meta.httpEquiv = 'Content-Type';
+      meta.content = 'application/xml; charset=utf-8';
+      head.appendChild(meta);
       
-      // Clear document and write XML
-      document.open();
-      document.write(sitemap);
-      document.close();
+      // Write XML content
+      document.body.innerHTML = `<pre>${sitemap.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+      document.body.style.fontFamily = 'monospace';
+      document.body.style.whiteSpace = 'pre-wrap';
+      document.body.style.margin = '0';
+      document.body.style.padding = '10px';
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
