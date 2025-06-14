@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Trash2, ExternalLink, Edit3, Save, X, Plus } from 'lucide-react';
+import { ArrowLeft, Trash2, ExternalLink, Edit3, Save, X, Plus, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { contentService, ContentItem } from '@/services/contentService';
 import { adminService } from '@/services/adminService';
@@ -16,6 +15,8 @@ const AdminManage = () => {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editStreamingLink, setEditStreamingLink] = useState('');
+  const [movieSearchQuery, setMovieSearchQuery] = useState('');
+  const [seriesSearchQuery, setSeriesSearchQuery] = useState('');
 
   // Fetch content from Supabase
   const { data: managedContent = [], isLoading } = useQuery({
@@ -102,6 +103,15 @@ const AdminManage = () => {
   const movies = managedContent.filter(item => item.content_type === 'movie');
   const series = managedContent.filter(item => item.content_type === 'series');
 
+  // Filter movies and series based on search queries
+  const filteredMovies = movies.filter(movie =>
+    movie.title.toLowerCase().includes(movieSearchQuery.toLowerCase())
+  );
+
+  const filteredSeries = series.filter(seriesItem =>
+    seriesItem.title.toLowerCase().includes(seriesSearchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       {/* Header */}
@@ -151,15 +161,28 @@ const AdminManage = () => {
         {/* Movies Section */}
         <Card className="bg-gray-800 border-gray-700 mb-6">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Movies ({movies.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-lg">Movies ({filteredMovies.length})</CardTitle>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search movies..."
+                  value={movieSearchQuery}
+                  onChange={(e) => setMovieSearchQuery(e.target.value)}
+                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-8"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {movies.length === 0 ? (
-              <p className="text-gray-400 text-center py-4">No movies added yet.</p>
+            {filteredMovies.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">
+                {movieSearchQuery ? 'No movies found matching your search.' : 'No movies added yet.'}
+              </p>
             ) : (
               <ScrollArea className="h-[400px]">
                 <div className="space-y-3 pr-4">
-                  {movies.map((movie) => {
+                  {filteredMovies.map((movie) => {
                     const streamingLink = movie.streaming_links?.[0]?.url || '';
                     return (
                       <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
@@ -254,15 +277,28 @@ const AdminManage = () => {
         {/* Series Section */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Series ({series.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-lg">Series ({filteredSeries.length})</CardTitle>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search series..."
+                  value={seriesSearchQuery}
+                  onChange={(e) => setSeriesSearchQuery(e.target.value)}
+                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-8"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {series.length === 0 ? (
-              <p className="text-gray-400 text-center py-4">No series added yet.</p>
+            {filteredSeries.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">
+                {seriesSearchQuery ? 'No series found matching your search.' : 'No series added yet.'}
+              </p>
             ) : (
               <ScrollArea className="h-[400px]">
                 <div className="space-y-3 pr-4">
-                  {series.map((item) => {
+                  {filteredSeries.map((item) => {
                     const streamingLink = item.streaming_links?.[0]?.url || '';
                     return (
                       <div key={item.id} className="bg-gray-700 rounded-lg p-4">
