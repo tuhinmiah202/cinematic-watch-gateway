@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Trash2, ExternalLink, Edit3, Save, X, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { contentService, ContentItem } from '@/services/contentService';
@@ -156,94 +157,96 @@ const AdminManage = () => {
             {movies.length === 0 ? (
               <p className="text-gray-400 text-center py-4">No movies added yet.</p>
             ) : (
-              <div className="space-y-3">
-                {movies.map((movie) => {
-                  const streamingLink = movie.streaming_links?.[0]?.url || '';
-                  return (
-                    <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-white font-semibold">{movie.title}</h4>
-                          <p className="text-gray-400 text-sm">{movie.release_year}</p>
-                          
-                          {/* Streaming Link Section */}
-                          <div className="mt-2">
-                            {editingId === movie.id ? (
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  value={editStreamingLink}
-                                  onChange={(e) => setEditStreamingLink(e.target.value)}
-                                  className="bg-gray-600 border-gray-500 text-white text-xs"
-                                  placeholder="Enter streaming link"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSaveStreamingLink(movie.id)}
-                                  className="bg-green-600 hover:bg-green-700 px-2"
-                                >
-                                  <Save className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={handleCancelEdit}
-                                  className="bg-gray-600 hover:bg-gray-700 px-2"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <ExternalLink className="w-3 h-3 text-green-400" />
-                                <span className="text-green-400 text-xs truncate max-w-xs">
-                                  {streamingLink || 'No streaming link'}
-                                </span>
-                                {streamingLink ? (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3 pr-4">
+                  {movies.map((movie) => {
+                    const streamingLink = movie.streaming_links?.[0]?.url || '';
+                    return (
+                      <div key={movie.id} className="bg-gray-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-white font-semibold">{movie.title}</h4>
+                            <p className="text-gray-400 text-sm">{movie.release_year}</p>
+                            
+                            {/* Streaming Link Section */}
+                            <div className="mt-2">
+                              {editingId === movie.id ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={editStreamingLink}
+                                    onChange={(e) => setEditStreamingLink(e.target.value)}
+                                    className="bg-gray-600 border-gray-500 text-white text-xs"
+                                    placeholder="Enter streaming link"
+                                  />
                                   <Button
                                     size="sm"
-                                    onClick={() => handleEditStreamingLink(movie.id, streamingLink)}
-                                    className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                    onClick={() => handleSaveStreamingLink(movie.id)}
+                                    className="bg-green-600 hover:bg-green-700 px-2"
                                   >
-                                    <Edit3 className="w-3 h-3" />
+                                    <Save className="w-3 h-3" />
                                   </Button>
-                                ) : (
                                   <Button
                                     size="sm"
-                                    onClick={() => handleAddStreamingLink(movie.id)}
-                                    className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                    onClick={handleCancelEdit}
+                                    className="bg-gray-600 hover:bg-gray-700 px-2"
                                   >
-                                    <Plus className="w-3 h-3" />
+                                    <X className="w-3 h-3" />
                                   </Button>
-                                )}
-                              </div>
-                            )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <ExternalLink className="w-3 h-3 text-green-400" />
+                                  <span className="text-green-400 text-xs truncate max-w-xs">
+                                    {streamingLink || 'No streaming link'}
+                                  </span>
+                                  {streamingLink ? (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEditStreamingLink(movie.id, streamingLink)}
+                                      className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleAddStreamingLink(movie.id)}
+                                      className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          {streamingLink && (
+                          
+                          <div className="flex gap-2">
+                            {streamingLink && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleRemoveStreamingLink(movie.id, movie.title)}
+                                className="bg-orange-600 hover:bg-orange-700 text-xs"
+                                title="Remove streaming link only"
+                              >
+                                Remove Link
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              onClick={() => handleRemoveStreamingLink(movie.id, movie.title)}
-                              className="bg-orange-600 hover:bg-orange-700 text-xs"
-                              title="Remove streaming link only"
+                              onClick={() => handleRemoveContent(movie.id, movie.title)}
+                              className="bg-red-600 hover:bg-red-700"
+                              title="Remove entire movie"
                             >
-                              Remove Link
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            onClick={() => handleRemoveContent(movie.id, movie.title)}
-                            className="bg-red-600 hover:bg-red-700"
-                            title="Remove entire movie"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
@@ -257,94 +260,96 @@ const AdminManage = () => {
             {series.length === 0 ? (
               <p className="text-gray-400 text-center py-4">No series added yet.</p>
             ) : (
-              <div className="space-y-3">
-                {series.map((item) => {
-                  const streamingLink = item.streaming_links?.[0]?.url || '';
-                  return (
-                    <div key={item.id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-white font-semibold">{item.title}</h4>
-                          <p className="text-gray-400 text-sm">{item.release_year}</p>
-                          
-                          {/* Streaming Link Section */}
-                          <div className="mt-2">
-                            {editingId === item.id ? (
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  value={editStreamingLink}
-                                  onChange={(e) => setEditStreamingLink(e.target.value)}
-                                  className="bg-gray-600 border-gray-500 text-white text-xs"
-                                  placeholder="Enter streaming link"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSaveStreamingLink(item.id)}
-                                  className="bg-green-600 hover:bg-green-700 px-2"
-                                >
-                                  <Save className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={handleCancelEdit}
-                                  className="bg-gray-600 hover:bg-gray-700 px-2"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <ExternalLink className="w-3 h-3 text-green-400" />
-                                <span className="text-green-400 text-xs truncate max-w-xs">
-                                  {streamingLink || 'No streaming link'}
-                                </span>
-                                {streamingLink ? (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3 pr-4">
+                  {series.map((item) => {
+                    const streamingLink = item.streaming_links?.[0]?.url || '';
+                    return (
+                      <div key={item.id} className="bg-gray-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-white font-semibold">{item.title}</h4>
+                            <p className="text-gray-400 text-sm">{item.release_year}</p>
+                            
+                            {/* Streaming Link Section */}
+                            <div className="mt-2">
+                              {editingId === item.id ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={editStreamingLink}
+                                    onChange={(e) => setEditStreamingLink(e.target.value)}
+                                    className="bg-gray-600 border-gray-500 text-white text-xs"
+                                    placeholder="Enter streaming link"
+                                  />
                                   <Button
                                     size="sm"
-                                    onClick={() => handleEditStreamingLink(item.id, streamingLink)}
-                                    className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                    onClick={() => handleSaveStreamingLink(item.id)}
+                                    className="bg-green-600 hover:bg-green-700 px-2"
                                   >
-                                    <Edit3 className="w-3 h-3" />
+                                    <Save className="w-3 h-3" />
                                   </Button>
-                                ) : (
                                   <Button
                                     size="sm"
-                                    onClick={() => handleAddStreamingLink(item.id)}
-                                    className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                    onClick={handleCancelEdit}
+                                    className="bg-gray-600 hover:bg-gray-700 px-2"
                                   >
-                                    <Plus className="w-3 h-3" />
+                                    <X className="w-3 h-3" />
                                   </Button>
-                                )}
-                              </div>
-                            )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <ExternalLink className="w-3 h-3 text-green-400" />
+                                  <span className="text-green-400 text-xs truncate max-w-xs">
+                                    {streamingLink || 'No streaming link'}
+                                  </span>
+                                  {streamingLink ? (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEditStreamingLink(item.id, streamingLink)}
+                                      className="bg-blue-600 hover:bg-blue-700 px-2 ml-2"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleAddStreamingLink(item.id)}
+                                      className="bg-green-600 hover:bg-green-700 px-2 ml-2"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          {streamingLink && (
+                          
+                          <div className="flex gap-2">
+                            {streamingLink && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleRemoveStreamingLink(item.id, item.title)}
+                                className="bg-orange-600 hover:bg-orange-700 text-xs"
+                                title="Remove streaming link only"
+                              >
+                                Remove Link
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              onClick={() => handleRemoveStreamingLink(item.id, item.title)}
-                              className="bg-orange-600 hover:bg-orange-700 text-xs"
-                              title="Remove streaming link only"
+                              onClick={() => handleRemoveContent(item.id, item.title)}
+                              className="bg-red-600 hover:bg-red-700"
+                              title="Remove entire series"
                             >
-                              Remove Link
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            onClick={() => handleRemoveContent(item.id, item.title)}
-                            className="bg-red-600 hover:bg-red-700"
-                            title="Remove entire series"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
