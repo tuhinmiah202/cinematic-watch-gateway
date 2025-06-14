@@ -259,8 +259,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Movies Grid - Optimized for 3 movies side by side with smaller gaps */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Movies Grid - Smaller cards with tighter spacing for 3 movies per row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 mb-8">
           {paginatedMovies().map((movie, index) => (
             <MovieCard
               key={`${movie.id}-${index}`}

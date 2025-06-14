@@ -42,9 +42,9 @@ const MovieCard = ({ movie }: MovieCardProps) => {
   return (
     <Link 
       to={linkPath}
-      className="group relative overflow-hidden rounded-lg bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+      className="group relative overflow-hidden rounded-md bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 block"
     >
-      <div className="aspect-[2/3] relative">
+      <div className="aspect-[3/4] relative">
         <img
           src={posterUrl}
           alt={title}
@@ -53,41 +53,41 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Rating Badge - smaller and positioned better */}
+        {/* Rating Badge - very small */}
         {rating > 0 && (
-          <div className="absolute top-1 right-1 bg-yellow-500 text-black px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-            <Star className="w-2.5 h-2.5 fill-current" />
+          <div className="absolute top-1 right-1 bg-yellow-500 text-black px-1 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
+            <Star className="w-2 h-2 fill-current" />
             {rating.toFixed(1)}
           </div>
         )}
 
-        {/* TV Show indicator - smaller */}
+        {/* TV Show indicator - very small */}
         {isTV && (
-          <div className="absolute top-1 left-1 bg-purple-600 text-white px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-            <Tv className="w-2.5 h-2.5" />
+          <div className="absolute top-1 left-1 bg-purple-600 text-white px-1 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
+            <Tv className="w-2 h-2" />
             TV
           </div>
         )}
 
-        {/* Admin content indicator - smaller */}
+        {/* Admin content indicator - very small */}
         {(movie as any).supabaseId && (
-          <div className="absolute bottom-1 right-1 bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">
+          <div className="absolute bottom-1 right-1 bg-green-600 text-white px-1 py-0.5 rounded text-xs font-bold">
             ✓
           </div>
         )}
       </div>
       
-      {/* Movie Info Overlay - more compact */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-        <h3 className="font-bold text-sm mb-1 line-clamp-2">{title}</h3>
-        <div className="flex items-center gap-1.5 text-xs text-gray-300">
-          <Calendar className="w-3 h-3" />
+      {/* Movie Info Overlay - very compact */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        <h3 className="font-bold text-xs mb-1 line-clamp-2">{title}</h3>
+        <div className="flex items-center gap-1 text-xs text-gray-300">
+          <Calendar className="w-2.5 h-2.5" />
           {year}
           {isTV && (
             <>
               <span>•</span>
-              <Tv className="w-3 h-3" />
-              <span>Series</span>
+              <Tv className="w-2.5 h-2.5" />
+              <span>TV</span>
             </>
           )}
         </div>
