@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -71,7 +72,7 @@ const Index = () => {
     }
 
     // Filter by genre
-    if (selectedGenre) {
+    if (selectedGenre && selectedGenre !== 'all') {
       combinedMovies = combinedMovies.filter((movie) => {
         if (isSupabaseContent(movie)) {
           return movie.genres?.some((genre: any) => genre.name === selectedGenre);
@@ -100,13 +101,18 @@ const Index = () => {
     }
   };
 
+  // Handle search from navbar
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+  };
+
   useEffect(() => {
     displayedMovies();
   }, [supabaseMovies, tmdbData, selectedGenre, searchTerm, displayedMovies]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      <Navbar />
+      <Navbar onSearch={handleSearch} />
       
       <div className="container mx-auto px-4 py-6">
         {/* Adsterra Banner at top */}
@@ -126,7 +132,7 @@ const Index = () => {
               <SelectValue placeholder="Filter by Genre" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 text-white border-purple-500/20 rounded-lg">
-              <SelectItem value="">All Genres</SelectItem>
+              <SelectItem value="all">All Genres</SelectItem>
               {genres?.map((genre) => (
                 <SelectItem key={genre.id} value={genre.id.toString()}>
                   {genre.name}
