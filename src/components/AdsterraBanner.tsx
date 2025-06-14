@@ -10,11 +10,9 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
   const adContainerRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const observerRef = useRef<IntersectionObserver>();
   
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isInView, setIsInView] = useState(false);
 
   // Responsive dimensions based on screen size
   const getAdDimensions = () => {
@@ -31,32 +29,8 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
   };
 
   useEffect(() => {
-    // Set up intersection observer for lazy loading
-    if (!observerRef.current && adContainerRef.current) {
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && !isInView) {
-              setIsInView(true);
-            }
-          });
-        },
-        { threshold: 0.1 }
-      );
-      
-      observerRef.current.observe(adContainerRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [isInView]);
-
-  useEffect(() => {
-    // Only load ad when in view and not already loaded
-    if (!isInView || scriptLoadedRef.current || hasError) return;
+    // Load ad immediately when component mounts
+    if (scriptLoadedRef.current || hasError) return;
 
     const loadAd = () => {
       try {
@@ -79,6 +53,7 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
         
         // Handle successful load
         script.onload = () => {
+          console.log('Ad script loaded successfully');
           setIsLoading(false);
           scriptLoadedRef.current = true;
           if (timeoutRef.current) {
@@ -88,6 +63,7 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
 
         // Handle error
         script.onerror = () => {
+          console.error('Ad script failed to load');
           setHasError(true);
           setIsLoading(false);
           if (timeoutRef.current) {
@@ -98,15 +74,17 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
         // Add script to container
         if (adContainerRef.current) {
           adContainerRef.current.appendChild(script);
+          console.log('Ad script added to container');
         }
 
-        // Set timeout to stop loading after 5 seconds
+        // Set timeout to stop loading after 8 seconds
         timeoutRef.current = setTimeout(() => {
           if (isLoading) {
+            console.log('Ad loading timeout reached');
             setHasError(true);
             setIsLoading(false);
           }
-        }, 5000);
+        }, 8000);
 
       } catch (error) {
         console.error('Error loading ad:', error);
@@ -115,45 +93,54 @@ const AdsterraBanner = ({ className = "" }: AdsterraBannerProps) => {
       }
     };
 
-    loadAd();
+    // Small delay to ensure DOM is ready
+    const loadTimer = setTimeout(() => {
+      loadAd();
+    }, 100);
 
     // Cleanup function
     return () => {
+      clearTimeout(loadTimer);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      if (adContainerRef.current) {
-        const scripts = adContainerRef.current.querySelectorAll('script');
-        scripts.forEach(script => {
-          if (script.parentNode) {
-            script.parentNode.removeChild(script);
-          }
-        });
-      }
-      scriptLoadedRef.current = false;
     };
-  }, [isInView, hasError, isLoading]);
+  }, [hasError, isLoading]);
 
   // Handle responsive resize
   useEffect(() => {
     const handleResize = () => {
       if (scriptLoadedRef.current && !isLoading && !hasError) {
-        // Reload ad with new dimensions on significant resize
+        // Only reload if significant size change
         const currentDimensions = getAdDimensions();
         const existingOptions = (window as any).atOptions;
         
         if (existingOptions && 
-            (Math.abs(existingOptions.width - currentDimensions.width) > 50 ||
-             Math.abs(existingOptions.height - currentDimensions.height) > 20)) {
-          // Trigger reload for better responsive behavior
+            (Math.abs(existingOptions.width - currentDimensions.width) > 100)) {
+          // Reset and reload for better responsive behavior
           setIsLoading(true);
+          setHasError(false);
           scriptLoadedRef.current = false;
+          if (adContainerRef.current) {
+            adContainerRef.current.innerHTML = '';
+          }
         }
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const debounceResize = setTimeout(() => {
+      handleResize();
+    }, 300);
+
+    window.addEventListener('resize', () => {
+      clearTimeout(debounceResize);
+      setTimeout(handleResize, 300);
+    });
+
+    return () => {
+      clearTimeout(debounceResize);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [isLoading, hasError]);
 
   const dimensions = getAdDimensions();
