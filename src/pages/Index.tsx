@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -150,7 +149,7 @@ const Index = () => {
     supabaseId: item.id
   });
 
-  // Combine content sources
+  // Combine content sources with proper genre filtering
   const combinedContent = () => {
     let supabaseItems: (Movie & { supabaseId: string })[] = [];
     let tmdbResults: Movie[] = [];
@@ -176,16 +175,50 @@ const Index = () => {
       }
     }
 
-    // Filter by genre if selected
+    // Combine all content
     let allContent = [...supabaseItems, ...tmdbResults];
     
-    if (selectedGenre && genres) {
-      const genre = genres.find(g => g.name === selectedGenre);
-      if (genre && genre.tmdb_id) {
-        allContent = allContent.filter(item => 
-          item.genre_ids?.includes(genre.tmdb_id!)
-        );
-      }
+    // Filter by genre if selected - use genre name matching for better compatibility
+    if (selectedGenre) {
+      allContent = allContent.filter(item => {
+        // For Supabase content, check if any genre name matches
+        if ((item as any).supabaseId) {
+          const supabaseItem = supabaseContent?.find(s => s.id === (item as any).supabaseId);
+          if (supabaseItem?.genres) {
+            return supabaseItem.genres.some(g => 
+              g.name?.toLowerCase() === selectedGenre.toLowerCase()
+            );
+          }
+        }
+        
+        // For TMDB content, we need to map genre IDs to names
+        const genreMap: { [key: number]: string } = {
+          28: 'Action',
+          35: 'Comedy',
+          18: 'Drama',
+          27: 'Horror',
+          10749: 'Romance',
+          53: 'Thriller',
+          12: 'Adventure',
+          80: 'Crime',
+          16: 'Animation',
+          99: 'Documentary',
+          14: 'Fantasy',
+          36: 'History',
+          9648: 'Mystery',
+          878: 'Science Fiction',
+          10752: 'War',
+          37: 'Western'
+        };
+        
+        if (item.genre_ids) {
+          return item.genre_ids.some(genreId => 
+            genreMap[genreId]?.toLowerCase() === selectedGenre.toLowerCase()
+          );
+        }
+        
+        return false;
+      });
     }
 
     return allContent;
@@ -278,7 +311,7 @@ const Index = () => {
             </Button>
           </div>
 
-          {/* Genre Selector */}
+          {/* Genre Selector - Updated to show proper feedback */}
           <div className="flex flex-wrap justify-center gap-2 mb-3">
             {commonGenres.map((genre) => (
               <Button

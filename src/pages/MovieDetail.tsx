@@ -17,12 +17,17 @@ const MovieDetail = () => {
     if (backParams) {
       navigate(`/?${decodeURIComponent(backParams)}`);
     } else {
-      navigate(-1);
+      navigate('/');
     }
   };
 
   const handleWatchNow = () => {
-    navigate(`/watch/${movieId}`);
+    const currentParams = searchParams.toString();
+    if (currentParams) {
+      navigate(`/watch/${movieId}?back=${encodeURIComponent(currentParams)}`);
+    } else {
+      navigate(`/watch/${movieId}`);
+    }
   };
 
   // Try to fetch from Supabase first (for admin content)
@@ -184,7 +189,7 @@ const MovieDetail = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-black/50 text-white border-white/20"
+            className="bg-black/50 text-white border-white/20 hover:bg-white/10"
             onClick={handleBack}
           >
             <ArrowLeft className="w-4 h-4 mr-1" />

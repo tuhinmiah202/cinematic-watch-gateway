@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
@@ -11,12 +10,18 @@ import { Loader2 } from 'lucide-react';
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const movieId = id || '0';
   const [countdown, setCountdown] = useState(5);
   const [showWatchButton, setShowWatchButton] = useState(false);
 
   const handleBack = () => {
-    navigate(`/movie/${movieId}`);
+    const backParams = searchParams.get('back');
+    if (backParams) {
+      navigate(`/movie/${movieId}?${decodeURIComponent(backParams)}`);
+    } else {
+      navigate(`/movie/${movieId}`);
+    }
   };
 
   // Try to fetch from Supabase first (for admin content)
@@ -99,7 +104,7 @@ const WatchMovie = () => {
         <div className="text-center text-white">
           <h1 className="text-xl font-bold mb-4">Content not found</h1>
           <Button 
-            onClick={handleBack}
+            onClick={() => navigate('/')}
             className="bg-purple-600 hover:bg-purple-700 text-white"
           >
             Return Home
