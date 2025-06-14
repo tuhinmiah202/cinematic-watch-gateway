@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -19,11 +20,24 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [supabaseMovies, setSupabaseMovies] = useState<any[]>([]);
 
-  // Fetch genres from TMDB
-  const { data: genres } = useQuery({
+  // Fetch genres from TMDB with better error handling
+  const { data: genresData } = useQuery({
     queryKey: ['genres'],
-    queryFn: () => tmdbService.getGenres().then(data => data.genres || []),
+    queryFn: async () => {
+      try {
+        const response = await tmdbService.getGenres();
+        console.log('Genres response:', response);
+        // Ensure we return an array, even if the structure is different
+        return response?.genres || [];
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+        return [];
+      }
+    },
   });
+
+  // Ensure genres is always an array
+  const genres = Array.isArray(genresData) ? genresData : [];
 
   // Function to determine if content is from Supabase
   const isSupabaseContent = (movie: any) => !!movie.content_type;
@@ -243,7 +257,7 @@ const Index = () => {
             </SelectTrigger>
             <SelectContent className="bg-gray-800 text-white border-purple-500/20 rounded-lg">
               <SelectItem value="all">All Genres</SelectItem>
-              {(genres || []).map((genre) => (
+              {genres.map((genre) => (
                 <SelectItem key={genre.id} value={genre.id.toString()}>
                   {genre.name}
                 </SelectItem>
