@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -260,8 +259,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Movies Grid - 3 columns on larger screens */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Movies Grid - Optimized for 3 movies side by side with smaller gaps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {paginatedMovies().map((movie, index) => (
             <MovieCard
               key={`${movie.id}-${index}`}
