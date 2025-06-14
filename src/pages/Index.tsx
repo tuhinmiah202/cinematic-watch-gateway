@@ -238,9 +238,6 @@ const Index = () => {
       <Navbar onSearch={handleSearch} />
       
       <div className="container mx-auto px-4 py-6">
-        {/* Adsterra Banner at top */}
-        <AdsterraBanner className="mb-6" />
-        
         {/* Genre Filter and Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <Input
@@ -265,9 +262,6 @@ const Index = () => {
           </Select>
         </div>
 
-        {/* Adsterra Banner after search/filter */}
-        <AdsterraBanner className="mb-6" />
-
         {/* Loading state */}
         {(isLoadingSupabaseInitial || isLoadingTmdb) && (
           <div className="flex justify-center items-center py-8">
@@ -285,7 +279,7 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Adsterra Banner after movies grid */}
+        {/* Single Adsterra Banner after movies grid */}
         <AdsterraBanner className="mb-6" />
 
         {/* Pagination */}
@@ -337,9 +331,6 @@ const Index = () => {
             Page {currentPage} of {totalPages} ({allMovies().length} total items)
           </div>
         )}
-
-        {/* Adsterra Banner at bottom */}
-        <AdsterraBanner className="mt-6" />
       </div>
     </div>
   );
