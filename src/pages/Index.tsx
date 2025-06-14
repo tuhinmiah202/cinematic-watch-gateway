@@ -275,8 +275,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Movies Grid - Ensure 3 movies per row across all screen sizes */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        {/* Movies Grid - Fixed to ensure 3 columns */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-8">
           {paginatedMovies().map((movie, index) => (
             <MovieCard
               key={`${movie.id}-${index}`}
