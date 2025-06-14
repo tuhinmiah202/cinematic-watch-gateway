@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +19,12 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Bulk genre search states
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [contentType, setContentType] = useState<'movie' | 'tv'>('movie');
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [isAddingBulk, setIsAddingBulk] = useState(false);
   
   // Manual form states
   const [manualTitle, setManualTitle] = useState('');
@@ -40,10 +48,28 @@ const AdminDashboard = () => {
     queryFn: adminService.getAllContent
   });
 
+  // Fetch genres
+  const { data: genresData } = useQuery({
+    queryKey: ['genres'],
+    queryFn: tmdbService.getGenres
+  });
+
   // Search TMDB
   const { data: searchResults, refetch: searchMovies } = useQuery({
     queryKey: ['search', searchQuery],
     queryFn: () => tmdbService.searchMovies(searchQuery),
+    enabled: false
+  });
+
+  // Search by genre
+  const { data: genreResults, refetch: searchByGenre, isLoading: isLoadingGenre } = useQuery({
+    queryKey: ['genre-search', selectedGenre, contentType],
+    queryFn: () => {
+      const genreId = parseInt(selectedGenre);
+      return contentType === 'movie' 
+        ? tmdbService.getMoviesByGenre(genreId, 1)
+        : tmdbService.getTVShowsByGenre(genreId, 1);
+    },
     enabled: false
   });
 
@@ -62,6 +88,61 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleGenreSearch = () => {
+    if (selectedGenre) {
+      setSelectedItems(new Set());
+      searchByGenre();
+    }
+  };
+
+  const handleItemSelect = (itemId: number, isSelected: boolean) => {
+    const newSelected = new Set(selectedItems);
+    if (isSelected) {
+      newSelected.add(itemId);
+    } else {
+      newSelected.delete(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleBulkAdd = async () => {
+    if (selectedItems.size === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select items to add.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingBulk(true);
+    const items = genreResults?.results.filter(item => selectedItems.has(item.id)) || [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of items) {
+      const success = await adminService.addFromTMDB(item);
+      if (success) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    }
+
+    toast({
+      title: "Bulk Add Complete",
+      description: `Added ${successCount} items successfully. ${errorCount} failed or already exist.`,
+    });
+
+    if (successCount > 0) {
+      refetchContent();
+      queryClient.invalidateQueries({ queryKey: ['supabase-content'] });
+    }
+
+    setSelectedItems(new Set());
+    setIsAddingBulk(false);
+  };
+
   const handleAddTMDBMovie = async (movie: any) => {
     const success = await adminService.addFromTMDB(movie);
     
@@ -74,7 +155,6 @@ const AdminDashboard = () => {
         description: `${title} has been added successfully.`,
       });
       
-      // Refresh content list
       refetchContent();
       queryClient.invalidateQueries({ queryKey: ['supabase-content'] });
     } else {
@@ -124,7 +204,6 @@ const AdminDashboard = () => {
       setManualCast('');
       setManualStreamingUrl('');
       
-      // Refresh content list
       refetchContent();
       queryClient.invalidateQueries({ queryKey: ['supabase-content'] });
     } else {
@@ -216,6 +295,125 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Bulk Genre Search and Add */}
+        <Card className="bg-gray-800 border-gray-700 mb-6">
+          <CardHeader>
+            <CardTitle className="text-white text-lg">Bulk Add by Genre</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-white text-sm">Content Type</Label>
+                <Select value={contentType} onValueChange={(value: 'movie' | 'tv') => setContentType(value)}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="movie" className="text-white">Movies</SelectItem>
+                    <SelectItem value="tv" className="text-white">TV Series</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-white text-sm">Genre</Label>
+                <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Select a genre" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {genresData?.genres.map((genre) => (
+                      <SelectItem key={genre.id} value={genre.id.toString() } className="text-white">
+                        {genre.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleGenreSearch} 
+                  disabled={!selectedGenre || isLoadingGenre}
+                  className="bg-purple-600 hover:bg-purple-700 w-full"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  {isLoadingGenre ? 'Loading...' : 'Search'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Genre Search Results */}
+            {genreResults && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-semibold">
+                    Results ({genreResults.results.length})
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setSelectedItems(new Set(genreResults.results.map(item => item.id)))}
+                      variant="outline"
+                      size="sm"
+                      className="text-white border-white/20"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      onClick={() => setSelectedItems(new Set())}
+                      variant="outline"
+                      size="sm"
+                      className="text-white border-white/20"
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      onClick={handleBulkAdd}
+                      disabled={selectedItems.size === 0 || isAddingBulk}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isAddingBulk ? 'Adding...' : `Add Selected (${selectedItems.size})`}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+                  {genreResults.results.slice(0, 20).map((item) => {
+                    const title = item.title || item.name;
+                    const releaseDate = item.release_date || item.first_air_date;
+                    const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                    const type = item.media_type === 'tv' ? 'TV Series' : 'Movie';
+                    const isSelected = selectedItems.has(item.id);
+                    
+                    return (
+                      <div key={item.id} className="bg-gray-700 rounded-lg p-3">
+                        <div className="flex gap-3 items-center">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => handleItemSelect(item.id, checked as boolean)}
+                            className="border-white"
+                          />
+                          <img
+                            src={tmdbService.getImageUrl(item.poster_path)}
+                            alt={title}
+                            className="w-12 h-16 object-cover rounded"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
+                            <p className="text-gray-400 text-xs">{year}</p>
+                            <p className="text-gray-500 text-xs">{type}</p>
+                            <p className="text-gray-500 text-xs truncate">{item.overview}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* TMDB Search and Add */}
         <Card className="bg-gray-800 border-gray-700 mb-6">
