@@ -1,11 +1,12 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { tmdbService } from '@/services/tmdbService';
+import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import AdsterraBanner from '@/components/AdsterraBanner';
+import MovieCard from '@/components/MovieCard';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -194,6 +195,35 @@ const MovieDetail = () => {
     ? (movie as any).poster_url || '/placeholder.svg'
     : tmdbService.getImageUrl((movie as any).poster_path);
 
+  const primaryGenreId = genres?.[0]?.id;
+  const currentMovieTmdbId = (movie as any).tmdb_id || movie.id;
+
+  const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ['related-content', currentMovieTmdbId, primaryGenreId],
+    queryFn: async () => {
+      if (!primaryGenreId) return [];
+
+      try {
+        const [moviesResponse, tvShowsResponse] = await Promise.all([
+          tmdbService.getMoviesByGenre(primaryGenreId, 1),
+          tmdbService.getTVShowsByGenre(primaryGenreId, 1)
+        ]);
+        
+        const combined = [...moviesResponse.results, ...tvShowsResponse.results];
+        
+        // Shuffle, filter out the current movie, and limit results
+        return combined
+          .sort(() => 0.5 - Math.random()) // Randomize for variety
+          .filter(item => item.id !== currentMovieTmdbId)
+          .slice(0, 10); // Limit to 10
+      } catch (error) {
+        console.error('Error fetching related content:', error);
+        return [];
+      }
+    },
+    enabled: !!primaryGenreId && !!currentMovieTmdbId && !isLoading,
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       {/* Header */}
@@ -311,6 +341,21 @@ const MovieDetail = () => {
                 <span key={company.id} className="text-gray-300 text-sm bg-gray-700 px-2 py-1 rounded">
                   {company.name}
                 </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related Content Section */}
+        {relatedContent && relatedContent.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              You Might Also Like
+              {isLoadingRelated && <Loader2 className="w-5 h-5 animate-spin" />}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {relatedContent.map((item: Movie) => (
+                <MovieCard key={`${item.id}-${item.media_type}`} movie={item} />
               ))}
             </div>
           </div>
