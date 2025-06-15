@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Download, UploadCloud, RefreshCw, FileText, Eye, FileUp, FileDown, FileInput, FileOutput } from "lucide-react";
+import { Download, UploadCloud, RefreshCw, Eye, FileUp, FileDown, FileInput, FileOutput } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 // Helper to fetch sitemap.xml from public
@@ -32,17 +32,8 @@ export default function SitemapManager() {
     staleTime: 60000,
   });
 
-  // Generate Dynamic Sitemap
-  const handleGenerate = async () => {
-    setLoading(true);
-    const xml = await generateDynamicSitemap();
-    setGeneratedXml(xml);
-    setLoading(false);
-  };
-
-  // Download generated or live sitemap
-  const handleDownload = () => {
-    const content = generatedXml || liveSitemap || "";
+  // Download given XML content as a file
+  const downloadXml = (content: string) => {
     const blob = new Blob([content], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
 
@@ -53,6 +44,22 @@ export default function SitemapManager() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Generate Dynamic Sitemap and immediately download
+  const handleGenerateAndDownload = async () => {
+    setLoading(true);
+    const xml = await generateDynamicSitemap();
+    setGeneratedXml(xml);
+    downloadXml(xml);
+    setLoading(false);
+  };
+
+  // Download generated or live sitemap
+  const handleDownload = () => {
+    const content = generatedXml || liveSitemap || "";
+    if (!content) return;
+    downloadXml(content);
   };
 
   // Upload and replace (client-side only – for a real update, this would need backend API)
@@ -81,7 +88,7 @@ export default function SitemapManager() {
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
             <Button
               className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold flex items-center gap-2 w-full md:w-auto"
-              onClick={handleGenerate}
+              onClick={handleGenerateAndDownload}
               disabled={loading}
             >
               <RefreshCw className="w-4 h-4" />
