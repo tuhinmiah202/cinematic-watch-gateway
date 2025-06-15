@@ -34,7 +34,9 @@ export default function SitemapManager() {
 
   // Download given XML content as a file
   const downloadXml = (content: string) => {
-    const blob = new Blob([content], { type: "application/xml" });
+    // Trim leading whitespace to prevent XML declaration errors
+    const cleanContent = content.trimStart();
+    const blob = new Blob([cleanContent], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
@@ -49,7 +51,8 @@ export default function SitemapManager() {
   // Generate Dynamic Sitemap and immediately download
   const handleGenerateAndDownload = async () => {
     setLoading(true);
-    const xml = await generateDynamicSitemap();
+    let xml = await generateDynamicSitemap();
+    xml = xml.trimStart(); // Ensure no leading whitespace
     setGeneratedXml(xml);
     downloadXml(xml);
     setLoading(false);
@@ -68,8 +71,9 @@ export default function SitemapManager() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      // In a real app, you'd send to backend or update storage here
-      setGeneratedXml(event.target?.result as string);
+      // Trim uploaded content as well
+      const content = (event.target?.result as string) || "";
+      setGeneratedXml(content.trimStart());
       setUploadInfo("Sitemap XML loaded in memory. (Live replace requires backend/API)");
     };
     reader.readAsText(file);
