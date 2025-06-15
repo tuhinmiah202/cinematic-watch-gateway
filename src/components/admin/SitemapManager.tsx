@@ -1,10 +1,11 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Download, UploadCloud, RefreshCw, Eye, FileUp, FileDown, FileInput, FileOutput } from "lucide-react";
+import { Download, UploadCloud, RefreshCw, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { contentService } from "@/services/contentService";
+import { tmdbService } from "@/services/tmdbService";
 
 // Helper to fetch sitemap.xml from public
 async function fetchSitemapXml() {
@@ -12,11 +13,64 @@ async function fetchSitemapXml() {
   return await res.text();
 }
 
-// Dynamic sitemap generate (placeholder for actual API or client-only approach)
+// Dynamic sitemap generate
 async function generateDynamicSitemap(): Promise<string> {
-  // Here use the same logic as in SitemapXML.tsx to refetch current content and build XML
-  // For now, simply refetch public/sitemap.xml as a placeholder
-  return await fetchSitemapXml();
+  const supabaseContent = await contentService.getApprovedContent();
+  
+  let tmdbContent: any[] = [];
+  try {
+    const [movies, tvShows] = await Promise.all([
+      tmdbService.getPopularMovies(),
+      tmdbService.getPopularTVShows()
+    ]);
+    tmdbContent = [...movies.results.slice(0, 100), ...tvShows.results.slice(0, 100)];
+  } catch (error) {
+    console.error('Error fetching TMDB content for sitemap:', error);
+  }
+
+  const baseUrl = 'https://cinestreambd.onrender.com';
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>`;
+
+  if (supabaseContent && Array.isArray(supabaseContent)) {
+    supabaseContent.forEach((item) => {
+      const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
+      sitemap += `
+  <url>
+    <loc>${baseUrl}/movie/${item.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    });
+  }
+
+  if (tmdbContent && Array.isArray(tmdbContent)) {
+    tmdbContent.forEach((item) => {
+      if (item && item.id) {
+        sitemap += `
+  <url>
+    <loc>${baseUrl}/movie/${item.id}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      }
+    });
+  }
+
+  sitemap += `
+</urlset>`;
+
+  return sitemap;
 }
 
 export default function SitemapManager() {
