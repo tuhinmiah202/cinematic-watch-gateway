@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import SitemapManager from "@/components/admin/SitemapManager";
+import { Sitemap } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const AdminDashboard = () => {
   const [manualType, setManualType] = useState<'movie' | 'series'>('movie');
   const [manualCast, setManualCast] = useState('');
   const [manualStreamingUrl, setManualStreamingUrl] = useState('');
+
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "sitemap">("dashboard");
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -239,346 +242,377 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm">
-                <Film className="w-4 h-4 text-purple-400" />
-                Movies
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{movies.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm">
-                <Film className="w-4 h-4 text-blue-400" />
-                Series
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{series.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm">
-                <Plus className="w-4 h-4 text-green-400" />
-                Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">{adminContent.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white flex items-center gap-2 text-sm">
-                <Settings className="w-4 h-4 text-orange-400" />
-                Manage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-orange-600 hover:bg-orange-700 text-sm"
-                onClick={() => navigate('/admin/manage')}
-              >
-                Manage Content
-              </Button>
-            </CardContent>
-          </Card>
+      {/* Navigation Tabs */}
+      <div className="container mx-auto px-4 mt-4">
+        <div className="flex gap-2 mb-4">
+          <Button
+            className={`flex-1 md:flex-none ${
+              currentTab === "dashboard" ? "bg-purple-600 text-white font-semibold" : "bg-gray-700 text-gray-300"
+            }`}
+            onClick={() => setCurrentTab("dashboard")}
+          >
+            Dashboard
+          </Button>
+          <Button
+            className={`flex-1 md:flex-none ${
+              currentTab === "sitemap" ? "bg-yellow-400 text-black font-semibold" : "bg-gray-700 text-gray-300"
+            } flex items-center gap-2`}
+            onClick={() => setCurrentTab("sitemap")}
+            data-testid="sitemap-tab"
+          >
+            <Sitemap className="w-4 h-4" />
+            Sitemap
+          </Button>
         </div>
+      </div>
 
-        {/* Bulk Genre Search and Add */}
-        <Card className="bg-gray-800 border-gray-700 mb-6">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Bulk Add by Genre</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-white text-sm">Content Type</Label>
-                <Select value={contentType} onValueChange={(value: 'movie' | 'tv') => setContentType(value)}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
-                    <SelectItem value="movie" className="text-white">Movies</SelectItem>
-                    <SelectItem value="tv" className="text-white">TV Series</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="container mx-auto px-4 py-6">
+        {currentTab === "dashboard" && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <Film className="w-4 h-4 text-purple-400" />
+                    Movies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-400">{movies.length}</div>
+                </CardContent>
+              </Card>
 
-              <div>
-                <Label className="text-white text-sm">Genre</Label>
-                <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue placeholder="Select a genre" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
-                    {genresData && genresData.genres && genresData.genres.map((genre) => (
-                      <SelectItem key={genre.id} value={genre.id.toString()} className="text-white">
-                        {genre.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <Film className="w-4 h-4 text-blue-400" />
+                    Series
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-400">{series.length}</div>
+                </CardContent>
+              </Card>
 
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleGenreSearch} 
-                  disabled={!selectedGenre || isLoadingGenre}
-                  className="bg-purple-600 hover:bg-purple-700 w-full"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  {isLoadingGenre ? 'Loading...' : 'Search'}
-                </Button>
-              </div>
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <Plus className="w-4 h-4 text-green-400" />
+                    Total
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-400">{adminContent.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    <Settings className="w-4 h-4 text-orange-400" />
+                    Manage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-sm"
+                    onClick={() => navigate('/admin/manage')}
+                  >
+                    Manage Content
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Genre Search Results */}
-            {genreResults && (
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white font-semibold">
-                    Results ({genreResults.results?.length || 0})
-                  </h3>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setSelectedItems(new Set(genreResults.results?.map(item => item.id) || []))}
-                      variant="outline"
-                      size="sm"
-                      className="text-white border-white/20"
+            {/* Bulk Genre Search and Add */}
+            <Card className="bg-gray-800 border-gray-700 mb-6">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Bulk Add by Genre</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-white text-sm">Content Type</Label>
+                    <Select value={contentType} onValueChange={(value: 'movie' | 'tv') => setContentType(value)}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="movie" className="text-white">Movies</SelectItem>
+                        <SelectItem value="tv" className="text-white">TV Series</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-white text-sm">Genre</Label>
+                    <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue placeholder="Select a genre" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        {genresData && genresData.genres && genresData.genres.map((genre) => (
+                          <SelectItem key={genre.id} value={genre.id.toString()} className="text-white">
+                            {genre.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={handleGenreSearch} 
+                      disabled={!selectedGenre || isLoadingGenre}
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
-                      Select All
-                    </Button>
-                    <Button
-                      onClick={() => setSelectedItems(new Set())}
-                      variant="outline"
-                      size="sm"
-                      className="text-white border-white/20"
-                    >
-                      Clear All
-                    </Button>
-                    <Button
-                      onClick={handleBulkAdd}
-                      disabled={selectedItems.size === 0 || isAddingBulk}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {isAddingBulk ? 'Adding...' : `Add Selected (${selectedItems.size})`}
+                      <Search className="w-4 h-4 mr-2" />
+                      {isLoadingGenre ? 'Loading...' : 'Search'}
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
-                  {genreResults.results && genreResults.results.slice(0, 20).map((item) => {
-                    const title = item.title || item.name;
-                    const releaseDate = item.release_date || item.first_air_date;
-                    const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-                    const type = item.media_type === 'tv' ? 'TV Series' : 'Movie';
-                    const isSelected = selectedItems.has(item.id);
-                    
-                    return (
-                      <div key={item.id} className="bg-gray-700 rounded-lg p-3">
-                        <div className="flex gap-3 items-center">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => handleItemSelect(item.id, checked as boolean)}
-                            className="border-white"
-                          />
-                          <img
-                            src={tmdbService.getImageUrl(item.poster_path)}
-                            alt={title}
-                            className="w-12 h-16 object-cover rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
-                            <p className="text-gray-400 text-xs">{year}</p>
-                            <p className="text-gray-500 text-xs">{type}</p>
-                            <p className="text-gray-500 text-xs truncate">{item.overview}</p>
-                          </div>
-                        </div>
+                {/* Genre Search Results */}
+                {genreResults && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-white font-semibold">
+                        Results ({genreResults.results?.length || 0})
+                      </h3>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setSelectedItems(new Set(genreResults.results?.map(item => item.id) || []))}
+                          variant="outline"
+                          size="sm"
+                          className="text-white border-white/20"
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          onClick={() => setSelectedItems(new Set())}
+                          variant="outline"
+                          size="sm"
+                          className="text-white border-white/20"
+                        >
+                          Clear All
+                        </Button>
+                        <Button
+                          onClick={handleBulkAdd}
+                          disabled={selectedItems.size === 0 || isAddingBulk}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isAddingBulk ? 'Adding...' : `Add Selected (${selectedItems.size})`}
+                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </div>
 
-        {/* TMDB Search and Add */}
-        <Card className="bg-gray-800 border-gray-700 mb-6">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Search and Add Movies/Series from TMDB</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Search movies and series by title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button onClick={handleSearch} className="bg-purple-600 hover:bg-purple-700">
-                <Search className="w-4 h-4 mr-2" />
-                Search
-              </Button>
-            </div>
-
-            {/* Search Results */}
-            {searchResults && (
-              <div className="mt-4">
-                <h3 className="text-white font-semibold mb-3 text-sm">Search Results:</h3>
-                <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
-                  {searchResults.results && searchResults.results.slice(0, 6).map((movie) => {
-                    const title = movie.title || movie.name;
-                    const releaseDate = movie.release_date || movie.first_air_date;
-                    const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-                    const type = movie.media_type === 'tv' ? 'TV Series' : 'Movie';
-                    
-                    return (
-                      <div key={movie.id} className="bg-gray-700 rounded-lg p-3">
-                        <div className="flex gap-3 items-center">
-                          <img
-                            src={tmdbService.getImageUrl(movie.poster_path)}
-                            alt={title}
-                            className="w-12 h-16 object-cover rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
-                            <p className="text-gray-400 text-xs">{year}</p>
-                            <p className="text-gray-500 text-xs">{type}</p>
+                    <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+                      {genreResults.results && genreResults.results.slice(0, 20).map((item) => {
+                        const title = item.title || item.name;
+                        const releaseDate = item.release_date || item.first_air_date;
+                        const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                        const type = item.media_type === 'tv' ? 'TV Series' : 'Movie';
+                        const isSelected = selectedItems.has(item.id);
+                        
+                        return (
+                          <div key={item.id} className="bg-gray-700 rounded-lg p-3">
+                            <div className="flex gap-3 items-center">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={(checked) => handleItemSelect(item.id, checked as boolean)}
+                                className="border-white"
+                              />
+                              <img
+                                src={tmdbService.getImageUrl(item.poster_path)}
+                                alt={title}
+                                className="w-12 h-16 object-cover rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
+                                <p className="text-gray-400 text-xs">{year}</p>
+                                <p className="text-gray-500 text-xs">{type}</p>
+                                <p className="text-gray-500 text-xs truncate">{item.overview}</p>
+                              </div>
+                            </div>
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddTMDBMovie(movie)}
-                            className="bg-green-600 hover:bg-green-700 text-xs px-3"
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Manual Content Addition */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Add Custom Movie/Series</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddManualContent} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-white text-sm">Title *</Label>
-                  <Input 
-                    className="bg-gray-700 border-gray-600 text-white" 
-                    placeholder="Movie/Series title"
-                    value={manualTitle}
-                    onChange={(e) => setManualTitle(e.target.value)}
-                    required
+            {/* TMDB Search and Add */}
+            <Card className="bg-gray-800 border-gray-700 mb-6">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Search and Add Movies/Series from TMDB</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search movies and series by title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
+                  <Button onClick={handleSearch} className="bg-purple-600 hover:bg-purple-700">
+                    <Search className="w-4 h-4 mr-2" />
+                    Search
+                  </Button>
                 </div>
-                <div>
-                  <Label className="text-white text-sm">Release Year</Label>
-                  <Input 
-                    className="bg-gray-700 border-gray-600 text-white" 
-                    placeholder="2024" 
-                    type="number"
-                    value={manualYear}
-                    onChange={(e) => setManualYear(e.target.value)}
-                  />
-                </div>
-              </div>
 
-              <div>
-                <Label className="text-white text-sm">Type</Label>
-                <div className="flex gap-4 mt-2">
-                  <label className="flex items-center gap-2 text-white">
-                    <input
-                      type="radio"
-                      value="movie"
-                      checked={manualType === 'movie'}
-                      onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
-                      className="text-purple-400"
+                {/* Search Results */}
+                {searchResults && (
+                  <div className="mt-4">
+                    <h3 className="text-white font-semibold mb-3 text-sm">Search Results:</h3>
+                    <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
+                      {searchResults.results && searchResults.results.slice(0, 6).map((movie) => {
+                        const title = movie.title || movie.name;
+                        const releaseDate = movie.release_date || movie.first_air_date;
+                        const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                        const type = movie.media_type === 'tv' ? 'TV Series' : 'Movie';
+                        
+                        return (
+                          <div key={movie.id} className="bg-gray-700 rounded-lg p-3">
+                            <div className="flex gap-3 items-center">
+                              <img
+                                src={tmdbService.getImageUrl(movie.poster_path)}
+                                alt={title}
+                                className="w-12 h-16 object-cover rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-white font-semibold text-sm truncate">{title}</h4>
+                                <p className="text-gray-400 text-xs">{year}</p>
+                                <p className="text-gray-500 text-xs">{type}</p>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddTMDBMovie(movie)}
+                                className="bg-green-600 hover:bg-green-700 text-xs px-3"
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Manual Content Addition */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Add Custom Movie/Series</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddManualContent} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white text-sm">Title *</Label>
+                      <Input 
+                        className="bg-gray-700 border-gray-600 text-white" 
+                        placeholder="Movie/Series title"
+                        value={manualTitle}
+                        onChange={(e) => setManualTitle(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-white text-sm">Release Year</Label>
+                      <Input 
+                        className="bg-gray-700 border-gray-600 text-white" 
+                        placeholder="2024" 
+                        type="number"
+                        value={manualYear}
+                        onChange={(e) => setManualYear(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-white text-sm">Type</Label>
+                    <div className="flex gap-4 mt-2">
+                      <label className="flex items-center gap-2 text-white">
+                        <input
+                          type="radio"
+                          value="movie"
+                          checked={manualType === 'movie'}
+                          onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
+                          className="text-purple-400"
+                        />
+                        Movie
+                      </label>
+                      <label className="flex items-center gap-2 text-white">
+                        <input
+                          type="radio"
+                          value="series"
+                          checked={manualType === 'series'}
+                          onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
+                          className="text-purple-400"
+                        />
+                        Series
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-white text-sm">Description</Label>
+                    <Textarea 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                      placeholder="Content description..."
+                      rows={3}
+                      value={manualDescription}
+                      onChange={(e) => setManualDescription(e.target.value)}
                     />
-                    Movie
-                  </label>
-                  <label className="flex items-center gap-2 text-white">
-                    <input
-                      type="radio"
-                      value="series"
-                      checked={manualType === 'series'}
-                      onChange={(e) => setManualType(e.target.value as 'movie' | 'series')}
-                      className="text-purple-400"
+                  </div>
+                  
+                  <div>
+                    <Label className="text-white text-sm">Poster URL</Label>
+                    <Input 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                      placeholder="https://..."
+                      value={manualPoster}
+                      onChange={(e) => setManualPoster(e.target.value)}
                     />
-                    Series
-                  </label>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-white text-sm">Description</Label>
-                <Textarea 
-                  className="bg-gray-700 border-gray-600 text-white" 
-                  placeholder="Content description..."
-                  rows={3}
-                  value={manualDescription}
-                  onChange={(e) => setManualDescription(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <Label className="text-white text-sm">Poster URL</Label>
-                <Input 
-                  className="bg-gray-700 border-gray-600 text-white" 
-                  placeholder="https://..."
-                  value={manualPoster}
-                  onChange={(e) => setManualPoster(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <Label className="text-white text-sm">Cast (comma-separated)</Label>
-                <Input 
-                  className="bg-gray-700 border-gray-600 text-white" 
-                  placeholder="Actor 1, Actor 2, Actor 3..."
-                  value={manualCast}
-                  onChange={(e) => setManualCast(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <Label className="text-white text-sm">Streaming URL</Label>
-                <Input 
-                  className="bg-gray-700 border-gray-600 text-white" 
-                  placeholder="https://..."
-                  value={manualStreamingUrl}
-                  onChange={(e) => setManualStreamingUrl(e.target.value)}
-                />
-              </div>
-              
-              <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-                Add {manualType === 'movie' ? 'Movie' : 'Series'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-white text-sm">Cast (comma-separated)</Label>
+                    <Input 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                      placeholder="Actor 1, Actor 2, Actor 3..."
+                      value={manualCast}
+                      onChange={(e) => setManualCast(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-white text-sm">Streaming URL</Label>
+                    <Input 
+                      className="bg-gray-700 border-gray-600 text-white" 
+                      placeholder="https://..."
+                      value={manualStreamingUrl}
+                      onChange={(e) => setManualStreamingUrl(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                    Add {manualType === 'movie' ? 'Movie' : 'Series'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </>
+        )}
+        {currentTab === "sitemap" && (
+          <SitemapManager />
+        )}
       </div>
     </div>
   );
