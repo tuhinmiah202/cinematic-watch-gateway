@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
@@ -11,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { Loader2 } from 'lucide-react';
 import AdsterraBanner from '@/components/AdsterraBanner';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const ITEMS_PER_PAGE = 24;
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [selectedGenre, setSelectedGenre] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [supabaseMovies, setSupabaseMovies] = useState<any[]>([]);
@@ -63,14 +64,14 @@ const Index = () => {
     data: tmdbData,
     isLoading: isLoadingTmdb,
   } = useQuery({
-    queryKey: ['tmdb-content', selectedGenre, searchTerm],
+    queryKey: ['tmdb-content', selectedGenre, debouncedSearchTerm],
     queryFn: async () => {
       const pagePromises: Promise<{ results: any[], total_pages: number }>[] = [];
 
-      if (searchTerm) {
+      if (debouncedSearchTerm) {
         // Fetch 3 pages of search results
         for (let i = 1; i <= 3; i++) {
-          pagePromises.push(tmdbService.searchMovies(searchTerm, i));
+          pagePromises.push(tmdbService.searchMovies(debouncedSearchTerm, i));
         }
       } else if (selectedGenre && selectedGenre !== 'all') {
         const genreId = parseInt(selectedGenre);
@@ -101,29 +102,41 @@ const Index = () => {
         combinedMovies = combinedMovies.concat(page.results);
       });
     }
+    
+    // Deduplicate movies based on ID, prioritizing the first-seen item (Supabase content first)
+    const movieMap = new Map();
+    combinedMovies.forEach(movie => {
+        if (movie && movie.id && !movieMap.has(movie.id)) {
+            movieMap.set(movie.id, movie);
+        }
+    });
+    let filteredMovies = Array.from(movieMap.values());
 
     // Filter by genre
     if (selectedGenre && selectedGenre !== 'all') {
-      combinedMovies = combinedMovies.filter((movie) => {
+      const genreId = parseInt(selectedGenre);
+      const genreInfo = genres.find(g => g.id === genreId);
+      
+      filteredMovies = filteredMovies.filter((movie) => {
         if (isSupabaseContent(movie)) {
-          return movie.genres?.some((genre: any) => genre.name === selectedGenre);
+          return movie.genres?.some((g: any) => g.id === genreId || (genreInfo && g.name === genreInfo.name));
         } else {
-          return movie.genre_ids?.includes(parseInt(selectedGenre));
+          return movie.genre_ids?.includes(genreId);
         }
       });
     }
 
     // Filter by search term
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      combinedMovies = combinedMovies.filter((movie) => {
+    if (debouncedSearchTerm) {
+      const lowerSearchTerm = debouncedSearchTerm.toLowerCase();
+      filteredMovies = filteredMovies.filter((movie) => {
         const title = isSupabaseContent(movie) ? movie.title : movie.title || movie.name;
         return title?.toLowerCase().includes(lowerSearchTerm);
       });
     }
 
-    return combinedMovies;
-  }, [supabaseMovies, tmdbData, selectedGenre, searchTerm]);
+    return filteredMovies;
+  }, [supabaseMovies, tmdbData, selectedGenre, debouncedSearchTerm, genres]);
 
   // Get movies for current page
   const paginatedMovies = useCallback(() => {
@@ -249,7 +262,7 @@ const Index = () => {
   // Reset page when search term or genre changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedGenre]);
+  }, [debouncedSearchTerm, selectedGenre]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -265,7 +278,7 @@ const Index = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <Input
             type="text"
-            placeholder="Search for movies..."
+            placeholder="Search for movies & TV shows..."
             className="flex-grow bg-gray-800 text-white border-purple-500/20 rounded-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
