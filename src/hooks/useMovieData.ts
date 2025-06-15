@@ -1,0 +1,121 @@
+
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { tmdbService } from '@/services/tmdbService';
+import { contentService } from '@/services/contentService';
+
+// Function to determine if content is from Supabase
+const isSupabaseContent = (movie: any) => !!movie.content_type;
+
+export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string) => {
+  const [supabaseMovies, setSupabaseMovies] = useState<any[]>([]);
+
+  // Fetch genres from TMDB
+  const { data: genresData } = useQuery({
+    queryKey: ['genres'],
+    queryFn: async () => {
+      try {
+        const response = await tmdbService.getGenres();
+        return response?.genres || [];
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+        return [];
+      }
+    },
+  });
+
+  const genres = Array.isArray(genresData) ? genresData : [];
+
+  // Initial fetch of Supabase content
+  const {
+    data: initialSupabaseData,
+    isLoading: isLoadingSupabaseInitial,
+  } = useQuery({
+    queryKey: ['supabase-content-initial'],
+    queryFn: () => contentService.getApprovedContent(),
+  });
+
+  // Update supabaseMovies when data is fetched
+  useEffect(() => {
+    if (initialSupabaseData) {
+      setSupabaseMovies(initialSupabaseData);
+    }
+  }, [initialSupabaseData]);
+
+  // Fetch TMDB movies and TV shows
+  const {
+    data: tmdbData,
+    isLoading: isLoadingTmdb,
+  } = useQuery({
+    queryKey: ['tmdb-content', selectedGenre, debouncedSearchTerm],
+    queryFn: async () => {
+      const pagePromises: Promise<{ results: any[], total_pages: number }>[] = [];
+
+      if (debouncedSearchTerm) {
+        for (let i = 1; i <= 2; i++) {
+          pagePromises.push(tmdbService.searchMovies(debouncedSearchTerm, i));
+        }
+      } else if (selectedGenre && selectedGenre !== 'all') {
+        const genreId = parseInt(selectedGenre);
+        pagePromises.push(tmdbService.getMoviesByGenre(genreId, 1));
+        pagePromises.push(tmdbService.getTVShowsByGenre(genreId, 1));
+      } else {
+        pagePromises.push(tmdbService.getPopularMovies(1));
+        pagePromises.push(tmdbService.getPopularTVShows(1));
+      }
+
+      const pagesData = await Promise.all(pagePromises);
+      return pagesData;
+    },
+  });
+
+  // Combine and filter movies
+  const allMovies = useCallback(() => {
+    let combinedMovies: any[] = [...supabaseMovies];
+
+    if (tmdbData) {
+      tmdbData.forEach((page) => {
+        if (page && page.results) {
+          combinedMovies = combinedMovies.concat(page.results);
+        }
+      });
+    }
+    
+    const movieMap = new Map();
+    combinedMovies.forEach(movie => {
+        if (movie && movie.id && !movieMap.has(movie.id)) {
+            movieMap.set(movie.id, movie);
+        }
+    });
+    let filteredMovies = Array.from(movieMap.values());
+
+    if (selectedGenre && selectedGenre !== 'all') {
+      const genreId = parseInt(selectedGenre);
+      const genreInfo = genres.find(g => g.id === genreId);
+      
+      filteredMovies = filteredMovies.filter((movie) => {
+        if (isSupabaseContent(movie)) {
+          return movie.genres?.some((g: any) => g.id === genreId || (genreInfo && g.name === genreInfo.name));
+        } else {
+          return movie.genre_ids?.includes(genreId);
+        }
+      });
+    }
+
+    if (debouncedSearchTerm) {
+      const lowerSearchTerm = debouncedSearchTerm.toLowerCase();
+      filteredMovies = filteredMovies.filter((movie) => {
+        const title = isSupabaseContent(movie) ? movie.title : movie.title || movie.name;
+        return title?.toLowerCase().includes(lowerSearchTerm);
+      });
+    }
+
+    return filteredMovies;
+  }, [supabaseMovies, tmdbData, selectedGenre, debouncedSearchTerm, genres]);
+
+  return {
+    genres,
+    allMovies: allMovies(),
+    isLoading: isLoadingSupabaseInitial || isLoadingTmdb,
+  };
+};
