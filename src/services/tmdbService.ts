@@ -1,4 +1,3 @@
-
 const TMDB_API_KEY = '566149bf98e53cc39a4c04bfe01c03fc';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
@@ -98,6 +97,22 @@ export const tmdbService = {
     );
     const data = await response.json();
     return { ...data, media_type: 'tv' };
+  },
+
+  async getMovieRecommendations(movieId: number): Promise<{ results: Movie[] }> {
+    const response = await fetch(
+      `${TMDB_BASE_URL}/movie/${movieId}/recommendations?api_key=${TMDB_API_KEY}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch movie recommendations");
+    return response.json();
+  },
+
+  async getTVShowRecommendations(tvId: number): Promise<{ results: Movie[] }> {
+    const response = await fetch(
+      `${TMDB_BASE_URL}/tv/${tvId}/recommendations?api_key=${TMDB_API_KEY}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch TV show recommendations");
+    return response.json();
   },
 
   async getGenres(): Promise<{ genres: Genre[] }> {

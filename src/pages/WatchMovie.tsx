@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -69,6 +68,7 @@ const WatchMovie = () => {
     queryKey: ['related-content', movieId, isTV],
     queryFn: async () => {
       const numericId = parseInt(movieId as string);
+      if (isNaN(numericId)) return [];
       try {
         if (isTV) {
           const data = await tmdbService.getTVShowRecommendations(numericId);
@@ -237,8 +237,8 @@ const WatchMovie = () => {
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-12 text-left">
-              <h2 className="text-2xl font-bold text-white mb-6">You might also like</h2>
+            <div className="mt-8 text-left">
+              <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
               <MovieGrid movies={relatedContent.slice(0, 6)} isLoading={isLoadingRelated} />
             </div>
           )}
