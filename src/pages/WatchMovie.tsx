@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -191,8 +192,7 @@ const WatchMovie = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Adsterra Banner */}
-        <AdsterraBanner className="mb-6" />
+        {/* Adsterra Banner removed from here */}
 
         <div className="max-w-4xl mx-auto text-center">
           {/* Movie Info */}
@@ -259,8 +259,7 @@ const WatchMovie = () => {
             )}
           </div>
 
-          {/* Adsterra Footer Banner */}
-          <AdsterraBanner className="mt-6" />
+          {/* Adsterra Footer Banner removed from here */}
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
@@ -283,6 +282,7 @@ const WatchMovie = () => {
                   <CarouselPrevious className="left-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
                   <CarouselNext className="right-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
                 </Carousel>
+                <AdsterraBanner className="mt-6" />
             </div>
           )}
         </div>
