@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -191,7 +190,7 @@ const WatchMovie = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 md:py-8">
+      <div className="container mx-auto px-4 py-4 md:py-12">
         <div className="max-w-5xl mx-auto">
           <div className="md:grid md:grid-cols-12 md:gap-8 items-start">
             {/* Poster */}
@@ -206,7 +205,7 @@ const WatchMovie = () => {
             {/* Details and Watch Button */}
             <div className="md:col-span-8 lg:col-span-9 mt-4 md:mt-0">
               {/* Movie Info */}
-              <div className="mb-4 text-center md:text-left">
+              <div className="mb-4 md:mb-6 text-center md:text-left">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
                 <p className="text-lg text-gray-300">
                   {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
@@ -268,7 +267,7 @@ const WatchMovie = () => {
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-8 text-left relative">
+            <div className="mt-8 md:mt-12 text-left relative">
               <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
                 <Carousel
                   opts={{
