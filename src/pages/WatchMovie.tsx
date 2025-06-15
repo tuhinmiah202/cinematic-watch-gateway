@@ -60,29 +60,50 @@ const WatchMovie = () => {
     enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
+  const isSupabaseContent = !!supabaseContent;
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || isLoadingTmdb;
-  const isTV = !!(tmdbContent && 'name' in tmdbContent);
+  const isTV = isSupabaseContent
+    ? supabaseContent.content_type === 'series'
+    : !!(tmdbContent && 'name' in tmdbContent);
 
   const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
     queryKey: ['related-content', movieId, isTV],
     queryFn: async () => {
-      const numericId = parseInt(movieId as string);
-      if (isNaN(numericId)) return [];
-      try {
-        if (isTV) {
-          const data = await tmdbService.getTVShowRecommendations(numericId);
-          return data.results || [];
-        } else {
-          const data = await tmdbService.getMovieRecommendations(numericId);
-          return data.results || [];
+      if (isSupabaseContent) {
+        // For Supabase content, show popular content as recommendations
+        try {
+          if (isTV) {
+            const { results } = await tmdbService.getPopularTVShows();
+            return results || [];
+          } else {
+            const { results } = await tmdbService.getPopularMovies();
+            return results || [];
+          }
+        } catch (error) {
+          console.error("Error fetching related content for Supabase item:", error);
+          return [];
         }
-      } catch (error) {
-        console.error("Error fetching related content:", error);
-        return [];
+      } else if (tmdbContent) {
+        // For TMDB content, fetch recommendations
+        const numericId = parseInt(movieId as string);
+        if (isNaN(numericId)) return [];
+        try {
+          if (isTV) {
+            const data = await tmdbService.getTVShowRecommendations(numericId);
+            return data.results || [];
+          } else {
+            const data = await tmdbService.getMovieRecommendations(numericId);
+            return data.results || [];
+          }
+        } catch (error) {
+          console.error("Error fetching related content for TMDB item:", error);
+          return [];
+        }
       }
+      return [];
     },
-    enabled: !!tmdbContent && !isLoadingTmdb,
+    enabled: !!movie && !isLoading,
   });
 
   useEffect(() => {
@@ -138,7 +159,6 @@ const WatchMovie = () => {
     );
   }
 
-  const isSupabaseContent = !!(movie as any).content_type;
   const title = isSupabaseContent ? (movie as any).title : ((movie as any).title || (movie as any).name);
   const posterUrl = isSupabaseContent 
     ? (movie as any).poster_url || '/placeholder.svg'
