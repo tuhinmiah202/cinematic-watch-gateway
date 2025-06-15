@@ -69,23 +69,19 @@ const Index = () => {
       const pagePromises: Promise<{ results: any[], total_pages: number }>[] = [];
 
       if (debouncedSearchTerm) {
-        // Fetch 3 pages of search results
-        for (let i = 1; i <= 3; i++) {
+        // Fetch 2 pages of search results for a good balance
+        for (let i = 1; i <= 2; i++) {
           pagePromises.push(tmdbService.searchMovies(debouncedSearchTerm, i));
         }
       } else if (selectedGenre && selectedGenre !== 'all') {
         const genreId = parseInt(selectedGenre);
-        // Fetch 3 pages of each (movies and tv shows) for the selected genre
-        for (let i = 1; i <= 3; i++) {
-          pagePromises.push(tmdbService.getMoviesByGenre(genreId, i));
-          pagePromises.push(tmdbService.getTVShowsByGenre(genreId, i));
-        }
+        // Fetch 1 page of each (movies and tv shows) to speed up genre filtering
+        pagePromises.push(tmdbService.getMoviesByGenre(genreId, 1));
+        pagePromises.push(tmdbService.getTVShowsByGenre(genreId, 1));
       } else {
-        // Fetch 3 pages of each (popular movies and tv shows)
-        for (let i = 1; i <= 3; i++) {
-          pagePromises.push(tmdbService.getPopularMovies(i));
-          pagePromises.push(tmdbService.getPopularTVShows(i));
-        }
+        // Fetch 1 page of each (popular movies and tv shows) for faster initial load
+        pagePromises.push(tmdbService.getPopularMovies(1));
+        pagePromises.push(tmdbService.getPopularTVShows(1));
       }
 
       const pagesData = await Promise.all(pagePromises);
