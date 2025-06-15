@@ -191,79 +191,84 @@ const WatchMovie = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Adsterra Banner removed from here */}
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="max-w-5xl mx-auto">
+          <div className="md:grid md:grid-cols-12 md:gap-8 items-start">
+            {/* Poster */}
+            <div className="md:col-span-4 lg:col-span-3">
+              <img
+                src={posterUrl}
+                alt={title}
+                className="w-full max-w-[200px] md:max-w-full h-auto object-cover rounded-xl shadow-2xl mx-auto"
+              />
+            </div>
 
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Movie Info */}
-          <div className="mb-6">
-            <img
-              src={posterUrl}
-              alt={title}
-              className="w-40 h-60 object-cover rounded-xl shadow-2xl mx-auto mb-4"
-            />
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
-            <p className="text-lg text-gray-300">
-              {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
-            </p>
-          </div>
-
-          {/* Countdown or Watch Button */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-purple-500/20 mx-2">
-            {!showWatchButton ? (
-              <div className="text-center">
-                <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Preparing your stream...</h2>
-                <div className="text-4xl md:text-5xl font-bold text-purple-400 mb-4">{countdown}</div>
-                <p className="text-gray-300 text-sm md:text-base">Please wait while we prepare the best viewing options</p>
+            {/* Details and Watch Button */}
+            <div className="md:col-span-8 lg:col-span-9 mt-6 md:mt-0">
+              {/* Movie Info */}
+              <div className="mb-6 text-center md:text-left">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
+                <p className="text-lg text-gray-300">
+                  {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
+                </p>
               </div>
-            ) : (
-              <div className="text-center">
-                <Play className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
-                
-                {hasStreamingLink ? (
-                  <>
-                    <p className="text-gray-300 text-xs mb-4">👉 Available on platforms like Netflix, Disney+, etc.</p>
-                    <div className="w-full max-w-sm mx-auto">
-                      <Button 
-                        onClick={handleWatchNow}
-                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                      >
-                        <Play className="w-5 h-5 mr-2" />
-                        Watch Now
-                      </Button>
-                    </div>
-                    <p className="text-gray-300 text-xs mt-3 px-4">
-                      You will be redirected to the streaming platform
-                    </p>
-                  </>
+
+              {/* Countdown or Watch Button */}
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-purple-500/20 mx-2 md:mx-0">
+                {!showWatchButton ? (
+                  <div className="text-center">
+                    <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Preparing your stream...</h2>
+                    <div className="text-4xl md:text-5xl font-bold text-purple-400 mb-4">{countdown}</div>
+                    <p className="text-gray-300 text-sm md:text-base">Please wait while we prepare the best viewing options</p>
+                  </div>
                 ) : (
-                  <>
-                    <p className="text-gray-300 text-xs mb-4">👉 Find legal streaming platforms (e.g., Netflix, Disney+, Prime)</p>
-                    <div className="w-full max-w-sm mx-auto">
-                      <Button 
-                        onClick={handleWatchNow}
-                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                      >
-                        <ExternalLink className="w-5 h-5 mr-2" />
-                        Find Streaming Options
-                      </Button>
-                    </div>
-                    <p className="text-gray-300 text-xs mt-3 px-4">
-                      You will be redirected to search for streaming options
-                    </p>
-                  </>
+                  <div className="text-center">
+                    <Play className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
+                    
+                    {hasStreamingLink ? (
+                      <>
+                        <p className="text-gray-300 text-xs mb-4">👉 Available on platforms like Netflix, Disney+, etc.</p>
+                        <div className="w-full max-w-sm mx-auto">
+                          <Button 
+                            onClick={handleWatchNow}
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                          >
+                            <Play className="w-5 h-5 mr-2" />
+                            Watch Now
+                          </Button>
+                        </div>
+                        <p className="text-gray-300 text-xs mt-3 px-4">
+                          You will be redirected to the streaming platform
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-300 text-xs mb-4">👉 Find legal streaming platforms (e.g., Netflix, Disney+, Prime)</p>
+                        <div className="w-full max-w-sm mx-auto">
+                          <Button 
+                            onClick={handleWatchNow}
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                          >
+                            <ExternalLink className="w-5 h-5 mr-2" />
+                            Find Streaming Options
+                          </Button>
+                        </div>
+                        <p className="text-gray-300 text-xs mt-3 px-4">
+                          You will be redirected to search for streaming options
+                        </p>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
-
-          {/* Adsterra Footer Banner removed from here */}
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-6 text-left relative">
+            <div className="mt-12 text-left relative">
               <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
                 <Carousel
                   opts={{
@@ -274,7 +279,7 @@ const WatchMovie = () => {
                 >
                   <CarouselContent className="-ml-2 md:-ml-4">
                     {relatedContent.map((movie, index) => (
-                      <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5">
+                      <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
                         <MovieCard movie={movie} />
                       </CarouselItem>
                     ))}
