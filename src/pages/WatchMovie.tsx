@@ -192,20 +192,28 @@ const WatchMovie = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-12">
         <div className="max-w-5xl mx-auto">
-          <div className="md:grid md:grid-cols-12 md:gap-8 items-start">
-            {/* Poster */}
-            <div className="md:col-span-4 lg:col-span-3">
-              <img
-                src={posterUrl}
-                alt={title}
-                className="w-full max-w-[200px] md:max-w-full h-auto object-cover rounded-xl shadow-2xl mx-auto"
-              />
+          <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8 md:items-start">
+            {/* Poster and mobile title */}
+            <div className="flex flex-row gap-4 items-start md:block md:col-span-4 lg:col-span-3">
+              <div className="w-1/3 md:w-full shrink-0">
+                <img
+                  src={posterUrl}
+                  alt={title}
+                  className="w-full h-auto object-cover rounded-xl shadow-2xl"
+                />
+              </div>
+              <div className="w-2/3 md:hidden">
+                <h1 className="text-lg font-bold text-white mb-1 line-clamp-3">{title}</h1>
+                <p className="text-xs text-gray-300">
+                  {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
+                </p>
+              </div>
             </div>
 
             {/* Details and Watch Button */}
-            <div className="md:col-span-8 lg:col-span-9 mt-4 md:mt-0">
-              {/* Movie Info */}
-              <div className="mb-4 md:mb-6 text-center md:text-left">
+            <div className="w-full md:col-span-8 lg:col-span-9 mt-4 md:mt-0">
+              {/* Movie Info for Desktop */}
+              <div className="hidden md:block mb-4 md:mb-6 text-left">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
                 <p className="text-lg text-gray-300">
                   {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
@@ -213,7 +221,7 @@ const WatchMovie = () => {
               </div>
 
               {/* Countdown or Watch Button */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 border border-purple-500/20 mx-2 md:mx-0">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 border border-purple-500/20">
                 {!showWatchButton ? (
                   <div className="text-center">
                     <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
