@@ -191,7 +191,7 @@ const WatchMovie = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 md:py-12">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-5xl mx-auto">
           <div className="md:grid md:grid-cols-12 md:gap-8 items-start">
             {/* Poster */}
@@ -204,9 +204,9 @@ const WatchMovie = () => {
             </div>
 
             {/* Details and Watch Button */}
-            <div className="md:col-span-8 lg:col-span-9 mt-6 md:mt-0">
+            <div className="md:col-span-8 lg:col-span-9 mt-4 md:mt-0">
               {/* Movie Info */}
-              <div className="mb-6 text-center md:text-left">
+              <div className="mb-4 text-center md:text-left">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
                 <p className="text-lg text-gray-300">
                   {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
@@ -214,7 +214,7 @@ const WatchMovie = () => {
               </div>
 
               {/* Countdown or Watch Button */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-purple-500/20 mx-2 md:mx-0">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 border border-purple-500/20 mx-2 md:mx-0">
                 {!showWatchButton ? (
                   <div className="text-center">
                     <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
@@ -268,7 +268,7 @@ const WatchMovie = () => {
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-12 text-left relative">
+            <div className="mt-8 text-left relative">
               <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
                 <Carousel
                   opts={{
