@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
@@ -145,6 +146,45 @@ const MovieDetail = () => {
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || isLoadingTmdb;
 
+  // Calculate dependencies for related content query before any early returns
+  const currentMovieTmdbId = (movie as any)?.tmdb_id || movie?.id;
+  
+  let genresForQuery;
+  if (supabaseContent) {
+    genresForQuery = tmdbDetails?.genres || supabaseContent.genres || [];
+  } else if (tmdbContent) {
+    genresForQuery = (tmdbContent as any).genres || [];
+  } else {
+    genresForQuery = [];
+  }
+  const primaryGenreId = genresForQuery?.[0]?.id;
+
+  const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ['related-content', currentMovieTmdbId, primaryGenreId],
+    queryFn: async () => {
+      if (!primaryGenreId || !currentMovieTmdbId) return [];
+
+      try {
+        const [moviesResponse, tvShowsResponse] = await Promise.all([
+          tmdbService.getMoviesByGenre(primaryGenreId, 1),
+          tmdbService.getTVShowsByGenre(primaryGenreId, 1)
+        ]);
+        
+        const combined = [...moviesResponse.results, ...tvShowsResponse.results];
+        
+        // Shuffle, filter out the current movie, and limit results
+        return combined
+          .sort(() => 0.5 - Math.random()) // Randomize for variety
+          .filter(item => item.id !== currentMovieTmdbId)
+          .slice(0, 10); // Limit to 10
+      } catch (error) {
+        console.error('Error fetching related content:', error);
+        return [];
+      }
+    },
+    enabled: !!primaryGenreId && !!currentMovieTmdbId && !isLoading,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
@@ -178,7 +218,7 @@ const MovieDetail = () => {
     isTV = supabaseMovie.content_type === 'series';
     // Use TMDB cast if available, otherwise fall back to Supabase cast
     cast = tmdbCast || supabaseMovie.cast_members || [];
-    genres = tmdbDetails?.genres || supabaseMovie.genres || [];
+    genres = genresForQuery;
   } else {
     const tmdbMovie = movie as any;
     title = tmdbMovie.title || tmdbMovie.name || 'Untitled';
@@ -188,41 +228,12 @@ const MovieDetail = () => {
     rating = tmdbMovie.vote_average || 0;
     isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name;
     cast = tmdbCast || [];
-    genres = tmdbMovie.genres || [];
+    genres = genresForQuery;
   }
 
   const posterUrl = isSupabaseContent 
     ? (movie as any).poster_url || '/placeholder.svg'
     : tmdbService.getImageUrl((movie as any).poster_path);
-
-  const primaryGenreId = genres?.[0]?.id;
-  const currentMovieTmdbId = (movie as any).tmdb_id || movie.id;
-
-  const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
-    queryKey: ['related-content', currentMovieTmdbId, primaryGenreId],
-    queryFn: async () => {
-      if (!primaryGenreId) return [];
-
-      try {
-        const [moviesResponse, tvShowsResponse] = await Promise.all([
-          tmdbService.getMoviesByGenre(primaryGenreId, 1),
-          tmdbService.getTVShowsByGenre(primaryGenreId, 1)
-        ]);
-        
-        const combined = [...moviesResponse.results, ...tvShowsResponse.results];
-        
-        // Shuffle, filter out the current movie, and limit results
-        return combined
-          .sort(() => 0.5 - Math.random()) // Randomize for variety
-          .filter(item => item.id !== currentMovieTmdbId)
-          .slice(0, 10); // Limit to 10
-      } catch (error) {
-        console.error('Error fetching related content:', error);
-        return [];
-      }
-    },
-    enabled: !!primaryGenreId && !!currentMovieTmdbId && !isLoading,
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
