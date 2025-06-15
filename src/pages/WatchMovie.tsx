@@ -158,9 +158,6 @@ const WatchMovie = () => {
             </p>
           </div>
 
-          {/* Adsterra Banner */}
-          <AdsterraBanner className="mb-8" />
-
           {/* Countdown or Watch Button */}
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-purple-500/20 mx-2">
             {!showWatchButton ? (

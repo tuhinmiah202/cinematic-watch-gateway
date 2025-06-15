@@ -315,9 +315,6 @@ const MovieDetail = () => {
             </div>
           </div>
         )}
-
-        {/* Adsterra Footer Banner */}
-        <AdsterraBanner />
       </div>
     </div>
   );
