@@ -160,10 +160,16 @@ const MovieDetail = () => {
     queryFn: async () => {
       if (!primaryGenreId || !currentMovieTmdbId) return [];
 
+      const numericGenreId = Number(primaryGenreId);
+      if (isNaN(numericGenreId)) {
+        console.error("Invalid genre ID for related content query:", primaryGenreId);
+        return [];
+      }
+
       try {
         const [moviesResponse, tvShowsResponse] = await Promise.all([
-          tmdbService.getMoviesByGenre(primaryGenreId, 1),
-          tmdbService.getTVShowsByGenre(primaryGenreId, 1)
+          tmdbService.getMoviesByGenre(numericGenreId, 1),
+          tmdbService.getTVShowsByGenre(numericGenreId, 1)
         ]);
         
         const combined = [...moviesResponse.results, ...tvShowsResponse.results];
@@ -171,7 +177,7 @@ const MovieDetail = () => {
         // Shuffle, filter out the current movie, and limit results
         return combined
           .sort(() => 0.5 - Math.random()) // Randomize for variety
-          .filter(item => item.id !== currentMovieTmdbId)
+          .filter(item => item.id != currentMovieTmdbId) // Use != to handle potential type difference
           .slice(0, 10); // Limit to 10
       } catch (error) {
         console.error('Error fetching related content:', error);
@@ -248,17 +254,17 @@ const MovieDetail = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-2">
         {/* Adsterra Banner */}
         <AdsterraBanner className="mb-4" />
 
         {/* Movie Info */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="flex-shrink-0 mx-auto md:mx-0">
             <img
               src={posterUrl}
               alt={title}
-              className="w-40 h-60 md:w-48 md:h-72 object-cover rounded-lg shadow-xl"
+              className="w-32 h-48 md:w-40 md:h-60 object-cover rounded-lg shadow-xl"
             />
           </div>
 
@@ -268,7 +274,7 @@ const MovieDetail = () => {
               {isTV && <Tv className="w-6 h-6 text-purple-400" />}
             </div>
             
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
               {rating > 0 && (
                 <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -293,7 +299,7 @@ const MovieDetail = () => {
               )}
             </div>
 
-            <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
+            <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
               {genres.map((genre: any, index: number) => (
                 <span 
                   key={genre.id || index}
@@ -304,7 +310,7 @@ const MovieDetail = () => {
               ))}
             </div>
 
-            <p className="text-sm text-gray-300 leading-relaxed mb-4">{overview}</p>
+            <p className="text-sm text-gray-300 leading-relaxed mb-3">{overview}</p>
 
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-2">👉 Available on platforms like Netflix, Disney+, etc.</p>
@@ -321,12 +327,12 @@ const MovieDetail = () => {
         </div>
 
         {/* Cast Section */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-4">
-          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">
+          <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
             <User className="w-5 h-5" />
             Cast {isLoadingCast && <Loader2 className="w-4 h-4 animate-spin" />}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {cast.slice(0, 8).map((actor: any, index: number) => (
               <div key={actor.id || index} className="text-center">
                 <h4 className="text-white text-sm font-semibold line-clamp-1">{actor.name}</h4>
@@ -341,8 +347,8 @@ const MovieDetail = () => {
 
         {/* Production Details */}
         {(movie as any).production_companies && (movie as any).production_companies.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-bold text-white mb-3">Production</h3>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">
+            <h3 className="text-lg font-bold text-white mb-2">Production</h3>
             <div className="flex flex-wrap gap-2">
               {(movie as any).production_companies.slice(0, 3).map((company: any) => (
                 <span key={company.id} className="text-gray-300 text-sm bg-gray-700 px-2 py-1 rounded">
@@ -355,8 +361,8 @@ const MovieDetail = () => {
 
         {/* Related Content Section */}
         {relatedContent && relatedContent.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <div className="mt-6">
+            <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
               You Might Also Like
               {isLoadingRelated && <Loader2 className="w-5 h-5 animate-spin" />}
             </h2>
