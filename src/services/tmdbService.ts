@@ -120,10 +120,10 @@ export const tmdbService = {
     return { genres: uniqueGenres };
   },
 
-  async searchMovies(query: string): Promise<{ results: Movie[]; total_pages: number }> {
+  async searchMovies(query: string, page = 1): Promise<{ results: Movie[]; total_pages: number }> {
     // Use multi-search to get both movies and TV shows
     const response = await fetch(
-      `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`
+      `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}`
     );
     const data = await response.json();
     return {

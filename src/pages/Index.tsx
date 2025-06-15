@@ -58,20 +58,37 @@ const Index = () => {
     }
   }, [initialSupabaseData]);
 
-  // Fetch TMDB movies for multiple pages to have enough content
+  // Fetch TMDB movies and TV shows
   const {
     data: tmdbData,
     isLoading: isLoadingTmdb,
   } = useQuery({
-    queryKey: ['tmdb-movies-paginated', selectedGenre, searchTerm],
+    queryKey: ['tmdb-content', selectedGenre, searchTerm],
     queryFn: async () => {
-      const pages = [];
-      // Fetch first 5 pages to have enough content for pagination
-      for (let i = 1; i <= 5; i++) {
-        const pageData = await tmdbService.getPopularMovies(i);
-        pages.push(pageData);
+      const pagePromises: Promise<{ results: any[], total_pages: number }>[] = [];
+
+      if (searchTerm) {
+        // Fetch 3 pages of search results
+        for (let i = 1; i <= 3; i++) {
+          pagePromises.push(tmdbService.searchMovies(searchTerm, i));
+        }
+      } else if (selectedGenre && selectedGenre !== 'all') {
+        const genreId = parseInt(selectedGenre);
+        // Fetch 3 pages of each (movies and tv shows) for the selected genre
+        for (let i = 1; i <= 3; i++) {
+          pagePromises.push(tmdbService.getMoviesByGenre(genreId, i));
+          pagePromises.push(tmdbService.getTVShowsByGenre(genreId, i));
+        }
+      } else {
+        // Fetch 3 pages of each (popular movies and tv shows)
+        for (let i = 1; i <= 3; i++) {
+          pagePromises.push(tmdbService.getPopularMovies(i));
+          pagePromises.push(tmdbService.getPopularTVShows(i));
+        }
       }
-      return pages;
+
+      const pagesData = await Promise.all(pagePromises);
+      return pagesData;
     },
   });
 
