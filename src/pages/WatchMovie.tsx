@@ -273,30 +273,34 @@ const WatchMovie = () => {
             </div>
           </div>
           
-          {/* Related Content */}
-          {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-8 md:mt-12 text-left relative">
-              <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
-                <Carousel
-                  opts={{
-                    align: "start",
-                    slidesToScroll: 2,
-                  }}
-                  className="w-full"
-                >
-                  <CarouselContent className="-ml-2 md:-ml-4">
-                    {relatedContent.map((movie, index) => (
-                      <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
-                        <MovieCard movie={movie} />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="left-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
-                  <CarouselNext className="right-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
-                </Carousel>
-                <AdsterraBanner className="mt-6" />
-            </div>
-          )}
+          {/* Ad & Related Content */}
+          <div className="mt-8 md:mt-12">
+            <AdsterraBanner className="mb-8" />
+            
+            {/* Related Content */}
+            {relatedContent && relatedContent.length > 0 && (
+              <div className="text-left relative">
+                <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
+                  <Carousel
+                    opts={{
+                      align: "start",
+                      slidesToScroll: 2,
+                    }}
+                    className="w-full"
+                  >
+                    <CarouselContent className="-ml-2 md:-ml-4">
+                      {relatedContent.map((movie, index) => (
+                        <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
+                          <MovieCard movie={movie} />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
+                    <CarouselNext className="right-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
+                  </Carousel>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
