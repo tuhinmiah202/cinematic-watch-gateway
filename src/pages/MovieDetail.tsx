@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
@@ -146,18 +145,15 @@ const MovieDetail = () => {
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || isLoadingTmdb;
 
-  // Calculate dependencies for related content query before any early returns
-  const currentMovieTmdbId = (movie as any)?.tmdb_id || movie?.id;
+  // Calculate dependencies for related content query before any early returns.
+  // This logic is made more defensive to prevent crashes during render.
+  const currentMovieTmdbId = movie ? ((movie as any).tmdb_id || movie.id) : null;
   
-  let genresForQuery;
-  if (supabaseContent) {
-    genresForQuery = tmdbDetails?.genres || supabaseContent.genres || [];
-  } else if (tmdbContent) {
-    genresForQuery = (tmdbContent as any).genres || [];
-  } else {
-    genresForQuery = [];
-  }
-  const primaryGenreId = genresForQuery?.[0]?.id;
+  const genresForQuery = supabaseContent
+    ? tmdbDetails?.genres || supabaseContent.genres || []
+    : tmdbContent?.genres || [];
+    
+  const primaryGenreId = genresForQuery?.[0]?.id ?? null;
 
   const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
     queryKey: ['related-content', currentMovieTmdbId, primaryGenreId],
