@@ -7,7 +7,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import AdsterraBanner from '@/components/AdsterraBanner';
-import MovieGrid from '@/components/MovieGrid';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import MovieCard from '@/components/MovieCard';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
@@ -183,13 +190,13 @@ const WatchMovie = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         {/* Adsterra Banner */}
-        <AdsterraBanner className="mb-8" />
+        <AdsterraBanner className="mb-6" />
 
         <div className="max-w-4xl mx-auto text-center">
           {/* Movie Info */}
-          <div className="mb-8">
+          <div className="mb-6">
             <img
               src={posterUrl}
               alt={title}
@@ -253,13 +260,29 @@ const WatchMovie = () => {
           </div>
 
           {/* Adsterra Footer Banner */}
-          <AdsterraBanner className="mt-8" />
+          <AdsterraBanner className="mt-6" />
           
           {/* Related Content */}
           {relatedContent && relatedContent.length > 0 && (
-            <div className="mt-8 text-left">
+            <div className="mt-6 text-left relative">
               <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
-              <MovieGrid movies={relatedContent.slice(0, 6)} isLoading={isLoadingRelated} />
+                <Carousel
+                  opts={{
+                    align: "start",
+                    slidesToScroll: 2,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent className="-ml-2 md:-ml-4">
+                    {relatedContent.map((movie, index) => (
+                      <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5">
+                        <MovieCard movie={movie} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
+                  <CarouselNext className="right-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
+                </Carousel>
             </div>
           )}
         </div>
