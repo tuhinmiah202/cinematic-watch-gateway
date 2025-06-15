@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SitemapManager from "@/components/admin/SitemapManager";
-import { Sitemap } from "lucide-react";
+import { Network } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -260,7 +260,7 @@ const AdminDashboard = () => {
             onClick={() => setCurrentTab("sitemap")}
             data-testid="sitemap-tab"
           >
-            <Sitemap className="w-4 h-4" />
+            <Network className="w-4 h-4" />
             Sitemap
           </Button>
         </div>
