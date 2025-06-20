@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import AdsterraBanner from '@/components/AdsterraBanner';
+import NativeBanner from '@/components/NativeBanner';
 import MovieCard from '@/components/MovieCard';
 
 const MovieDetail = () => {
@@ -325,6 +326,9 @@ const MovieDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Native Banner below Watch Now button */}
+        <NativeBanner className="mb-4" />
 
         {/* Cast Section */}
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">

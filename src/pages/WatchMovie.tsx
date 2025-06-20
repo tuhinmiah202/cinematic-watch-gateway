@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import AdsterraBanner from '@/components/AdsterraBanner';
+import NativeBanner from '@/components/NativeBanner';
 import {
   Carousel,
   CarouselContent,
@@ -272,6 +273,9 @@ const WatchMovie = () => {
               </div>
             </div>
           </div>
+          
+          {/* Native Banner after Watch Button section */}
+          <NativeBanner className="mt-8 mb-8" />
           
           {/* Ad & Related Content */}
           <div className="mt-8 md:mt-12">
