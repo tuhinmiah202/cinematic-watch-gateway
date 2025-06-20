@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import AdsterraBanner from '@/components/AdsterraBanner';
@@ -45,10 +44,19 @@ const Index = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedGenre, contentType]);
 
-  // Split movies for native ad placement
+  // Split movies for ad placement - show ads after every 6 movies
   const currentMovies = paginatedMovies();
-  const firstSixMovies = currentMovies.slice(0, 6);
-  const remainingMovies = currentMovies.slice(6);
+  const moviesWithAds = [];
+  
+  for (let i = 0; i < currentMovies.length; i += 6) {
+    const chunk = currentMovies.slice(i, i + 6);
+    moviesWithAds.push({ type: 'movies', data: chunk });
+    
+    // Add ad after every 6 movies (except the last chunk if it's less than 6)
+    if (chunk.length === 6 && i + 6 < currentMovies.length) {
+      moviesWithAds.push({ type: 'ad', data: null });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -72,30 +80,23 @@ const Index = () => {
         {/* Native Banner after Filter Controls */}
         <NativeBanner className="mb-6" />
 
-        {/* First 6 movies */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
-          {firstSixMovies.map((movie, index) => (
-            <MovieCard
-              key={`${movie.id}-${index}`}
-              movie={movie}
-            />
-          ))}
-        </div>
-
-        {/* Native Banner after 6 movies */}
-        {firstSixMovies.length === 6 && <NativeBanner className="mb-6" />}
-
-        {/* Remaining movies */}
-        {remainingMovies.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-8">
-            {remainingMovies.map((movie, index) => (
-              <MovieCard
-                key={`${movie.id}-${index + 6}`}
-                movie={movie}
-              />
-            ))}
+        {/* Movies and Ads Grid */}
+        {moviesWithAds.map((section, sectionIndex) => (
+          <div key={sectionIndex}>
+            {section.type === 'movies' ? (
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+                {section.data.map((movie, index) => (
+                  <MovieCard
+                    key={`${movie.id}-${sectionIndex}-${index}`}
+                    movie={movie}
+                  />
+                ))}
+              </div>
+            ) : (
+              <NativeBanner className="mb-6" />
+            )}
           </div>
-        )}
+        ))}
 
         {/* Show loading or no movies message if needed */}
         {isLoading && (

@@ -10,46 +10,40 @@ const NativeBanner = ({ className = '' }: NativeBannerProps) => {
 
   useEffect(() => {
     if (containerRef.current) {
-      // Create unique container ID for each instance
-      const uniqueId = `container-a72b44e62300d07717fb5618ec6b0836-${Date.now()}-${Math.random()}`;
-      containerRef.current.id = uniqueId;
+      // Create 3 ad containers to match movie card grid
+      for (let i = 0; i < 3; i++) {
+        const adContainer = document.createElement('div');
+        adContainer.id = `container-a72b44e62300d07717fb5618ec6b0836-${i}`;
+        adContainer.className = 'native-ad-item w-full h-full min-h-[200px] bg-gray-800/30 rounded-lg border border-gray-700/50 flex items-center justify-center';
+        containerRef.current.appendChild(adContainer);
+      }
       
-      console.log('Native ad container created with ID:', uniqueId);
-      
-      // Add the container div that the ad script expects
-      const adContainer = document.createElement('div');
-      adContainer.id = 'container-a72b44e62300d07717fb5618ec6b0836';
-      containerRef.current.appendChild(adContainer);
-      
-      // Load the ad script
-      const script = document.createElement('script');
-      script.src = '//pl26926162.profitableratecpm.com/a72b44e62300d07717fb5618ec6b0836/invoke.js';
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      
-      script.onload = () => {
-        console.log('Native ad script loaded successfully');
-      };
-      
-      script.onerror = (error) => {
-        console.error('Native ad script failed to load:', error);
-      };
-      
-      // Append script to the document head instead of container
-      document.head.appendChild(script);
-      
-      // Cleanup function
-      return () => {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      };
+      // Load the ad script only once
+      if (!document.querySelector('script[src*="a72b44e62300d07717fb5618ec6b0836"]')) {
+        const script = document.createElement('script');
+        script.src = '//pl26926162.profitableratecpm.com/a72b44e62300d07717fb5618ec6b0836/invoke.js';
+        script.async = true;
+        script.setAttribute('data-cfasync', 'false');
+        
+        script.onload = () => {
+          console.log('Native ad script loaded successfully');
+        };
+        
+        script.onerror = (error) => {
+          console.error('Native ad script failed to load:', error);
+        };
+        
+        document.head.appendChild(script);
+      }
     }
   }, []);
 
   return (
     <div className={`native-banner-container ${className}`}>
-      <div ref={containerRef} className="w-full flex justify-center min-h-[100px]"></div>
+      <div 
+        ref={containerRef} 
+        className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-full"
+      />
       <p className="text-xs text-gray-500 text-center mt-2">Advertisement</p>
     </div>
   );
