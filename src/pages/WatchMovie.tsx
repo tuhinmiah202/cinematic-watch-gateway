@@ -274,8 +274,8 @@ const WatchMovie = () => {
             </div>
           </div>
           
-          {/* Native Banner after Watch Button section */}
-          <NativeBanner className="mt-8 mb-8" />
+          {/* Native Banner after Watch Button section with single ad */}
+          <NativeBanner className="mt-8 mb-8" adCount={1} />
           
           {/* Ad & Related Content */}
           <div className="mt-8 md:mt-12">

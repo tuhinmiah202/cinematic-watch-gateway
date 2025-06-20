@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import AdsterraBanner from '@/components/AdsterraBanner';
@@ -44,16 +45,16 @@ const Index = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedGenre, contentType]);
 
-  // Split movies for ad placement - show ads after every 6 movies
+  // Split movies for ad placement - show ads after every 9 movies
   const currentMovies = paginatedMovies();
   const moviesWithAds = [];
   
-  for (let i = 0; i < currentMovies.length; i += 6) {
-    const chunk = currentMovies.slice(i, i + 6);
+  for (let i = 0; i < currentMovies.length; i += 9) {
+    const chunk = currentMovies.slice(i, i + 9);
     moviesWithAds.push({ type: 'movies', data: chunk });
     
-    // Add ad after every 6 movies (except the last chunk if it's less than 6)
-    if (chunk.length === 6 && i + 6 < currentMovies.length) {
+    // Add ad after every 9 movies (except the last chunk if it's less than 9)
+    if (chunk.length === 9 && i + 9 < currentMovies.length) {
       moviesWithAds.push({ type: 'ad', data: null });
     }
   }
@@ -77,9 +78,6 @@ const Index = () => {
           onContentTypeChange={setContentType}
         />
 
-        {/* Native Banner after Filter Controls */}
-        <NativeBanner className="mb-6" />
-
         {/* Movies and Ads Grid */}
         {moviesWithAds.map((section, sectionIndex) => (
           <div key={sectionIndex}>
@@ -93,7 +91,7 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              <NativeBanner className="mb-6" />
+              <NativeBanner className="mb-6" adCount={2} />
             )}
           </div>
         ))}
