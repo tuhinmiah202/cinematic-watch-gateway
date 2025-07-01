@@ -17,6 +17,8 @@ export interface ContentItem {
   genres?: Genre[];
   streaming_links?: StreamingLink[];
   episodes?: Episode[];
+  rating?: number;
+  runtime?: number;
 }
 
 export interface CastMember {
@@ -71,6 +73,42 @@ export const contentService = {
       console.error('Error clearing content:', error);
       return false;
     }
+  },
+
+  // Get all content (including non-approved for admin)
+  async getAllContent(): Promise<ContentItem[]> {
+    const { data, error } = await supabase
+      .from('content')
+      .select(`
+        *,
+        content_cast(
+          role,
+          character_name,
+          cast_members(id, name, profile_image_url)
+        ),
+        content_genres(
+          genres(id, name, tmdb_id)
+        ),
+        streaming_links(id, url, platform_name, is_active),
+        episodes(*)
+      `)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all content:', error);
+      return [];
+    }
+
+    return data?.map(item => ({
+      ...item,
+      cast_members: item.content_cast?.map((cc: any) => ({
+        ...cc.cast_members,
+        role: cc.role,
+        character_name: cc.character_name
+      })) || [],
+      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
+      streaming_links: item.streaming_links || []
+    })) || [];
   },
 
   // Get all approved content

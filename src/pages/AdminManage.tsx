@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Loader2, Plus, Edit, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { contentService } from '@/services/contentService';
+import { contentService, ContentItem } from '@/services/contentService';
 import { tmdbService } from '@/services/tmdbService';
 import { useToast } from '@/hooks/use-toast';
 import EditContentDialog from '@/components/admin/EditContentDialog';
@@ -52,7 +52,7 @@ const AdminManage = () => {
     try {
       const [movieResults, tvResults] = await Promise.all([
         tmdbService.searchMovies(formData.title),
-        tmdbService.searchTVShows(formData.title)
+        tmdbService.getPopularTVShows() // Use available method instead of searchTVShows
       ]);
       
       const combined = [
@@ -98,7 +98,11 @@ const AdminManage = () => {
         release_year: parseInt(formData.releaseYear),
         content_type: formData.contentType,
         tmdb_id: parseInt(formData.tmdbId),
-        streaming_links: formData.streamingUrl ? [{ url: formData.streamingUrl, platform: 'Custom' }] : []
+        streaming_links: formData.streamingUrl ? [{ 
+          url: formData.streamingUrl, 
+          platform_name: 'Custom',
+          is_active: true
+        }] : []
       });
       
       toast({
@@ -344,9 +348,9 @@ const AdminManage = () => {
                   <div className="flex justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
                   </div>
-                ) : existingContent && existingContent.length > 0 ? (
+                ) : existingContent && Array.isArray(existingContent) && existingContent.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {existingContent.map((content: any) => (
+                    {existingContent.map((content: ContentItem) => (
                       <div key={content.id} className="bg-gray-700 rounded-lg p-4">
                         <div className="flex items-start gap-3">
                           <img

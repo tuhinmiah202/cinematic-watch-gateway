@@ -38,7 +38,9 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
         release_year: content.release_year?.toString() || '',
         rating: content.rating?.toString() || '',
         runtime: content.runtime?.toString() || '',
-        cast_members: content.cast_members || [],
+        cast_members: content.cast_members?.map((member: any) => 
+          typeof member === 'string' ? member : member.name
+        ) || [],
         genres: content.genres || []
       });
     }
@@ -77,11 +79,16 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
         release_year: formData.release_year ? parseInt(formData.release_year) : null,
         rating: formData.rating ? parseFloat(formData.rating) : null,
         runtime: formData.runtime ? parseInt(formData.runtime) : null,
-        cast_members: formData.cast_members,
-        genres: formData.genres
       };
 
       await contentService.updateContent(content.id, updateData);
+      
+      // Handle cast members separately if needed
+      if (formData.cast_members.length > 0) {
+        await contentService.addCastToContent(content.id, 
+          formData.cast_members.map(name => ({ name }))
+        );
+      }
       
       toast({
         title: "Success",
