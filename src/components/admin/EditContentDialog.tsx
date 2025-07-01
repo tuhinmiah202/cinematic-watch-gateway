@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { contentService } from '@/services/contentService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,10 +24,12 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
     rating: '',
     runtime: '',
     cast_members: [] as string[],
-    genres: [] as any[]
+    streaming_links: [] as { url: string; platform_name: string }[]
   });
   const [isLoading, setIsLoading] = useState(false);
   const [newCastMember, setNewCastMember] = useState('');
+  const [newStreamingUrl, setNewStreamingUrl] = useState('');
+  const [newPlatformName, setNewPlatformName] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,7 +43,10 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
         cast_members: content.cast_members?.map((member: any) => 
           typeof member === 'string' ? member : member.name
         ) || [],
-        genres: content.genres || []
+        streaming_links: content.streaming_links?.map((link: any) => ({
+          url: link.url,
+          platform_name: link.platform_name || 'Custom'
+        })) || []
       });
     }
   }, [content]);
@@ -70,18 +75,45 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
     }));
   };
 
+  const handleAddStreamingLink = () => {
+    if (newStreamingUrl.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        streaming_links: [...prev.streaming_links, {
+          url: newStreamingUrl.trim(),
+          platform_name: newPlatformName.trim() || 'Custom'
+        }]
+      }));
+      setNewStreamingUrl('');
+      setNewPlatformName('');
+    }
+  };
+
+  const handleRemoveStreamingLink = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      streaming_links: prev.streaming_links.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      // Update basic content information
       const updateData = {
         title: formData.title,
         description: formData.description,
-        release_year: formData.release_year ? parseInt(formData.release_year) : null,
-        rating: formData.rating ? parseFloat(formData.rating) : null,
-        runtime: formData.runtime ? parseInt(formData.runtime) : null,
+        release_year: formData.release_year ? parseInt(formData.release_year) : undefined,
+        rating: formData.rating ? parseFloat(formData.rating) : undefined,
+        runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
       };
 
       await contentService.updateContent(content.id, updateData);
+      
+      // Add new streaming links
+      for (const link of formData.streaming_links) {
+        await contentService.addStreamingLink(content.id, link.url, link.platform_name);
+      }
       
       // Handle cast members separately if needed
       if (formData.cast_members.length > 0) {
@@ -111,7 +143,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gray-900 text-white border-gray-700">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-900 text-white border-gray-700">
         <DialogHeader>
           <DialogTitle>Edit {content?.content_type === 'series' ? 'Series' : 'Movie'}</DialogTitle>
         </DialogHeader>
@@ -178,6 +210,45 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
           </div>
 
           <div>
+            <Label>Streaming Links</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={newStreamingUrl}
+                  onChange={(e) => setNewStreamingUrl(e.target.value)}
+                  placeholder="Streaming URL..."
+                  className="bg-gray-800 border-gray-600 text-white flex-1"
+                />
+                <Input
+                  value={newPlatformName}
+                  onChange={(e) => setNewPlatformName(e.target.value)}
+                  placeholder="Platform name..."
+                  className="bg-gray-800 border-gray-600 text-white w-32"
+                />
+                <Button onClick={handleAddStreamingLink} type="button" size="sm">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="space-y-1">
+                {formData.streaming_links.map((link, index) => (
+                  <div key={index} className="bg-gray-700 px-3 py-2 rounded flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{link.platform_name}</p>
+                      <p className="text-xs text-gray-300 truncate">{link.url}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveStreamingLink(index)}
+                      className="text-red-400 hover:text-red-300 ml-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
             <Label>Cast Members</Label>
             <div className="flex gap-2 mb-2">
               <Input
@@ -188,7 +259,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
                 onKeyPress={(e) => e.key === 'Enter' && handleAddCastMember()}
               />
               <Button onClick={handleAddCastMember} type="button" size="sm">
-                Add
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { contentService, ContentItem } from '@/services/contentService';
 import { tmdbService } from '@/services/tmdbService';
@@ -34,6 +34,8 @@ const AdminManage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [editingContent, setEditingContent] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('add');
 
   // Fetch existing content
   const { data: existingContent, isLoading: isLoadingContent } = useQuery({
@@ -52,7 +54,7 @@ const AdminManage = () => {
     try {
       const [movieResults, tvResults] = await Promise.all([
         tmdbService.searchMovies(formData.title),
-        tmdbService.getPopularTVShows() // Use available method instead of searchTVShows
+        tmdbService.getPopularTVShows()
       ]);
       
       const combined = [
@@ -163,6 +165,13 @@ const AdminManage = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-content'] });
   };
 
+  // Filter content based on search query
+  const filteredContent = existingContent && Array.isArray(existingContent) ? 
+    existingContent.filter((content: ContentItem) =>
+      content.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      content.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    ) : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-6">
       <div className="max-w-6xl mx-auto">
@@ -178,13 +187,21 @@ const AdminManage = () => {
           <h1 className="text-2xl font-bold text-white">Manage Content</h1>
         </div>
 
-        <Tabs defaultValue="add" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-gray-800 border-gray-700">
-            <TabsTrigger value="add" className="text-white data-[state=active]:bg-purple-600">
+            <TabsTrigger 
+              value="add" 
+              className="text-white data-[state=active]:bg-purple-600"
+              onClick={() => setActiveTab('add')}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Content
             </TabsTrigger>
-            <TabsTrigger value="existing" className="text-white data-[state=active]:bg-purple-600">
+            <TabsTrigger 
+              value="existing" 
+              className="text-white data-[state=active]:bg-purple-600"
+              onClick={() => setActiveTab('existing')}
+            >
               Existing Content
             </TabsTrigger>
           </TabsList>
@@ -342,16 +359,29 @@ const AdminManage = () => {
           <TabsContent value="existing">
             <Card className="bg-gray-800/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Existing Content</CardTitle>
+                <CardTitle className="text-white flex items-center justify-between">
+                  Existing Content
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search content..."
+                        className="bg-gray-800 border-gray-600 text-white pl-10 w-64"
+                      />
+                    </div>
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingContent ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
                   </div>
-                ) : existingContent && Array.isArray(existingContent) && existingContent.length > 0 ? (
+                ) : filteredContent.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {existingContent.map((content: ContentItem) => (
+                    {filteredContent.map((content: ContentItem) => (
                       <div key={content.id} className="bg-gray-700 rounded-lg p-4">
                         <div className="flex items-start gap-3">
                           <img
@@ -397,7 +427,9 @@ const AdminManage = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">No content found. Add some content to get started.</p>
+                    <p className="text-gray-400">
+                      {searchQuery ? 'No content found matching your search.' : 'No content found. Add some content to get started.'}
+                    </p>
                   </div>
                 )}
               </CardContent>
