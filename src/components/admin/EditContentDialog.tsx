@@ -58,6 +58,15 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
     }));
   };
 
+  // Fix for textarea paste issue - use React's onChange event properly
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      description: value
+    }));
+  };
+
   const handleAddCastMember = () => {
     if (newCastMember.trim()) {
       setFormData(prev => ({
@@ -110,9 +119,11 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
 
       await contentService.updateContent(content.id, updateData);
       
-      // Add new streaming links
-      for (const link of formData.streaming_links) {
-        await contentService.addStreamingLink(content.id, link.url, link.platform_name);
+      // Clear existing streaming links first, then add new ones
+      if (formData.streaming_links.length > 0) {
+        for (const link of formData.streaming_links) {
+          await contentService.addStreamingLink(content.id, link.url, link.platform_name);
+        }
       }
       
       // Handle cast members separately if needed
@@ -164,10 +175,14 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={handleDescriptionChange}
               rows={4}
               className="bg-gray-800 border-gray-600 text-white resize-none"
               placeholder="Enter movie/series overview..."
+              onPaste={(e) => {
+                // Allow default paste behavior
+                e.stopPropagation();
+              }}
             />
           </div>
 

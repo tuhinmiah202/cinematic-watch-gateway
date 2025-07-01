@@ -63,8 +63,30 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       <Navbar onSearch={handleSearch} />
       
-      {/* Upper section banner ad */}
+      {/* SEO Content Section */}
       <div className="container mx-auto px-4 pt-6">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Best Movie Recommendations & Streaming Guide
+          </h1>
+          <p className="text-lg text-gray-300 max-w-4xl mx-auto mb-6">
+            Discover the <strong>best movie recommendations</strong>, explore the complete <strong>Marvel movie list</strong>, 
+            find the perfect <strong>anime series to watch</strong>, and get expert guides for <strong>Harry Potter watch order</strong>, 
+            <strong>X-Men timeline</strong>, and <strong>Star Wars saga</strong>. Your ultimate destination for 
+            <strong>top-rated movies</strong>, <strong>superhero movie rankings</strong>, and <strong>streaming suggestions</strong>.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-400 mb-6">
+            <div>🎬 Marvel Cinematic Universe</div>
+            <div>⚡ X-Men Timeline Guide</div>
+            <div>🧙‍♂️ Harry Potter Franchise</div>
+            <div>🌟 Top Anime Recommendations</div>
+            <div>🚗 Fast & Furious Series</div>
+            <div>🧛‍♀️ Twilight Saga Order</div>
+            <div>🌌 Star Wars Universe</div>
+            <div>🎭 Best Movie Franchises</div>
+          </div>
+        </div>
+        
         <AdsterraBanner className="mb-6" />
       </div>
       
@@ -120,6 +142,50 @@ const Index = () => {
           isLoading={isLoading}
           totalItems={allMovies.length}
         />
+
+        {/* SEO Footer Content */}
+        <div className="mt-12 text-center">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Your Ultimate Movie & Series Destination
+            </h2>
+            <p className="text-gray-300 mb-4">
+              Whether you're looking for <strong>Marvel movies ranked</strong>, the complete <strong>anime must-watch list</strong>, 
+              or <strong>Netflix movie recommendations</strong>, CineStream is your go-to <strong>movie recommendation AI</strong>. 
+              Explore <strong>superhero movie guides</strong>, discover <strong>underrated anime gems</strong>, and find your next 
+              <strong>binge-worthy series</strong>.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
+              <div>
+                <h3 className="text-white font-semibold mb-2">Popular Franchises</h3>
+                <ul className="space-y-1">
+                  <li>Marvel Cinematic Universe</li>
+                  <li>DC Comics Movies</li>
+                  <li>Star Wars Saga</li>
+                  <li>Harry Potter Series</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-2">Anime & Series</h3>
+                <ul className="space-y-1">
+                  <li>Top Anime Recommendations</li>
+                  <li>Romantic Anime Series</li>
+                  <li>Best Netflix Series</li>
+                  <li>Dark Fantasy Anime</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-2">Movie Genres</h3>
+                <ul className="space-y-1">
+                  <li>Best Sci-Fi Movies</li>
+                  <li>Fantasy Movies</li>
+                  <li>Action Movie Recommendations</li>
+                  <li>Epic Movie Sagas</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
