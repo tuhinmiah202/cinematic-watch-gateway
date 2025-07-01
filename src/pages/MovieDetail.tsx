@@ -327,8 +327,8 @@ const MovieDetail = () => {
           </div>
         </div>
 
-        {/* Native Banner below Watch Now button with single ad */}
-        <NativeBanner className="mb-4" adCount={1} />
+        {/* Native Banner below Watch Now button */}
+        <NativeBanner className="mb-4" />
 
         {/* Cast Section */}
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">

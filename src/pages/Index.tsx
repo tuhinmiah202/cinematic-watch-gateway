@@ -91,7 +91,7 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              <NativeBanner className="mb-6" adCount={2} />
+              <NativeBanner className="mb-6" />
             )}
           </div>
         ))}
