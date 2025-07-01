@@ -91,19 +91,20 @@ const AdminManage = () => {
     setIsLoading(true);
     
     try {
-      await contentService.addContent({
+      const contentId = await contentService.addContent({
         title: formData.title,
         description: formData.description,
         poster_url: formData.posterUrl,
         release_year: parseInt(formData.releaseYear),
         content_type: formData.contentType,
         tmdb_id: parseInt(formData.tmdbId),
-        streaming_links: formData.streamingUrl ? [{ 
-          url: formData.streamingUrl, 
-          platform_name: 'Custom',
-          is_active: true
-        }] : []
+        is_admin_approved: true
       });
+      
+      // Add streaming link separately if provided
+      if (contentId && formData.streamingUrl) {
+        await contentService.addStreamingLink(contentId, formData.streamingUrl, 'Custom');
+      }
       
       toast({
         title: "Success",
