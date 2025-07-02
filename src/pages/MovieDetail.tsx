@@ -216,15 +216,22 @@ const MovieDetail = () => {
     cast = tmdbCast || supabaseMovie.cast_members || [];
     genres = genresForQuery;
     
-    // Get custom review
-    const customReview = reviewService.getReview(supabaseMovie.tmdb_id || supabaseMovie.id);
-    if (customReview) {
-      overview = customReview.review;
-      rating = customReview.rating;
+    // Use database description if available, otherwise fall back to custom review
+    if (supabaseMovie.description && supabaseMovie.description.trim()) {
+      overview = supabaseMovie.description;
+      // Use rating from database if available, otherwise use review service rating
+      rating = supabaseMovie.rating || tmdbDetails?.vote_average || reviewService.getReview(supabaseMovie.tmdb_id || supabaseMovie.id)?.rating || reviewService.getDefaultReview(title, isTV).rating;
     } else {
-      const defaultReview = reviewService.getDefaultReview(title, isTV);
-      overview = defaultReview.review;
-      rating = defaultReview.rating;
+      // Fall back to review service
+      const customReview = reviewService.getReview(supabaseMovie.tmdb_id || supabaseMovie.id);
+      if (customReview) {
+        overview = customReview.review;
+        rating = customReview.rating;
+      } else {
+        const defaultReview = reviewService.getDefaultReview(title, isTV);
+        overview = defaultReview.review;
+        rating = defaultReview.rating;
+      }
     }
   } else {
     const tmdbMovie = movie as any;
