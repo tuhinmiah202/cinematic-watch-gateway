@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
@@ -18,9 +17,14 @@ const MovieDetail = () => {
   const handleBack = () => {
     const backParams = searchParams.get('back');
     if (backParams) {
-      navigate(`/?${decodeURIComponent(backParams)}`);
+      try {
+        navigate(`/?${decodeURIComponent(backParams)}`);
+      } catch (error) {
+        console.error('Error decoding back params:', error);
+        navigate('/');
+      }
     } else {
-      navigate('/');
+      navigate(-1); // Go back to previous page instead of always going to home
     }
   };
 
@@ -68,8 +72,11 @@ const MovieDetail = () => {
         return await tmdbService.getMovieDetails(numericId);
       } catch (movieError) {
         try {
-          return await tmdbService.getTVShowDetails(numericId);
+          const tvShow = await tmdbService.getTVShowDetails(numericId);
+          console.log('TV Show fetched:', tvShow);
+          return tvShow;
         } catch (tvError) {
+          console.error('Both movie and TV fetch failed:', { movieError, tvError });
           throw new Error('Content not found');
         }
       }
@@ -238,7 +245,7 @@ const MovieDetail = () => {
     title = tmdbMovie.title || tmdbMovie.name || 'Untitled';
     releaseDate = tmdbMovie.release_date || tmdbMovie.first_air_date;
     year = tmdbMovie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
-    isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name;
+    isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name || !tmdbMovie.title;
     cast = tmdbCast || [];
     genres = genresForQuery;
     
@@ -257,6 +264,30 @@ const MovieDetail = () => {
   const posterUrl = isSupabaseContent 
     ? (movie as any).poster_url || '/placeholder.svg'
     : tmdbService.getImageUrl((movie as any).poster_path);
+
+  // Generate unique SEO keywords and content
+  const generateSEOContent = (title: string, genres: any[], year: any, isTV: boolean) => {
+    const genreNames = genres.map(g => g.name).slice(0, 3);
+    const contentType = isTV ? 'series' : 'movie';
+    const yearStr = year ? ` ${year}` : '';
+    
+    const keywords = [
+      `${title} ${contentType}`,
+      `watch ${title} online`,
+      `${title} streaming`,
+      `${title} review`,
+      ...genreNames.map(g => `${g} ${contentType}`),
+      `${title}${yearStr} cast`,
+      `best ${genreNames[0] || 'drama'} ${contentType}`,
+      `${title} recommendation`
+    ].filter(Boolean);
+
+    const description = `Discover everything about ${title}${yearStr} - a captivating ${genreNames.join(', ')} ${contentType}. Get expert insights, cast details, and find the best streaming platforms. Perfect for fans of ${genreNames[0] || 'quality entertainment'} seeking their next binge-watch adventure.`;
+
+    return { keywords, description };
+  };
+
+  const seoContent = generateSEOContent(title, genres, year, isTV);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -376,6 +407,22 @@ const MovieDetail = () => {
             </div>
           </div>
         )}
+
+        {/* SEO Content Section */}
+        <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20 mb-6">
+          <h2 className="text-xl font-bold text-white mb-4">About {title}</h2>
+          <p className="text-gray-300 mb-4 leading-relaxed">
+            {seoContent.description}
+          </p>
+          <div className="text-sm text-gray-400">
+            <p className="mb-2">
+              <strong>Popular searches:</strong> {seoContent.keywords.slice(0, 4).join(', ')}
+            </p>
+            <p>
+              <strong>Related content:</strong> {seoContent.keywords.slice(4).join(', ')}
+            </p>
+          </div>
+        </div>
 
         {/* Related Content Section */}
         {relatedContent && relatedContent.length > 0 && (
