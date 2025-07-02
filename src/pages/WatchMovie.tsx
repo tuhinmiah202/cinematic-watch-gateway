@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,8 +7,6 @@ import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import AdsterraBanner from '@/components/AdsterraBanner';
-import NativeBanner from '@/components/NativeBanner';
 import {
   Carousel,
   CarouselContent,
@@ -22,7 +21,7 @@ const WatchMovie = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(3);
   const [showWatchButton, setShowWatchButton] = useState(false);
 
   const handleBack = () => {
@@ -191,19 +190,19 @@ const WatchMovie = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 md:py-12">
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8 md:items-start">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
             {/* Poster and mobile title */}
-            <div className="flex flex-row gap-4 items-start md:block md:col-span-4 lg:col-span-3">
-              <div className="w-1/3 md:w-full shrink-0">
+            <div className="flex flex-row gap-4 items-start lg:block lg:col-span-4">
+              <div className="w-1/3 lg:w-full shrink-0">
                 <img
                   src={posterUrl}
                   alt={title}
                   className="w-full h-auto object-cover rounded-xl shadow-2xl"
                 />
               </div>
-              <div className="w-2/3 md:hidden">
+              <div className="w-2/3 lg:hidden">
                 <h1 className="text-lg font-bold text-white mb-1 line-clamp-3">{title}</h1>
                 <p className="text-xs text-gray-300">
                   {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
@@ -212,28 +211,28 @@ const WatchMovie = () => {
             </div>
 
             {/* Details and Watch Button */}
-            <div className="w-full md:col-span-8 lg:col-span-9 mt-4 md:mt-0">
+            <div className="w-full lg:col-span-8 mt-6 lg:mt-0">
               {/* Movie Info for Desktop */}
-              <div className="hidden md:block mb-4 md:mb-6 text-left">
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{title}</h1>
+              <div className="hidden lg:block mb-6 text-left">
+                <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">{title}</h1>
                 <p className="text-lg text-gray-300">
                   {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
                 </p>
               </div>
 
               {/* Countdown or Watch Button */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 border border-purple-500/20">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-purple-500/20">
                 {!showWatchButton ? (
                   <div className="text-center">
                     <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Preparing your stream...</h2>
-                    <div className="text-4xl md:text-5xl font-bold text-purple-400 mb-4">{countdown}</div>
-                    <p className="text-gray-300 text-sm md:text-base">Please wait while we prepare the best viewing options</p>
+                    <h2 className="text-xl lg:text-2xl font-bold text-white mb-4">Preparing your stream...</h2>
+                    <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-4">{countdown}</div>
+                    <p className="text-gray-300 text-sm lg:text-base">Please wait while we prepare the best viewing options</p>
                   </div>
                 ) : (
                   <div className="text-center">
                     <Play className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
+                    <h2 className="text-xl lg:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
                     
                     {hasStreamingLink ? (
                       <>
@@ -241,7 +240,7 @@ const WatchMovie = () => {
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}
-                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                           >
                             <Play className="w-5 h-5 mr-2" />
                             Watch Now
@@ -257,7 +256,7 @@ const WatchMovie = () => {
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}
-                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base md:text-lg px-6 py-3 md:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                           >
                             <ExternalLink className="w-5 h-5 mr-2" />
                             Find Streaming Options
@@ -274,13 +273,8 @@ const WatchMovie = () => {
             </div>
           </div>
           
-          {/* Native Banner after Watch Button section */}
-          <NativeBanner className="mt-8 mb-8" />
-          
-          {/* Ad & Related Content */}
-          <div className="mt-8 md:mt-12">
-            <AdsterraBanner className="mb-8" />
-            
+          {/* Related Content */}
+          <div className="mt-12">
             {/* Related Content */}
             {relatedContent && relatedContent.length > 0 && (
               <div className="text-left relative">

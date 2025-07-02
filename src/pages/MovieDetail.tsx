@@ -1,12 +1,12 @@
+
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
+import { reviewService } from '@/services/reviewService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import AdsterraBanner from '@/components/AdsterraBanner';
-import NativeBanner from '@/components/NativeBanner';
 import MovieCard from '@/components/MovieCard';
 
 const MovieDetail = () => {
@@ -30,13 +30,11 @@ const MovieDetail = () => {
     const adShown = sessionStorage.getItem(adShownKey);
     
     if (!adShown) {
-      // First click for this movie - show ad
+      // First click for this movie - mark as shown
       sessionStorage.setItem(adShownKey, 'true');
-      window.open('https://www.profitableratecpm.com/hx4zcv49sx?key=c21ff84dc56c77f932876f2b0cacbe19', '_blank');
-      return;
     }
     
-    // Second click onwards for this movie - normal behavior
+    // Navigate to watch page
     const currentParams = searchParams.toString();
     if (currentParams) {
       navigate(`/watch/${movieId}?back=${encodeURIComponent(currentParams)}`);
@@ -147,7 +145,6 @@ const MovieDetail = () => {
   const isLoading = isLoadingSupabase || isLoadingTmdb;
 
   // Calculate dependencies for related content query before any early returns.
-  // This logic is made more defensive to prevent crashes during render.
   const currentMovieTmdbId = movie ? ((movie as any).tmdb_id || movie.id) : null;
   
   const genresForQuery = supabaseContent
@@ -214,24 +211,40 @@ const MovieDetail = () => {
   if (isSupabaseContent) {
     const supabaseMovie = movie as any;
     title = supabaseMovie.title;
-    overview = supabaseMovie.description || 'No description available';
     year = supabaseMovie.release_year;
-    // Use TMDB rating if available, otherwise default
-    rating = tmdbDetails?.vote_average || 8.5;
     isTV = supabaseMovie.content_type === 'series';
-    // Use TMDB cast if available, otherwise fall back to Supabase cast
     cast = tmdbCast || supabaseMovie.cast_members || [];
     genres = genresForQuery;
+    
+    // Get custom review
+    const customReview = reviewService.getReview(supabaseMovie.tmdb_id || supabaseMovie.id);
+    if (customReview) {
+      overview = customReview.review;
+      rating = customReview.rating;
+    } else {
+      const defaultReview = reviewService.getDefaultReview(title, isTV);
+      overview = defaultReview.review;
+      rating = defaultReview.rating;
+    }
   } else {
     const tmdbMovie = movie as any;
     title = tmdbMovie.title || tmdbMovie.name || 'Untitled';
-    overview = tmdbMovie.overview || 'No description available';
     releaseDate = tmdbMovie.release_date || tmdbMovie.first_air_date;
     year = tmdbMovie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
-    rating = tmdbMovie.vote_average || 0;
     isTV = tmdbMovie.media_type === 'tv' || tmdbMovie.type === 'series' || tmdbMovie.name;
     cast = tmdbCast || [];
     genres = genresForQuery;
+    
+    // Get custom review
+    const customReview = reviewService.getReview(tmdbMovie.id);
+    if (customReview) {
+      overview = customReview.review;
+      rating = customReview.rating;
+    } else {
+      const defaultReview = reviewService.getDefaultReview(title, isTV);
+      overview = defaultReview.review;
+      rating = defaultReview.rating;
+    }
   }
 
   const posterUrl = isSupabaseContent 
@@ -255,31 +268,28 @@ const MovieDetail = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-2">
-        {/* Adsterra Banner */}
-        <AdsterraBanner className="mb-4" />
-
+      <div className="container mx-auto px-4 py-6">
         {/* Movie Info */}
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="flex flex-col md:flex-row gap-6 mb-6">
           <div className="flex-shrink-0 mx-auto md:mx-0">
             <img
               src={posterUrl}
               alt={title}
-              className="w-32 h-48 md:w-40 md:h-60 object-cover rounded-lg shadow-xl"
+              className="w-48 h-72 md:w-56 md:h-84 object-cover rounded-lg shadow-xl"
             />
           </div>
 
           <div className="flex-1 text-white text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-              <h1 className="text-2xl md:text-3xl font-bold leading-tight">{title}</h1>
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
+              <h1 className="text-2xl md:text-4xl font-bold leading-tight">{title}</h1>
               {isTV && <Tv className="w-6 h-6 text-purple-400" />}
             </div>
             
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-4">
               {rating > 0 && (
                 <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-semibold">{rating.toFixed(1)}</span>
+                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  <span className="text-lg font-semibold">{rating.toFixed(1)}</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
@@ -300,24 +310,24 @@ const MovieDetail = () => {
               )}
             </div>
 
-            <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
+            <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
               {genres.map((genre: any, index: number) => (
                 <span 
                   key={genre.id || index}
-                  className="px-2 py-1 bg-purple-600 rounded-full text-xs"
+                  className="px-3 py-1 bg-purple-600 rounded-full text-sm"
                 >
                   {genre.name}
                 </span>
               ))}
             </div>
 
-            <p className="text-sm text-gray-300 leading-relaxed mb-3">{overview}</p>
+            <p className="text-base text-gray-300 leading-relaxed mb-6 max-w-3xl">{overview}</p>
 
             <div className="text-center md:text-left">
-              <p className="text-gray-300 text-sm mb-2">👉 Available on platforms like Netflix, Disney+, etc.</p>
+              <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
               <Button 
                 size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 w-full md:w-auto"
+                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg w-full md:w-auto"
                 onClick={handleWatchNow}
               >
                 <Play className="w-5 h-5 mr-2" />
@@ -327,16 +337,13 @@ const MovieDetail = () => {
           </div>
         </div>
 
-        {/* Native Banner below Watch Now button */}
-        <NativeBanner className="mb-4" />
-
         {/* Cast Section */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">
-          <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-6">
+          <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
             <User className="w-5 h-5" />
             Cast {isLoadingCast && <Loader2 className="w-4 h-4 animate-spin" />}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {cast.slice(0, 8).map((actor: any, index: number) => (
               <div key={actor.id || index} className="text-center">
                 <h4 className="text-white text-sm font-semibold line-clamp-1">{actor.name}</h4>
@@ -351,11 +358,11 @@ const MovieDetail = () => {
 
         {/* Production Details */}
         {(movie as any).production_companies && (movie as any).production_companies.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-3 mb-3">
-            <h3 className="text-lg font-bold text-white mb-2">Production</h3>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-6">
+            <h3 className="text-xl font-bold text-white mb-3">Production</h3>
             <div className="flex flex-wrap gap-2">
               {(movie as any).production_companies.slice(0, 3).map((company: any) => (
-                <span key={company.id} className="text-gray-300 text-sm bg-gray-700 px-2 py-1 rounded">
+                <span key={company.id} className="text-gray-300 text-sm bg-gray-700 px-3 py-1 rounded">
                   {company.name}
                 </span>
               ))}
@@ -365,8 +372,8 @@ const MovieDetail = () => {
 
         {/* Related Content Section */}
         {relatedContent && relatedContent.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
               You Might Also Like
               {isLoadingRelated && <Loader2 className="w-5 h-5 animate-spin" />}
             </h2>

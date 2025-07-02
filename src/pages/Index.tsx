@@ -1,8 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
-import AdsterraBanner from '@/components/AdsterraBanner';
-import NativeBanner from '@/components/NativeBanner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useMovieData } from '@/hooks/useMovieData';
 import FilterControls from '@/components/FilterControls';
@@ -45,19 +43,7 @@ const Index = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedGenre, contentType]);
 
-  // Split movies for ad placement - show ads after every 9 movies
   const currentMovies = paginatedMovies();
-  const moviesWithAds = [];
-  
-  for (let i = 0; i < currentMovies.length; i += 9) {
-    const chunk = currentMovies.slice(i, i + 9);
-    moviesWithAds.push({ type: 'movies', data: chunk });
-    
-    // Add ad after every 9 movies (except the last chunk if it's less than 9)
-    if (chunk.length === 9 && i + 9 < currentMovies.length) {
-      moviesWithAds.push({ type: 'ad', data: null });
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -86,8 +72,6 @@ const Index = () => {
             <div>🎭 Best Movie Franchises</div>
           </div>
         </div>
-        
-        <AdsterraBanner className="mb-6" />
       </div>
       
       <div className="container mx-auto px-4 py-6">
@@ -100,23 +84,15 @@ const Index = () => {
           onContentTypeChange={setContentType}
         />
 
-        {/* Movies and Ads Grid */}
-        {moviesWithAds.map((section, sectionIndex) => (
-          <div key={sectionIndex}>
-            {section.type === 'movies' ? (
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
-                {section.data.map((movie, index) => (
-                  <MovieCard
-                    key={`${movie.id}-${sectionIndex}-${index}`}
-                    movie={movie}
-                  />
-                ))}
-              </div>
-            ) : (
-              <NativeBanner className="mb-6" />
-            )}
-          </div>
-        ))}
+        {/* Movies Grid */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+          {currentMovies.map((movie, index) => (
+            <MovieCard
+              key={`${movie.id}-${index}`}
+              movie={movie}
+            />
+          ))}
+        </div>
 
         {/* Show loading or no movies message if needed */}
         {isLoading && (
@@ -131,9 +107,6 @@ const Index = () => {
             <p className="text-gray-400 mt-2">Try adjusting your search or genre filter</p>
           </div>
         )}
-
-        {/* Single Adsterra Banner after movies grid */}
-        <AdsterraBanner className="mb-6" />
 
         <HomePagination
           currentPage={currentPage}
