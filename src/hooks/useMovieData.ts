@@ -54,9 +54,9 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       const fetchTV = contentType === 'all' || contentType === 'tv' || contentType === 'animation';
 
       if (debouncedSearchTerm) {
+        // Use searchMovies for both movies and TV shows since it uses multi-search
         for (let i = 1; i <= 2; i++) {
-          if (fetchMovies) pagePromises.push(tmdbService.searchMovies(debouncedSearchTerm, i));
-          if (fetchTV) pagePromises.push(tmdbService.searchTVShows(debouncedSearchTerm, i));
+          pagePromises.push(tmdbService.searchMovies(debouncedSearchTerm, i));
         }
       } else if (selectedGenre && selectedGenre !== 'all') {
         const genreId = parseInt(selectedGenre);
@@ -96,7 +96,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       if (isSupabaseContent(movie)) {
         return movie.content_type === 'movie';
       } else {
-        return movie.hasOwnProperty('release_date') || (!movie.hasOwnProperty('first_air_date') && movie.title);
+        return movie.media_type === 'movie' || (movie.hasOwnProperty('release_date') || (!movie.hasOwnProperty('first_air_date') && movie.title));
       }
     };
     
@@ -104,7 +104,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       if (isSupabaseContent(movie)) {
         return movie.content_type === 'series';
       } else {
-        return movie.hasOwnProperty('first_air_date') || movie.name || movie.media_type === 'tv';
+        return movie.media_type === 'tv' || movie.hasOwnProperty('first_air_date') || movie.name;
       }
     };
     
