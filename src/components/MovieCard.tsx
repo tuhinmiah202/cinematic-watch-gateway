@@ -1,95 +1,111 @@
-import { Movie, tmdbService } from '@/services/tmdbService';
-import { Link, useSearchParams } from 'react-router-dom';
+
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { tmdbService } from '@/services/tmdbService';
 import { Star, Calendar, Tv } from 'lucide-react';
+
+interface Movie {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path?: string;
+  poster_url?: string;
+  release_date?: string;
+  first_air_date?: string;
+  release_year?: number;
+  vote_average?: number;
+  rating?: number;
+  media_type?: string;
+  content_type?: string;
+  genres?: { id: number; name: string }[];
+  genre_ids?: number[];
+}
 
 interface MovieCardProps {
   movie: Movie;
 }
 
 const MovieCard = ({ movie }: MovieCardProps) => {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   
-  // Preserve current search parameters in the link
-  const currentSearch = searchParams.get('search') || '';
-  const currentGenre = searchParams.get('genre') || '';
-  const currentType = searchParams.get('type') || '';
-  const currentPage = searchParams.get('page') || '';
+  // Function to determine if content is from Supabase
+  const isSupabaseContent = !!(movie as any).content_type;
   
-  // Build query string to preserve state
-  const queryParams = new URLSearchParams();
-  if (currentSearch) queryParams.set('search', currentSearch);
-  if (currentGenre) queryParams.set('genre', currentGenre);
-  if (currentType) queryParams.set('type', currentType);
-  if (currentPage) queryParams.set('page', currentPage);
-  
-  const backParams = queryParams.toString();
-  
-  // Determine the correct link path
-  const linkPath = (movie as any).supabaseId 
-    ? `/movie/${(movie as any).supabaseId}${backParams ? `?back=${encodeURIComponent(backParams)}` : ''}`
-    : `/movie/${movie.id}${backParams ? `?back=${encodeURIComponent(backParams)}` : ''}`;
+  const title = isSupabaseContent ? movie.title : (movie.title || movie.name || 'Untitled');
+  const posterUrl = isSupabaseContent 
+    ? (movie as any).poster_url || '/placeholder.svg'
+    : tmdbService.getImageUrl(movie.poster_path);
+    
+  const releaseDate = isSupabaseContent 
+    ? movie.release_year 
+    : (movie.release_date || movie.first_air_date);
+  const year = isSupabaseContent 
+    ? movie.release_year 
+    : (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
+    
+  const rating = isSupabaseContent 
+    ? (movie as any).rating 
+    : movie.vote_average;
 
-  // Get the correct title and release date based on movie type
-  const title = movie.title || movie.name || 'Untitled';
-  const releaseDate = movie.release_date || movie.first_air_date;
-  const year = movie.year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
-  const rating = movie.vote_average || 0;
-  const isTV = movie.media_type === 'tv' || movie.type === 'series' || movie.name;
-  
-  // Handle poster URL for both TMDB and Supabase content
-  const posterUrl = (movie as any).poster_url || tmdbService.getImageUrl(movie.poster_path);
+  // Determine if it's a TV show
+  const isTV = isSupabaseContent 
+    ? (movie as any).content_type === 'series'
+    : movie.media_type === 'tv' || movie.name || !movie.title;
+
+  // Create back navigation params to preserve current page state
+  const createBackParams = () => {
+    // Only preserve navigation state if we're on the home page
+    if (location.pathname === '/') {
+      const currentParams = searchParams.toString();
+      if (currentParams) {
+        return `?back=${encodeURIComponent(currentParams)}`;
+      }
+    }
+    return '';
+  };
 
   return (
     <Link 
-      to={linkPath}
-      className="group relative overflow-hidden rounded-md bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 block"
+      to={`/movie/${movie.id}${createBackParams()}`}
+      className="group block"
     >
-      <div className="aspect-[3/4] relative">
-        <img
-          src={posterUrl}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Rating Badge - very small */}
-        {rating > 0 && (
-          <div className="absolute top-1 right-1 bg-yellow-500 text-black px-1 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
-            <Star className="w-2 h-2 fill-current" />
-            {rating.toFixed(1)}
-          </div>
-        )}
-
-        {/* TV Show indicator - very small */}
-        {isTV && (
-          <div className="absolute top-1 left-1 bg-purple-600 text-white px-1 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
-            <Tv className="w-2 h-2" />
-            TV
-          </div>
-        )}
-
-        {/* Admin content indicator - very small */}
-        {(movie as any).supabaseId && (
-          <div className="absolute bottom-1 right-1 bg-green-600 text-white px-1 py-0.5 rounded text-xs font-bold">
-            ✓
-          </div>
-        )}
-      </div>
-      
-      {/* Movie Info Overlay - very compact */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-        <h3 className="font-bold text-xs mb-1 line-clamp-2">{title}</h3>
-        <div className="flex items-center gap-1 text-xs text-gray-300">
-          <Calendar className="w-2.5 h-2.5" />
-          {year}
-          {isTV && (
-            <>
-              <span>•</span>
-              <Tv className="w-2.5 h-2.5" />
-              <span>TV</span>
-            </>
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-gray-700/50 hover:border-purple-500/50">
+        <div className="relative aspect-[2/3] overflow-hidden">
+          <img
+            src={posterUrl}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
+          />
+          {rating && rating > 0 && (
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-white text-xs font-semibold">
+                {rating.toFixed(1)}
+              </span>
+            </div>
           )}
+          {isTV && (
+            <div className="absolute top-2 left-2 bg-purple-600/90 backdrop-blur-sm rounded-full p-1">
+              <Tv className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+        
+        <div className="p-3">
+          <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2 group-hover:text-purple-300 transition-colors">
+            {title}
+          </h3>
+          
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span>{year}</span>
+            </div>
+            {isTV && (
+              <span className="text-purple-400 font-medium">Series</span>
+            )}
+          </div>
         </div>
       </div>
     </Link>

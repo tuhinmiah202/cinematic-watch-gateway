@@ -15,16 +15,20 @@ const MovieDetail = () => {
   const movieId = id || '0';
 
   const handleBack = () => {
+    // Check if there's a specific back URL in search params
     const backParams = searchParams.get('back');
     if (backParams) {
       try {
+        // Navigate to the specific back URL with preserved params
         navigate(`/?${decodeURIComponent(backParams)}`);
       } catch (error) {
         console.error('Error decoding back params:', error);
-        navigate('/');
+        // Fallback to natural browser back
+        navigate(-1);
       }
     } else {
-      navigate(-1); // Go back to previous page instead of always going to home
+      // Use browser's natural back behavior - this preserves history
+      navigate(-1);
     }
   };
 
@@ -38,13 +42,9 @@ const MovieDetail = () => {
       sessionStorage.setItem(adShownKey, 'true');
     }
     
-    // Navigate to watch page
-    const currentParams = searchParams.toString();
-    if (currentParams) {
-      navigate(`/watch/${movieId}?back=${encodeURIComponent(currentParams)}`);
-    } else {
-      navigate(`/watch/${movieId}`);
-    }
+    // Navigate to watch page with current page context
+    const currentUrl = window.location.pathname + window.location.search;
+    navigate(`/watch/${movieId}?back=${encodeURIComponent(currentUrl.replace('/movie/', ''))}`);
   };
 
   // Try to fetch from Supabase first (for admin content)
