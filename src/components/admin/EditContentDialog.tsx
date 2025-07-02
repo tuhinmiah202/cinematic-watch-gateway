@@ -58,15 +58,6 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
     }));
   };
 
-  // Fix for textarea paste issue - use React's onChange event properly
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      description: value
-    }));
-  };
-
   const handleAddCastMember = () => {
     if (newCastMember.trim()) {
       setFormData(prev => ({
@@ -108,7 +99,8 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Update basic content information
+      console.log('Saving content with data:', formData);
+      
       const updateData = {
         title: formData.title,
         description: formData.description,
@@ -117,16 +109,16 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
       };
 
+      console.log('Update data being sent:', updateData);
+      
       await contentService.updateContent(content.id, updateData);
       
-      // Clear existing streaming links first, then add new ones
       if (formData.streaming_links.length > 0) {
         for (const link of formData.streaming_links) {
           await contentService.addStreamingLink(content.id, link.url, link.platform_name);
         }
       }
       
-      // Handle cast members separately if needed
       if (formData.cast_members.length > 0) {
         await contentService.addCastToContent(content.id, 
           formData.cast_members.map(name => ({ name }))
@@ -175,14 +167,10 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
             <Textarea
               id="description"
               value={formData.description}
-              onChange={handleDescriptionChange}
+              onChange={(e) => handleInputChange('description', e.target.value)}
               rows={4}
               className="bg-gray-800 border-gray-600 text-white resize-none"
               placeholder="Enter movie/series overview..."
-              onPaste={(e) => {
-                // Allow default paste behavior
-                e.stopPropagation();
-              }}
             />
           </div>
 

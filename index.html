@@ -7,7 +7,21 @@
     <title>CineStream - Best Movie Recommendations, Marvel Movies, Anime Series & More</title>
     <meta name="description" content="Discover the best movie recommendations, Marvel movie list, X-Men timeline, Harry Potter watch order, anime series, and top-rated movies. Your ultimate movie and series streaming guide with unique reviews and ratings." />
     <meta name="author" content="CineStream" />
-    <meta name="keywords" content="best movie recommendations, marvel movie list, x-men movie order, twilight saga watch order, harry potter movies ranked, fast and furious all movies, anime series to watch, top anime recommendations, star wars watch guide, top rated movies, best movies to binge, movie series to watch, superhero movies ranked, best marvel movies, movie recommendation AI, netflix movie recommendations, disney plus movies list, hbo max best movies, top trending movies, best movie franchises, what to watch tonight, upcoming marvel movies, dc vs marvel movies, top 10 movies of all time, movie rating and reviews, best fantasy movies, superhero movie guide, movie universe timeline, marvel cinematic universe, best sci-fi movies, anime must watch list, romantic anime series, best anime of all time, star wars explained, binge-worthy movies, movie lovers site, movie suggestions site, explore movie universes, streaming movie suggestions, find movies to watch, most loved movies, must watch franchises, best movie sagas, explore popular series, superhero universe guide, complete anime list, top movie characters, best movie endings, movie trivia and facts, film recommendation engine, underrated anime gems, latest movie releases, magical movie adventures, best movies 2025, fan favorite movie lists, complete anime watchlist, best series to watch 2025, movies with best plots, series like marvel, shows similar to twilight, dark fantasy anime, epic sci-fi series, movie watchlist creator, popular movies ranked, best streaming movies, anime lovers guide, top 10 marvel movies, all x-men movies ranked, anime for beginners, marvel heroes list, star wars characters, movie lovers community, best movie experiences, discover new movies, watch next suggestions" />
+    <meta name="keywords" content="best movie recommendations, marvel movie list, x-men movie order, twilight saga watch order, harry potter movies ranked, fast and furious all movies, anime series to watch, top anime recommendations, star wars watch guide, top rated movies, superhero movies ranked, netflix movie recommendations, movie recommendation AI, what to watch tonight, streaming movie suggestions" />
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" />
+    <link rel="preload" href="/src/index.css" as="style" />
+    
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="https://api.themoviedb.org" />
+    <link rel="dns-prefetch" href="https://image.tmdb.org" />
+    <link rel="dns-prefetch" href="https://yuqxwhfzuhxvukcnmdgk.supabase.co" />
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://api.themoviedb.org" crossorigin />
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
+    <link rel="preconnect" href="https://yuqxwhfzuhxvukcnmdgk.supabase.co" crossorigin />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -23,7 +37,6 @@
     <meta name="twitter:title" content="CineStream - Best Movie Recommendations & Streaming Guide" />
     <meta name="twitter:description" content="Discover the best movies, Marvel universe, anime series, and streaming recommendations. Your go-to movie guide with unique reviews!" />
     <meta name="twitter:image" content="https://cinestreambd.onrender.com/placeholder.svg" />
-    <meta name="twitter:site" content="@cinestream" />
 
     <!-- Additional SEO Meta Tags -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -31,18 +44,12 @@
     <meta name="revisit-after" content="1 days" />
     <meta name="distribution" content="global" />
     <meta name="rating" content="general" />
-    <meta name="geo.region" content="US" />
-    <meta name="geo.placename" content="United States" />
     <meta name="theme-color" content="#9333ea" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://cinestreambd.onrender.com/" />
 
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://api.themoviedb.org" />
-    <link rel="preconnect" href="https://image.tmdb.org" />
-
-    <!-- Schema.org structured data -->
+    <!-- Optimized Schema.org structured data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -52,44 +59,52 @@
       "description": "Best movie recommendations, Marvel movies, anime series, and streaming guides with unique reviews and ratings",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://cinestreambd.onrender.com/?search={search_term_string}",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://cinestreambd.onrender.com/?search={search_term_string}"
+        },
         "query-input": "required name=search_term_string"
       },
       "publisher": {
         "@type": "Organization",
         "name": "CineStream",
-        "url": "https://cinestreambd.onrender.com"
+        "url": "https://cinestreambd.onrender.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://cinestreambd.onrender.com/placeholder.svg"
+        }
       },
       "mainEntity": {
         "@type": "ItemList",
         "name": "Movie and TV Show Recommendations",
-        "description": "Curated list of the best movies and TV shows with unique reviews and ratings"
-      },
-      "sameAs": [
-        "https://twitter.com/cinestream"
-      ]
+        "description": "Curated list of the best movies and TV shows with unique reviews and ratings",
+        "numberOfItems": "1000+"
+      }
     }
     </script>
 
-    <!-- Additional Schema for Movie Reviews -->
+    <!-- Movie Database Schema -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Review",
-      "itemReviewed": {
-        "@type": "WebSite",
-        "name": "CineStream Movie Reviews"
+      "@type": "WebApplication",
+      "name": "CineStream Movie Database",
+      "description": "Comprehensive movie and TV series database with reviews, ratings, and streaming information",
+      "applicationCategory": "Entertainment",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
       },
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": "4.8",
-        "bestRating": "5"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "CineStream Editorial Team"
-      },
-      "reviewBody": "Comprehensive movie and TV show reviews with unique insights and ratings for every title in our database."
+      "featureList": [
+        "Movie Recommendations",
+        "TV Series Guide", 
+        "Franchise Timelines",
+        "Streaming Links",
+        "Custom Reviews",
+        "Rating System"
+      ]
     }
     </script>
   </head>
