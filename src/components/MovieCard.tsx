@@ -52,21 +52,11 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     ? (movie as any).content_type === 'series'
     : movie.media_type === 'tv' || movie.name || !movie.title;
 
-  // Create back navigation params to preserve current page state
-  const createBackParams = () => {
-    // Only preserve navigation state if we're on the home page
-    if (location.pathname === '/') {
-      const currentParams = searchParams.toString();
-      if (currentParams) {
-        return `?back=${encodeURIComponent(currentParams)}`;
-      }
-    }
-    return '';
-  };
+  // No need for complex back params - browser history handles it
 
   return (
     <Link 
-      to={`/movie/${movie.id}${createBackParams()}`}
+      to={`/movie/${movie.id}`}
       className="group block"
     >
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-gray-700/50 hover:border-purple-500/50">

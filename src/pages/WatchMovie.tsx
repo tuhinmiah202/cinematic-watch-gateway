@@ -24,21 +24,8 @@ const WatchMovie = () => {
   const [showWatchButton, setShowWatchButton] = useState(false);
 
   const handleBack = () => {
-    // Check if there's a specific back URL in search params
-    const backParams = searchParams.get('back');
-    if (backParams) {
-      try {
-        // Navigate back to the movie detail page with preserved context
-        navigate(`/movie/${movieId}?${decodeURIComponent(backParams)}`);
-      } catch (error) {
-        console.error('Error decoding back params:', error);
-        // Fallback to movie detail page
-        navigate(`/movie/${movieId}`);
-      }
-    } else {
-      // Default back to movie detail page
-      navigate(`/movie/${movieId}`);
-    }
+    // Always use browser's natural back behavior to prevent loops
+    navigate(-1);
   };
 
   // Try to fetch from Supabase first (for admin content)
