@@ -1,15 +1,16 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useMovieData } from '@/hooks/useMovieData';
 import { useHomeSections } from '@/hooks/useHomeSections';
+import { autoDiscoveryService } from '@/services/autoDiscoveryService';
 import FilterControls from '@/components/FilterControls';
 import MovieCard from '@/components/MovieCard';
 import MovieSection from '@/components/MovieSection';
 import HomePagination from '@/components/HomePagination';
 
 const ITEMS_PER_PAGE = 24;
+const SECTION_INTERVAL = 9; // Show sections after every 9 movies
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,6 +27,22 @@ const Index = () => {
     highestRatedSeries,
     isLoading: isLoadingSections
   } = useHomeSections();
+
+  // Run auto-discovery on component mount (only on first page)
+  useEffect(() => {
+    if (currentPage === 1 && !debouncedSearchTerm && !selectedGenre && contentType === 'all') {
+      // Run auto-discovery once per session
+      const lastDiscovery = localStorage.getItem('lastAutoDiscovery');
+      const now = Date.now();
+      const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+      
+      if (!lastDiscovery || now - parseInt(lastDiscovery) > oneHour) {
+        autoDiscoveryService.runAutoDiscovery().then(() => {
+          localStorage.setItem('lastAutoDiscovery', now.toString());
+        });
+      }
+    }
+  }, [currentPage, debouncedSearchTerm, selectedGenre, contentType]);
 
   // Show sections only when there's no search or filter applied AND we're on page 1
   const showHomeSections = !debouncedSearchTerm && !selectedGenre && contentType === 'all' && currentPage === 1;
@@ -56,6 +73,83 @@ const Index = () => {
   }, [debouncedSearchTerm, selectedGenre, contentType]);
 
   const currentMovies = paginatedMovies();
+
+  // Function to render movies with interspersed sections
+  const renderMoviesWithSections = () => {
+    if (!showHomeSections) {
+      // If not on page 1 or filtering, just show regular grid
+      return (
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+          {currentMovies.map((movie, index) => (
+            <MovieCard
+              key={`${movie.id}-${index}`}
+              movie={movie}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // On page 1 with no filters, intersperse sections
+    const sections = [
+      { title: "🆕 New Releases", movies: newReleases },
+      { title: "🏆 Greatest Movies (8+ IMDB)", movies: greatestMovies },
+      { title: "⭐ Highest Rated Movies (7+ IMDB)", movies: highestRatedMovies },
+      { title: "📺 Highest Rated Series (7+ IMDB)", movies: highestRatedSeries }
+    ];
+
+    const elements = [];
+    let sectionIndex = 0;
+    
+    for (let i = 0; i < currentMovies.length; i += SECTION_INTERVAL) {
+      // Add section before movies (but not at the very beginning)
+      if (i > 0 && sectionIndex < sections.length) {
+        const section = sections[sectionIndex];
+        elements.push(
+          <div key={`section-${sectionIndex}`} className="mb-8">
+            <MovieSection
+              title={section.title}
+              movies={section.movies}
+              isLoading={isLoadingSections}
+            />
+          </div>
+        );
+        sectionIndex++;
+      }
+
+      // Add movies grid
+      const moviesSlice = currentMovies.slice(i, i + SECTION_INTERVAL);
+      if (moviesSlice.length > 0) {
+        elements.push(
+          <div key={`movies-${i}`} className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-8">
+            {moviesSlice.map((movie, index) => (
+              <MovieCard
+                key={`${movie.id}-${i + index}`}
+                movie={movie}
+              />
+            ))}
+          </div>
+        );
+      }
+    }
+
+    // Add remaining sections if any
+    while (sectionIndex < sections.length) {
+      const section = sections[sectionIndex];
+      elements.push(
+        <div key={`section-${sectionIndex}`} className="mb-8">
+          <MovieSection
+            title={section.title}
+            movies={section.movies}
+            isLoading={isLoadingSections}
+          />
+        </div>
+      );
+      sectionIndex++;
+    }
+
+    return elements;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
@@ -93,70 +187,30 @@ const Index = () => {
           onContentTypeChange={setContentType}
         />
 
-        {/* Home Sections - only show when no search/filter applied AND on page 1 */}
-        {showHomeSections && (
-          <div className="mb-8">
-            <MovieSection
-              title="🆕 New Releases"
-              movies={newReleases}
-              isLoading={isLoadingSections}
-            />
-            
-            <MovieSection
-              title="🏆 Greatest Movies (8+ IMDB)"
-              movies={greatestMovies}
-              isLoading={isLoadingSections}
-            />
-            
-            <MovieSection
-              title="⭐ Highest Rated Movies (7+ IMDB)"
-              movies={highestRatedMovies}
-              isLoading={isLoadingSections}
-            />
-            
-            <MovieSection
-              title="📺 Highest Rated Series (7+ IMDB)"
-              movies={highestRatedSeries}
-              isLoading={isLoadingSections}
-            />
+        {/* Movies and Sections - interspersed layout */}
+        {renderMoviesWithSections()}
+
+        {/* Show loading or no movies message if needed */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400 border-t-transparent"></div>
           </div>
         )}
 
-        {/* Regular Movies Grid - show when searching/filtering or as fallback */}
-        {(!showHomeSections || currentMovies.length > 0) && (
-          <>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
-              {currentMovies.map((movie, index) => (
-                <MovieCard
-                  key={`${movie.id}-${index}`}
-                  movie={movie}
-                />
-              ))}
-            </div>
-
-            {/* Show loading or no movies message if needed */}
-            {isLoading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400 border-t-transparent"></div>
-              </div>
-            )}
-
-            {!isLoading && currentMovies.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-white text-lg">No movies found</p>
-                <p className="text-gray-400 mt-2">Try adjusting your search or genre filter</p>
-              </div>
-            )}
-
-            <HomePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              isLoading={isLoading}
-              totalItems={allMovies.length}
-            />
-          </>
+        {!isLoading && currentMovies.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-white text-lg">No movies found</p>
+            <p className="text-gray-400 mt-2">Try adjusting your search or genre filter</p>
+          </div>
         )}
+
+        <HomePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+          totalItems={allMovies.length}
+        />
 
         {/* Detailed SEO Footer Content */}
         <div className="mt-12 text-center pb-8">

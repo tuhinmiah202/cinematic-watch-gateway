@@ -38,7 +38,7 @@ export interface Genre {
   name: string;
 }
 
-export const tmdbService = {
+const tmdbService = {
   async getPopularMovies(page = 1): Promise<{ results: Movie[]; total_pages: number }> {
     const response = await fetch(
       `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&page=${page}`
@@ -147,6 +147,32 @@ export const tmdbService = {
     };
   },
 
+  async getNowPlayingMovies(page: number = 1) {
+    try {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&page=${page}`
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching now playing movies:', error);
+      return { results: [] };
+    }
+  },
+
+  async getTopRatedTVShows(page: number = 1) {
+    try {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/tv/top_rated?api_key=${TMDB_API_KEY}&page=${page}`
+      );
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching top rated TV shows:', error);
+      return { results: [] };
+    }
+  },
+
   getImageUrl(path: string): string {
     return path ? `${TMDB_IMAGE_BASE_URL}${path}` : '/placeholder.svg';
   },
@@ -155,3 +181,5 @@ export const tmdbService = {
     return path ? `https://image.tmdb.org/t/p/w1280${path}` : '/placeholder.svg';
   }
 };
+
+export { tmdbService };

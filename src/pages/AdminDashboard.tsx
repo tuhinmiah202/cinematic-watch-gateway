@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { adminService } from '@/services/adminService';
+import { submissionService } from '@/services/submissionService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,10 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LogOut, Film, Plus, Search, Home, Settings } from 'lucide-react';
+import { LogOut, Film, Plus, Search, Home, Settings, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SitemapManager from "@/components/admin/SitemapManager";
+import NotificationsPanel from "@/components/admin/NotificationsPanel";
 import { Network } from "lucide-react";
+import { Badge } from '@/components/ui/badge';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -36,7 +39,7 @@ const AdminDashboard = () => {
   const [manualCast, setManualCast] = useState('');
   const [manualStreamingUrl, setManualStreamingUrl] = useState('');
 
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "sitemap">("dashboard");
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "sitemap" | "notifications">("dashboard");
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -49,6 +52,12 @@ const AdminDashboard = () => {
   const { data: adminContent = [], refetch: refetchContent } = useQuery({
     queryKey: ['admin-content'],
     queryFn: adminService.getAllContent
+  });
+
+  // Get unread notification count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unread-notifications'],
+    queryFn: submissionService.getUnreadCount
   });
 
   // Fetch genres
@@ -252,6 +261,20 @@ const AdminDashboard = () => {
             onClick={() => setCurrentTab("dashboard")}
           >
             Dashboard
+          </Button>
+          <Button
+            className={`flex-1 md:flex-none ${
+              currentTab === "notifications" ? "bg-yellow-600 text-white font-semibold" : "bg-gray-700 text-gray-300"
+            } flex items-center gap-2`}
+            onClick={() => setCurrentTab("notifications")}
+          >
+            <Bell className="w-4 h-4" />
+            Notifications
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {unreadCount}
+              </Badge>
+            )}
           </Button>
           <Button
             className={`flex-1 md:flex-none ${
@@ -609,6 +632,9 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </>
+        )}
+        {currentTab === "notifications" && (
+          <NotificationsPanel />
         )}
         {currentTab === "sitemap" && (
           <SitemapManager />

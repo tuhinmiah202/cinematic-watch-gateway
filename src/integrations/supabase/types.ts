@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_related_id_fkey"
+            columns: ["related_id"]
+            isOneToOne: false
+            referencedRelation: "pending_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cast_members: {
         Row: {
           created_at: string | null
@@ -285,6 +323,51 @@ export type Database = {
           title?: string
           tmdb_id?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pending_submissions: {
+        Row: {
+          content_type: Database["public"]["Enums"]["content_type"]
+          description: string | null
+          id: string
+          poster_url: string | null
+          release_year: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          title: string
+          tmdb_id: number
+          vote_average: number | null
+        }
+        Insert: {
+          content_type: Database["public"]["Enums"]["content_type"]
+          description?: string | null
+          id?: string
+          poster_url?: string | null
+          release_year?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          title: string
+          tmdb_id: number
+          vote_average?: number | null
+        }
+        Update: {
+          content_type?: Database["public"]["Enums"]["content_type"]
+          description?: string | null
+          id?: string
+          poster_url?: string | null
+          release_year?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          title?: string
+          tmdb_id?: number
+          vote_average?: number | null
         }
         Relationships: []
       }
