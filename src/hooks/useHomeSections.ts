@@ -79,33 +79,11 @@ export const useHomeSections = () => {
     },
   });
 
-  // Get mixed content (movies and series)
-  const { data: mixedContent, isLoading: isLoadingMixed } = useQuery({
-    queryKey: ['mixed-content'],
-    queryFn: async () => {
-      const [supabaseContent, movies, tvShows] = await Promise.all([
-        contentService.getApprovedContent(),
-        tmdbService.getPopularMovies(1),
-        tmdbService.getPopularTVShows(1)
-      ]);
-      
-      const combined = [
-        ...supabaseContent.slice(0, 10),
-        ...movies.results.slice(0, 10),
-        ...tvShows.results.slice(0, 10)
-      ];
-      
-      // Shuffle the array for mixed content
-      return combined.sort(() => Math.random() - 0.5).slice(0, 20);
-    },
-  });
-
   return {
     newReleases: newReleases || [],
     greatestMovies: greatestMovies || [],
     highestRatedMovies: highestRatedMovies || [],
     highestRatedSeries: highestRatedSeries || [],
-    mixedContent: mixedContent || [],
-    isLoading: isLoadingNewReleases || isLoadingGreatest || isLoadingHighestMovies || isLoadingHighestSeries || isLoadingMixed
+    isLoading: isLoadingNewReleases || isLoadingGreatest || isLoadingHighestMovies || isLoadingHighestSeries
   };
 };

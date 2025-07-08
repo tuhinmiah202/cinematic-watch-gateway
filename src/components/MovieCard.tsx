@@ -22,9 +22,10 @@ interface Movie {
 
 interface MovieCardProps {
   movie: Movie;
+  isCompact?: boolean;
 }
 
-const MovieCard = ({ movie }: MovieCardProps) => {
+const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   
@@ -52,7 +53,54 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     ? (movie as any).content_type === 'series'
     : movie.media_type === 'tv' || movie.name || !movie.title;
 
-  // No need for complex back params - browser history handles it
+  if (isCompact) {
+    return (
+      <Link 
+        to={`/movie/${movie.id}`}
+        className="group block"
+      >
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-gray-700/50 hover:border-purple-500/50">
+          <div className="relative aspect-[2/3] overflow-hidden">
+            <img
+              src={posterUrl}
+              alt={title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+            {rating && rating > 0 && (
+              <div className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
+                <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                <span className="text-white text-xs font-semibold">
+                  {rating.toFixed(1)}
+                </span>
+              </div>
+            )}
+            {isTV && (
+              <div className="absolute top-1 left-1 bg-purple-600/90 backdrop-blur-sm rounded-full p-0.5">
+                <Tv className="w-2.5 h-2.5 text-white" />
+              </div>
+            )}
+          </div>
+          
+          <div className="p-2">
+            <h3 className="font-semibold text-white text-xs line-clamp-2 mb-1 group-hover:text-purple-300 transition-colors">
+              {title}
+            </h3>
+            
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <div className="flex items-center gap-0.5">
+                <Calendar className="w-2.5 h-2.5" />
+                <span className="text-xs">{year}</span>
+              </div>
+              {isTV && (
+                <span className="text-purple-400 font-medium text-xs">TV</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <Link 

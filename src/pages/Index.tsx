@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -23,12 +24,11 @@ const Index = () => {
     greatestMovies,
     highestRatedMovies,
     highestRatedSeries,
-    mixedContent,
     isLoading: isLoadingSections
   } = useHomeSections();
 
-  // Show sections only when there's no search or filter applied
-  const showHomeSections = !debouncedSearchTerm && !selectedGenre && contentType === 'all';
+  // Show sections only when there's no search or filter applied AND we're on page 1
+  const showHomeSections = !debouncedSearchTerm && !selectedGenre && contentType === 'all' && currentPage === 1;
 
   // Get movies for current page
   const paginatedMovies = useCallback(() => {
@@ -83,7 +83,7 @@ const Index = () => {
         )}
       </div>
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 min-h-screen">
         <FilterControls
           genres={genres}
           searchTerm={searchTerm}
@@ -93,7 +93,7 @@ const Index = () => {
           onContentTypeChange={setContentType}
         />
 
-        {/* Home Sections - only show when no search/filter applied */}
+        {/* Home Sections - only show when no search/filter applied AND on page 1 */}
         {showHomeSections && (
           <div className="mb-8">
             <MovieSection
@@ -117,12 +117,6 @@ const Index = () => {
             <MovieSection
               title="📺 Highest Rated Series (7+ IMDB)"
               movies={highestRatedSeries}
-              isLoading={isLoadingSections}
-            />
-            
-            <MovieSection
-              title="🎭 Mixed Collection"
-              movies={mixedContent}
               isLoading={isLoadingSections}
             />
           </div>
@@ -165,7 +159,7 @@ const Index = () => {
         )}
 
         {/* Detailed SEO Footer Content */}
-        <div className="mt-12 text-center">
+        <div className="mt-12 text-center pb-8">
           <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
             <h2 className="text-xl md:text-2xl font-bold text-white mb-4">
               Complete Movie & Series Database

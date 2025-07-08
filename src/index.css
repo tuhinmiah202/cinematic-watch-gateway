@@ -93,6 +93,23 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Ensure no white background bleed */
+    background: linear-gradient(135deg, 
+      hsl(240, 10%, 3.9%) 0%, 
+      hsl(258, 90%, 7%) 35%, 
+      hsl(260, 70%, 15%) 100%);
+    min-height: 100vh;
+  }
+
+  html {
+    /* Prevent white flash */
+    background: hsl(240, 10%, 3.9%);
+  }
+
+  /* Prevent any white backgrounds */
+  #root {
+    min-height: 100vh;
+    background: transparent;
   }
 }
 
@@ -127,6 +144,19 @@
     scrollbar-width: none;  /* Firefox */
   }
 
+  /* Ensure mobile-friendly compact cards */
+  @screen sm {
+    .w-28 {
+      width: 7.5rem; /* 120px */
+    }
+  }
+
+  @screen md {
+    .w-32 {
+      width: 8.5rem; /* 136px */
+    }
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -137,4 +167,14 @@
       transform: translateY(0);
     }
   }
+}
+
+/* Fix for white glitch and ensure consistent dark background */
+body, html {
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 100%;
+  overflow-x: hidden;
 }
