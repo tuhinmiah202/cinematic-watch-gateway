@@ -1,10 +1,11 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useMovieData } from '@/hooks/useMovieData';
+import { useHomeSections } from '@/hooks/useHomeSections';
 import FilterControls from '@/components/FilterControls';
 import MovieCard from '@/components/MovieCard';
+import MovieSection from '@/components/MovieSection';
 import HomePagination from '@/components/HomePagination';
 
 const ITEMS_PER_PAGE = 24;
@@ -17,6 +18,17 @@ const Index = () => {
   const [contentType, setContentType] = useState('all');
 
   const { genres, allMovies, isLoading } = useMovieData(selectedGenre, debouncedSearchTerm, contentType);
+  const {
+    newReleases,
+    greatestMovies,
+    highestRatedMovies,
+    highestRatedSeries,
+    mixedContent,
+    isLoading: isLoadingSections
+  } = useHomeSections();
+
+  // Show sections only when there's no search or filter applied
+  const showHomeSections = !debouncedSearchTerm && !selectedGenre && contentType === 'all';
 
   // Get movies for current page
   const paginatedMovies = useCallback(() => {
@@ -49,24 +61,26 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       <Navbar onSearch={handleSearch} />
       
-      {/* Simplified SEO Content Section */}
       <div className="container mx-auto px-4 pt-6">
-        <div className="text-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">
-            Best Movie Recommendations & Streaming Guide
-          </h1>
-          <p className="text-base text-gray-300 max-w-3xl mx-auto mb-4">
-            Discover <strong>top-rated movies</strong>, explore the complete <strong>Marvel movie list</strong>, 
-            find <strong>anime series to watch</strong>, and get expert guides for popular franchises. 
-            Your ultimate destination for <strong>movie recommendations</strong> and <strong>streaming suggestions</strong>.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-400 mb-4">
-            <div>🎬 Marvel Universe</div>
-            <div>⚡ X-Men Timeline</div>
-            <div>🌟 Top Anime</div>
-            <div>🌌 Sci-Fi Movies</div>
+        {/* SEO Content Section - only show when no search/filter */}
+        {showHomeSections && (
+          <div className="text-center mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">
+              Best Movie Recommendations & Streaming Guide
+            </h1>
+            <p className="text-base text-gray-300 max-w-3xl mx-auto mb-4">
+              Discover <strong>top-rated movies</strong>, explore the complete <strong>Marvel movie list</strong>, 
+              find <strong>anime series to watch</strong>, and get expert guides for popular franchises. 
+              Your ultimate destination for <strong>movie recommendations</strong> and <strong>streaming suggestions</strong>.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-400 mb-4">
+              <div>🎬 Marvel Universe</div>
+              <div>⚡ X-Men Timeline</div>
+              <div>🌟 Top Anime</div>
+              <div>🌌 Sci-Fi Movies</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       <div className="container mx-auto px-4 py-4">
@@ -79,37 +93,76 @@ const Index = () => {
           onContentTypeChange={setContentType}
         />
 
-        {/* Movies Grid */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
-          {currentMovies.map((movie, index) => (
-            <MovieCard
-              key={`${movie.id}-${index}`}
-              movie={movie}
+        {/* Home Sections - only show when no search/filter applied */}
+        {showHomeSections && (
+          <div className="mb-8">
+            <MovieSection
+              title="🆕 New Releases"
+              movies={newReleases}
+              isLoading={isLoadingSections}
             />
-          ))}
-        </div>
-
-        {/* Show loading or no movies message if needed */}
-        {isLoading && (
-          <div className="flex justify-center items-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400 border-t-transparent"></div>
+            
+            <MovieSection
+              title="🏆 Greatest Movies (8+ IMDB)"
+              movies={greatestMovies}
+              isLoading={isLoadingSections}
+            />
+            
+            <MovieSection
+              title="⭐ Highest Rated Movies (7+ IMDB)"
+              movies={highestRatedMovies}
+              isLoading={isLoadingSections}
+            />
+            
+            <MovieSection
+              title="📺 Highest Rated Series (7+ IMDB)"
+              movies={highestRatedSeries}
+              isLoading={isLoadingSections}
+            />
+            
+            <MovieSection
+              title="🎭 Mixed Collection"
+              movies={mixedContent}
+              isLoading={isLoadingSections}
+            />
           </div>
         )}
 
-        {!isLoading && currentMovies.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-white text-lg">No movies found</p>
-            <p className="text-gray-400 mt-2">Try adjusting your search or genre filter</p>
-          </div>
-        )}
+        {/* Regular Movies Grid - show when searching/filtering or as fallback */}
+        {(!showHomeSections || currentMovies.length > 0) && (
+          <>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+              {currentMovies.map((movie, index) => (
+                <MovieCard
+                  key={`${movie.id}-${index}`}
+                  movie={movie}
+                />
+              ))}
+            </div>
 
-        <HomePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          isLoading={isLoading}
-          totalItems={allMovies.length}
-        />
+            {/* Show loading or no movies message if needed */}
+            {isLoading && (
+              <div className="flex justify-center items-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400 border-t-transparent"></div>
+              </div>
+            )}
+
+            {!isLoading && currentMovies.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-white text-lg">No movies found</p>
+                <p className="text-gray-400 mt-2">Try adjusting your search or genre filter</p>
+              </div>
+            )}
+
+            <HomePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+              totalItems={allMovies.length}
+            />
+          </>
+        )}
 
         {/* Detailed SEO Footer Content */}
         <div className="mt-12 text-center">
@@ -117,11 +170,12 @@ const Index = () => {
             <h2 className="text-xl md:text-2xl font-bold text-white mb-4">
               Complete Movie & Series Database
             </h2>
+            
             <p className="text-gray-300 mb-6">
               Whether you're looking for <strong>Marvel movies ranked</strong>, the complete <strong>anime must-watch list</strong>, 
               <strong>X-Men timeline explained</strong>, <strong>Harry Potter watch order</strong>, <strong>Twilight saga guide</strong>, 
-              <strong>Fast and Furious all movies</strong>, or <strong>Star Wars explained</strong> - CineStream is your go-to 
-              <strong>movie recommendation AI</strong>. Explore <strong>superhero movie guides</strong>, discover <strong>underrated anime gems</strong>, 
+             <strong>Fast and Furious all movies</strong>, or <strong>Star Wars explained</strong> - CineStream is your go-to 
+             <strong>movie recommendation AI</strong>. Explore <strong>superhero movie guides</strong>, discover <strong>underrated anime gems</strong>, 
               find <strong>best Netflix series</strong>, and get <strong>Disney Plus movies list</strong> recommendations.
             </p>
             
