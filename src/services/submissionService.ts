@@ -40,7 +40,10 @@ export const submissionService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: item.status as 'pending' | 'approved' | 'rejected'
+    }));
   },
 
   // Get all notifications
@@ -55,7 +58,10 @@ export const submissionService = {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      type: item.type as 'new_submission' | 'system_alert'
+    }));
   },
 
   // Get unread notification count
@@ -145,6 +151,21 @@ export const submissionService = {
 
     if (error) {
       console.error('Error submitting for approval:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Update submission details
+  async updateSubmission(submissionId: string, updates: Partial<PendingSubmission>): Promise<boolean> {
+    const { error } = await supabase
+      .from('pending_submissions')
+      .update(updates)
+      .eq('id', submissionId);
+
+    if (error) {
+      console.error('Error updating submission:', error);
       return false;
     }
 

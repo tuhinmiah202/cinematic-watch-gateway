@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -90,9 +91,8 @@ const Index = () => {
       );
     }
 
-    // On page 1 with no filters, intersperse sections
+    // On page 1 with no filters, show New Releases first, then intersperse other sections
     const sections = [
-      { title: "🆕 New Releases", movies: newReleases },
       { title: "🏆 Greatest Movies (8+ IMDB)", movies: greatestMovies },
       { title: "⭐ Highest Rated Movies (7+ IMDB)", movies: highestRatedMovies },
       { title: "📺 Highest Rated Series (7+ IMDB)", movies: highestRatedSeries }
@@ -101,22 +101,18 @@ const Index = () => {
     const elements = [];
     let sectionIndex = 0;
     
+    // Add New Releases section at the top
+    elements.push(
+      <div key="new-releases" className="mb-8">
+        <MovieSection
+          title="🆕 New Releases"
+          movies={newReleases}
+          isLoading={isLoadingSections}
+        />
+      </div>
+    );
+    
     for (let i = 0; i < currentMovies.length; i += SECTION_INTERVAL) {
-      // Add section before movies (but not at the very beginning)
-      if (i > 0 && sectionIndex < sections.length) {
-        const section = sections[sectionIndex];
-        elements.push(
-          <div key={`section-${sectionIndex}`} className="mb-8">
-            <MovieSection
-              title={section.title}
-              movies={section.movies}
-              isLoading={isLoadingSections}
-            />
-          </div>
-        );
-        sectionIndex++;
-      }
-
       // Add movies grid
       const moviesSlice = currentMovies.slice(i, i + SECTION_INTERVAL);
       if (moviesSlice.length > 0) {
@@ -131,21 +127,21 @@ const Index = () => {
           </div>
         );
       }
-    }
 
-    // Add remaining sections if any
-    while (sectionIndex < sections.length) {
-      const section = sections[sectionIndex];
-      elements.push(
-        <div key={`section-${sectionIndex}`} className="mb-8">
-          <MovieSection
-            title={section.title}
-            movies={section.movies}
-            isLoading={isLoadingSections}
-          />
-        </div>
-      );
-      sectionIndex++;
+      // Add section after movies (if there are more sections to show)
+      if (sectionIndex < sections.length) {
+        const section = sections[sectionIndex];
+        elements.push(
+          <div key={`section-${sectionIndex}`} className="mb-8">
+            <MovieSection
+              title={section.title}
+              movies={section.movies}
+              isLoading={isLoadingSections}
+            />
+          </div>
+        );
+        sectionIndex++;
+      }
     }
 
     return elements;

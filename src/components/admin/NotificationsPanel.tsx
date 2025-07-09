@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, X, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import EditSubmissionDialog from './EditSubmissionDialog';
 
 const NotificationsPanel = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
 
   // Fetch notifications
   const { data: notifications = [], refetch: refetchNotifications } = useQuery({
@@ -188,24 +188,33 @@ const NotificationsPanel = () => {
                       <p className="text-gray-500 text-xs mt-1">
                         Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                       </p>
+                      {submission.description && (
+                        <p className="text-gray-400 text-xs mt-1 line-clamp-2">{submission.description}</p>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(submission.id)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleReject(submission.id)}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      <EditSubmissionDialog 
+                        submission={submission} 
+                        onUpdate={refetchSubmissions}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(submission.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleReject(submission.id)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
