@@ -313,7 +313,7 @@ const MovieDetail = () => {
               {rating > 0 && (
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  <span className="text-lg font-semibold">{rating.toFixed(1)}</span>
+                  <span className="text-lg font-semibold">{rating.toFixed(1)} TM</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
@@ -345,8 +345,6 @@ const MovieDetail = () => {
               ))}
             </div>
 
-            <p className="text-base text-gray-300 leading-relaxed mb-6 max-w-3xl">{overview}</p>
-
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
               <Button 
@@ -357,6 +355,12 @@ const MovieDetail = () => {
                 <Play className="w-5 h-5 mr-2" />
                 Watch Now
               </Button>
+            </div>
+
+            {/* Review section */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Review</h3>
+              <p className="text-base text-gray-300 leading-relaxed max-w-3xl">{overview}</p>
             </div>
           </div>
         </div>

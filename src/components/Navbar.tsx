@@ -54,6 +54,12 @@ const Navbar = ({ onSearch }: NavbarProps) => {
             <Link to="/admin" className="text-white hover:text-purple-400 transition-colors">
               Admin
             </Link>
+            <Link to="/privacy" className="text-white hover:text-purple-400 transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/about" className="text-white hover:text-purple-400 transition-colors">
+              About
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -91,6 +97,12 @@ const Navbar = ({ onSearch }: NavbarProps) => {
               </Link>
               <Link to="/admin" className="text-white hover:text-purple-400 transition-colors py-2">
                 Admin
+              </Link>
+              <Link to="/privacy" className="text-white hover:text-purple-400 transition-colors py-2">
+                Privacy Policy
+              </Link>
+              <Link to="/about" className="text-white hover:text-purple-400 transition-colors py-2">
+                About
               </Link>
             </div>
           </div>

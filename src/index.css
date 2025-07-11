@@ -178,3 +178,36 @@ body, html {
   max-width: 100%;
   overflow-x: hidden;
 }
+
+/* Improve scrolling performance and fix lag */
+* {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+}
+
+/* Optimize scroll performance */
+body {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Prevent purple glitch during scroll */
+.bg-gradient-to-br {
+  background-attachment: fixed;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .grid {
+    will-change: transform;
+  }
+  
+  /* Reduce animations on mobile for better performance */
+  .animate-fade-in {
+    animation: none;
+  }
+}
