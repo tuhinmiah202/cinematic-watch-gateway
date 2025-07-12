@@ -131,11 +131,6 @@
     overflow: hidden;
   }
 
-  /* Reduced animation for better mobile performance */
-  .animate-fade-in {
-    animation: none;
-  }
-
   /* Hide scrollbar for Chrome, Safari and Opera */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -145,15 +140,6 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 }
 
@@ -167,45 +153,114 @@ body, html {
   overflow-x: hidden;
 }
 
-/* Disable expensive transforms on mobile */
+/* Extreme mobile performance optimizations */
 @media (max-width: 768px) {
-  * {
-    -webkit-transform: none !important;
+  /* Disable ALL animations and transitions on mobile */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
     transform: none !important;
+    -webkit-transform: none !important;
     -webkit-backface-visibility: visible !important;
     backface-visibility: visible !important;
     -webkit-perspective: none !important;
     perspective: none !important;
   }
   
-  /* Disable animations on mobile completely */
-  .animate-fade-in,
-  .transition-all,
-  .transition-colors,
-  .transition-transform {
-    animation: none !important;
-    transition: none !important;
-  }
-  
-  /* Improve button responsiveness */
-  button {
-    touch-action: manipulation;
-  }
-  
-  /* Remove hover effects on mobile */
+  /* Remove all hover effects on mobile */
   .hover\:bg-purple-600:hover,
   .hover\:bg-purple-700:hover,
   .hover\:from-purple-700:hover,
-  .hover\:to-pink-700:hover {
+  .hover\:to-pink-700:hover,
+  .hover\:scale-105:hover,
+  .hover\:scale-110:hover,
+  .hover\:border-purple-500\/50:hover,
+  .group:hover .group-hover\:scale-110,
+  .group:hover .group-hover\:text-purple-300 {
     background: initial !important;
     background-image: initial !important;
+    transform: none !important;
+    color: initial !important;
+    border-color: initial !important;
+  }
+  
+  /* Improve button responsiveness */
+  button, a {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Remove gradient backgrounds on mobile for better performance */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r,
+  .bg-gradient-to-l {
+    background: hsl(240, 10%, 3.9%) !important;
+    background-image: none !important;
+  }
+  
+  /* Optimize backdrop filters */
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Optimize shadows */
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+  
+  /* Force hardware acceleration for critical elements */
+  .movie-card {
+    will-change: auto;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  
+  /* Optimize scrolling */
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+    scroll-behavior: auto;
+  }
+  
+  /* Reduce image quality on mobile for faster loading */
+  img {
+    image-rendering: auto;
+    -webkit-optimize-contrast: auto;
   }
 }
 
-/* Remove gradient backgrounds on mobile for better performance */
-@media (max-width: 768px) {
-  .bg-gradient-to-br {
-    background: hsl(240, 10%, 3.9%) !important;
-    background-image: none !important;
+/* Further mobile optimizations */
+@media (max-width: 480px) {
+  /* Even more aggressive optimizations for very small screens */
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  
+  /* Reduce font sizes slightly */
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.75rem;
+  }
+  
+  /* Optimize padding and margins */
+  .p-4 {
+    padding: 0.75rem;
+  }
+  
+  .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 }

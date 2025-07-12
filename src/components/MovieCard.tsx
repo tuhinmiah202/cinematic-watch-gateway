@@ -59,12 +59,12 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
         to={`/movie/${movie.id}`}
         className="group block"
       >
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-gray-700/50 hover:border-purple-500/50">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
           <div className="relative aspect-[2/3] overflow-hidden">
             <img
               src={posterUrl}
               alt={title}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              className="w-full h-full object-cover"
               loading="lazy"
             />
             {rating && rating > 0 && (
@@ -83,7 +83,7 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
           </div>
           
           <div className="p-2">
-            <h3 className="font-semibold text-white text-xs line-clamp-2 mb-1 group-hover:text-purple-300 transition-colors">
+            <h3 className="font-semibold text-white text-xs line-clamp-2 mb-1">
               {title}
             </h3>
             
@@ -107,12 +107,12 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
       to={`/movie/${movie.id}`}
       className="group block"
     >
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-gray-700/50 hover:border-purple-500/50">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
         <div className="relative aspect-[2/3] overflow-hidden">
           <img
             src={posterUrl}
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            className="w-full h-full object-cover"
             loading="lazy"
           />
           {rating && rating > 0 && (
@@ -130,8 +130,8 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
           )}
         </div>
         
-        <div className="p-3">
-          <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2 group-hover:text-purple-300 transition-colors">
+        <div className="p-2 md:p-3">
+          <h3 className="font-semibold text-white text-xs md:text-sm line-clamp-2 mb-1 md:mb-2">
             {title}
           </h3>
           

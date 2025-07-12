@@ -10,8 +10,8 @@ import MovieCard from '@/components/MovieCard';
 import MovieSection from '@/components/MovieSection';
 import HomePagination from '@/components/HomePagination';
 
-const ITEMS_PER_PAGE = 24;
-const SECTION_INTERVAL = 9; // Show sections after every 9 movies
+const ITEMS_PER_PAGE = 18; // Reduced from 24 to 18 for better performance
+const SECTION_INTERVAL = 6; // Show sections after every 6 movies (reduced from 9)
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +52,7 @@ const Index = () => {
   const getGenrePageTitle = () => {
     if (!selectedGenre || !genres.length) return null;
     
-    const genre = genres.find(g => g.id === selectedGenre);
+    const genre = genres.find(g => g.id.toString() === selectedGenre);
     if (!genre) return null;
     
     const genreKeywords = {
@@ -124,9 +124,9 @@ const Index = () => {
 
     // On page 1 with no filters, show New Releases first, then intersperse other sections
     const sections = [
-      { title: "🏆 Greatest Movies (8+ IMDB)", movies: greatestMovies },
-      { title: "⭐ Highest Rated Movies (7+ IMDB)", movies: highestRatedMovies },
-      { title: "📺 Highest Rated Series (7+ IMDB)", movies: highestRatedSeries }
+      { title: "🏆 Greatest Movies (8+ TM Rating)", movies: greatestMovies },
+      { title: "⭐ Highest Rated Movies (7+ TM Rating)", movies: highestRatedMovies },
+      { title: "📺 Highest Rated Series (7+ TM Rating)", movies: highestRatedSeries }
     ];
 
     const elements = [];
@@ -190,10 +190,10 @@ const Index = () => {
               {getGenrePageTitle()}
             </h1>
             <p className="text-base text-gray-300 max-w-3xl mx-auto mb-4">
-              Discover the finest collection of {genres.find(g => g.id === selectedGenre)?.name.toLowerCase()} movies. 
-              Our curated selection features <strong>top-rated {genres.find(g => g.id === selectedGenre)?.name.toLowerCase()} films</strong>, 
-              <strong> must-watch {genres.find(g => g.id === selectedGenre)?.name.toLowerCase()} movies</strong>, and 
-              <strong> popular {genres.find(g => g.id === selectedGenre)?.name.toLowerCase()} recommendations</strong> 
+              Discover the finest collection of {genres.find(g => g.id.toString() === selectedGenre)?.name.toLowerCase()} movies. 
+              Our curated selection features <strong>top-rated {genres.find(g => g.id.toString() === selectedGenre)?.name.toLowerCase()} films</strong>, 
+              <strong> must-watch {genres.find(g => g.id.toString() === selectedGenre)?.name.toLowerCase()} movies</strong>, and 
+              <strong> popular {genres.find(g => g.id.toString() === selectedGenre)?.name.toLowerCase()} recommendations</strong> 
               with detailed reviews and ratings.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-400 mb-4">
