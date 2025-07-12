@@ -4,9 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 
-// Function to determine if content is from Supabase
-const isSupabaseContent = (movie: any) => !!movie.content_type;
-
 export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string, contentType: string) => {
   const [supabaseMovies, setSupabaseMovies] = useState<any[]>([]);
 
@@ -26,7 +23,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
 
   const genres = Array.isArray(genresData) ? genresData : [];
 
-  // Only fetch from Supabase - user-added content only
+  // Fetch from Supabase - user-added content only
   const {
     data: supabaseData,
     isLoading: isLoadingSupabase,
@@ -38,6 +35,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
   // Update supabaseMovies when data is fetched
   useEffect(() => {
     if (supabaseData) {
+      console.log('Supabase data fetched:', supabaseData.length, 'items');
       setSupabaseMovies(supabaseData);
     }
   }, [supabaseData]);
@@ -45,6 +43,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
   // Filter and process only Supabase content
   const allMovies = useCallback(() => {
     let filteredMovies = [...supabaseMovies];
+    console.log('Starting with', filteredMovies.length, 'movies');
 
     // Filter by content type
     if (contentType === 'movie') {
@@ -53,21 +52,27 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       filteredMovies = filteredMovies.filter(movie => movie.content_type === 'series');
     } else if (contentType === 'animation') {
       const animationGenreId = 16;
-      const genreInfo = genres.find(g => g.id === animationGenreId);
-      
       filteredMovies = filteredMovies.filter((movie) => {
-        return movie.genres?.some((g: any) => g.id === animationGenreId || (genreInfo && g.name === genreInfo.name));
+        return movie.genres?.some((g: any) => g.id === animationGenreId || g.name?.toLowerCase().includes('animation'));
       });
     }
 
-    // Filter by genre
-    if (selectedGenre && selectedGenre !== 'all') {
+    // Filter by genre - fix the genre filtering logic
+    if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
-      const genreInfo = genres.find(g => g.id === genreId);
+      console.log('Filtering by genre ID:', genreId);
       
-      filteredMovies = filteredMovies.filter((movie) => {
-        return movie.genres?.some((g: any) => g.id === genreId || (genreInfo && g.name === genreInfo.name));
-      });
+      if (!isNaN(genreId)) {
+        const genreInfo = genres.find(g => g.id === genreId);
+        console.log('Genre info found:', genreInfo);
+        
+        filteredMovies = filteredMovies.filter((movie) => {
+          const hasGenre = movie.genres?.some((g: any) => {
+            return g.id === genreId || (genreInfo && g.name === genreInfo.name);
+          });
+          return hasGenre;
+        });
+      }
     }
 
     // Filter by search term
@@ -78,6 +83,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       });
     }
 
+    console.log('Final filtered movies:', filteredMovies.length);
     return filteredMovies;
   }, [supabaseMovies, selectedGenre, debouncedSearchTerm, genres, contentType]);
 

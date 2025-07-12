@@ -37,6 +37,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
                 e.preventDefault();
                 onPageChange(i);
               }}
+              className={`min-w-[40px] h-10 flex items-center justify-center text-sm font-medium ${
+                currentPage === i 
+                  ? 'bg-purple-600 text-white border-purple-600' 
+                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+              }`}
             >
               {i}
             </PaginationLink>
@@ -50,6 +55,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
             href="#"
             isActive={currentPage === 1}
             onClick={(e) => { e.preventDefault(); onPageChange(1); }}
+            className={`min-w-[40px] h-10 flex items-center justify-center text-sm font-medium ${
+              currentPage === 1 
+                ? 'bg-purple-600 text-white border-purple-600' 
+                : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+            }`}
           >
             1
           </PaginationLink>
@@ -57,7 +67,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
       );
 
       if (currentPage > 3) {
-        items.push(<PaginationItem key="ellipsis-start"><PaginationEllipsis /></PaginationItem>);
+        items.push(
+          <PaginationItem key="ellipsis-start">
+            <PaginationEllipsis className="text-gray-400" />
+          </PaginationItem>
+        );
       }
 
       const startPage = Math.max(2, currentPage - 1);
@@ -70,6 +84,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
               href="#"
               isActive={currentPage === i}
               onClick={(e) => { e.preventDefault(); onPageChange(i); }}
+              className={`min-w-[40px] h-10 flex items-center justify-center text-sm font-medium ${
+                currentPage === i 
+                  ? 'bg-purple-600 text-white border-purple-600' 
+                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+              }`}
             >
               {i}
             </PaginationLink>
@@ -78,7 +97,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
       }
 
       if (currentPage < totalPages - 2) {
-        items.push(<PaginationItem key="ellipsis-end"><PaginationEllipsis /></PaginationItem>);
+        items.push(
+          <PaginationItem key="ellipsis-end">
+            <PaginationEllipsis className="text-gray-400" />
+          </PaginationItem>
+        );
       }
 
       items.push(
@@ -87,6 +110,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
             href="#"
             isActive={currentPage === totalPages}
             onClick={(e) => { e.preventDefault(); onPageChange(totalPages); }}
+            className={`min-w-[40px] h-10 flex items-center justify-center text-sm font-medium ${
+              currentPage === totalPages 
+                ? 'bg-purple-600 text-white border-purple-600' 
+                : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+            }`}
           >
             {totalPages}
           </PaginationLink>
@@ -107,7 +135,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
                 e.preventDefault();
                 if (currentPage > 1) onPageChange(currentPage - 1);
               }}
-              className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+              className={`h-10 px-4 text-sm font-medium ${
+                currentPage === 1 
+                  ? 'pointer-events-none opacity-50 text-gray-500' 
+                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+              }`}
             />
           </PaginationItem>
           {generatePaginationItems()}
@@ -118,7 +150,11 @@ const HomePagination = ({ currentPage, totalPages, onPageChange, isLoading, tota
                 e.preventDefault();
                 if (currentPage < totalPages) onPageChange(currentPage + 1);
               }}
-              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+              className={`h-10 px-4 text-sm font-medium ${
+                currentPage === totalPages 
+                  ? 'pointer-events-none opacity-50 text-gray-500' 
+                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+              }`}
             />
           </PaginationItem>
         </PaginationContent>
