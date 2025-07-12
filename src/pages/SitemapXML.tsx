@@ -30,7 +30,7 @@ const SitemapXML = () => {
 
   useEffect(() => {
     if (!isLoadingSupabase && !isLoadingTmdb) {
-      const baseUrl = 'https://cinestreambd.onrender.com';
+      const baseUrl = 'https://moviesuggest.xyz';
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -84,7 +84,7 @@ const SitemapXML = () => {
       document.body.appendChild(pre);
       
       // Set title
-      document.title = 'Sitemap - CineStreamBD';
+      document.title = 'Sitemap - MovieSuggest';
       
       // Create and append a meta tag for content type
       const metaTag = document.createElement('meta');

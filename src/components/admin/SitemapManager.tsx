@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -30,7 +29,7 @@ async function generateDynamicSitemap(): Promise<string> {
     console.error('Error fetching TMDB content for sitemap:', error);
   }
 
-  const baseUrl = 'https://cinestreambd.onrender.com';
+  const baseUrl = 'https://moviesuggest.xyz';
   const currentDate = new Date().toISOString().split('T')[0];
   
   let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -339,7 +338,7 @@ export default function SitemapManager() {
                   <li><strong>Download the generated sitemap.xml</strong> file</li>
                   <li><strong>Replace</strong> your <code>public/sitemap.xml</code> with the new file</li>
                   <li><strong>Ensure proper file permissions</strong> (readable by web server)</li>
-                  <li><strong>Test access:</strong> Visit https://cinestreambd.onrender.com/sitemap.xml</li>
+                  <li><strong>Test access:</strong> Visit https://moviesuggest.xyz/sitemap.xml</li>
                   <li><strong>Submit to Google Search Console</strong> again</li>
                   <li><strong>Wait 24-48 hours</strong> for Google to re-crawl</li>
                 </ol>

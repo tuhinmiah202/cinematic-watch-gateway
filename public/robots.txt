@@ -14,4 +14,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://cinestreambd.onrender.com/sitemap.xml
+Sitemap: https://moviesuggest.xyz/sitemap.xml
