@@ -292,6 +292,7 @@ export const contentService = {
         trailer_url: content.trailer_url,
         thumbnail_url: content.thumbnail_url,
         tmdb_id: content.tmdb_id,
+        rating: content.rating,
         is_admin_approved: true
       })
       .select('id')
@@ -302,7 +303,58 @@ export const contentService = {
       return null;
     }
 
-    return data?.id || null;
+    const contentId = data?.id;
+    if (contentId && content.genres?.length) {
+      await this.addGenresToContent(contentId, content.genres);
+    }
+
+    return contentId || null;
+  },
+
+  // Genre management
+  async addGenresToContent(contentId: string, genres: Genre[]): Promise<boolean> {
+    try {
+      for (const genre of genres) {
+        // Find or create genre
+        let { data: existingGenre } = await supabase
+          .from('genres')
+          .select('id')
+          .eq('tmdb_id', genre.tmdb_id)
+          .maybeSingle();
+
+        let genreId = existingGenre?.id;
+
+        if (!genreId && genre.tmdb_id) {
+          const { data: newGenre, error: genreError } = await supabase
+            .from('genres')
+            .insert({ 
+              name: genre.name, 
+              tmdb_id: genre.tmdb_id 
+            })
+            .select('id')
+            .single();
+
+          if (genreError) {
+            console.error('Error creating genre:', genreError);
+            continue;
+          }
+          genreId = newGenre?.id;
+        }
+
+        if (genreId) {
+          await supabase
+            .from('content_genres')
+            .insert({
+              content_id: contentId,
+              genre_id: genreId
+            });
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Error adding genres to content:', error);
+      return false;
+    }
   },
 
   async updateContent(id: string, updates: Partial<ContentItem>): Promise<boolean> {
