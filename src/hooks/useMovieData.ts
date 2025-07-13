@@ -57,7 +57,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       });
     }
 
-    // Filter by genre - improved logic to match both tmdb_id and name
+    // Filter by genre - simplified and more robust logic
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -68,23 +68,33 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         
         filteredMovies = filteredMovies.filter((movie) => {
           if (!movie.genres || !Array.isArray(movie.genres)) {
+            console.log('Movie has no genres:', movie.title);
             return false;
           }
           
           const hasGenre = movie.genres.some((g: any) => {
-            // Check if genre matches by tmdb_id or name
+            // Check multiple ways genres might be stored
             const matchesTmdbId = g.tmdb_id === genreId;
-            const matchesName = genreInfo && g.name && g.name.toLowerCase() === genreInfo.name.toLowerCase();
             const matchesId = g.id === genreId;
+            const matchesName = genreInfo && g.name && g.name.toLowerCase() === genreInfo.name.toLowerCase();
             
-            console.log('Checking genre:', g, 'against:', genreInfo, 'matches:', matchesTmdbId || matchesName || matchesId);
+            console.log('Checking genre:', {
+              movieGenre: g,
+              targetGenreId: genreId,
+              targetGenreName: genreInfo?.name,
+              matchesTmdbId,
+              matchesId,
+              matchesName
+            });
             
-            return matchesTmdbId || matchesName || matchesId;
+            return matchesTmdbId || matchesId || matchesName;
           });
           
-          console.log('Movie:', movie.title, 'has matching genre:', hasGenre);
+          console.log('Movie:', movie.title, 'has matching genre:', hasGenre, 'genres:', movie.genres);
           return hasGenre;
         });
+        
+        console.log('After genre filter:', filteredMovies.length, 'movies');
       }
     }
 
