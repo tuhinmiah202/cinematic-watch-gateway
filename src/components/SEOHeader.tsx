@@ -63,9 +63,12 @@ const SEOHeader = ({ selectedGenre, genres, showHomeSections }: SEOHeaderProps) 
   if (showHomeSections) {
     return (
       <div className="text-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">
-          Best Movie Recommendations & Streaming Guide
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          Movie Suggestion
         </h1>
+        <h2 className="text-xl md:text-2xl font-semibold text-purple-300 mb-4">
+          Best Movie Recommendations & Streaming Guide
+        </h2>
         <p className="text-base text-gray-300 max-w-3xl mx-auto mb-4">
           Discover <strong>top-rated movies</strong>, explore <strong>action movie recommendations</strong>, 
           find <strong>thriller movies to watch</strong>, and get expert guides for popular genres. 

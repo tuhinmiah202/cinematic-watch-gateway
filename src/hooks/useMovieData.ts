@@ -57,7 +57,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       });
     }
 
-    // Filter by genre - fix the genre filtering logic
+    // Filter by genre - improved logic to match both tmdb_id and name
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -67,9 +67,22 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         console.log('Genre info found:', genreInfo);
         
         filteredMovies = filteredMovies.filter((movie) => {
-          const hasGenre = movie.genres?.some((g: any) => {
-            return g.id === genreId || (genreInfo && g.name === genreInfo.name);
+          if (!movie.genres || !Array.isArray(movie.genres)) {
+            return false;
+          }
+          
+          const hasGenre = movie.genres.some((g: any) => {
+            // Check if genre matches by tmdb_id or name
+            const matchesTmdbId = g.tmdb_id === genreId;
+            const matchesName = genreInfo && g.name && g.name.toLowerCase() === genreInfo.name.toLowerCase();
+            const matchesId = g.id === genreId;
+            
+            console.log('Checking genre:', g, 'against:', genreInfo, 'matches:', matchesTmdbId || matchesName || matchesId);
+            
+            return matchesTmdbId || matchesName || matchesId;
           });
+          
+          console.log('Movie:', movie.title, 'has matching genre:', hasGenre);
           return hasGenre;
         });
       }
