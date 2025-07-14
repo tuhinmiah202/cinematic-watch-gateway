@@ -70,20 +70,10 @@ const Index = () => {
     setSearchTerm(term);
   };
 
-  // Handle genre change
+  // Handle genre change - removed the notification toast
   const handleGenreChange = (value: string) => {
     setSelectedGenre(value);
-    // Show notification when genre is selected
-    if (value && value !== 'all') {
-      const genreName = genres.find(g => g.id.toString() === value)?.name;
-      if (genreName) {
-        toast({
-          title: "Genre Filter Applied",
-          description: `Showing ${genreName} content`,
-          className: "notification-success"
-        });
-      }
-    }
+    console.log('Genre changed to:', value);
   };
 
   // Reset page when search term or genre changes
@@ -98,7 +88,11 @@ const Index = () => {
     if (selectedGenre && selectedGenre !== 'all') {
       console.log('Selected genre:', selectedGenre);
       console.log('Available genres:', genres);
-      console.log('Movies with genres:', allMovies.slice(0, 5).map(m => ({ title: m.title, genres: m.genres })));
+      console.log('Total movies available:', allMovies.length);
+      console.log('Sample movies with genres:', allMovies.slice(0, 3).map(m => ({ 
+        title: m.title, 
+        genres: m.genres 
+      })));
     }
   }, [selectedGenre, genres, allMovies]);
 

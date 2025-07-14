@@ -20,27 +20,14 @@ const Navbar = ({ onSearch }: NavbarProps) => {
 
   return (
     <>
-      {/* Top bar with website name */}
-      <div className="bg-black/80 backdrop-blur-md border-b border-purple-500/10 py-2">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <Link to="/" className="text-lg font-bold">
-              <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Movie Suggestion
-              </span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main navbar */}
       <nav className="bg-black/50 backdrop-blur-md border-b border-purple-500/20 sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Logo - Now shows CineStream */}
+            {/* Logo - Now shows Movie Suggestion */}
             <Link to="/" className="text-xl font-bold">
               <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg">
-                CineStream
+                Movie Suggestion
               </span>
             </Link>
 
