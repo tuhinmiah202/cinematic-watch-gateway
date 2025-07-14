@@ -57,7 +57,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       });
     }
 
-    // Filter by genre - updated logic to work with populated content_genres
+    // Filter by genre - improved logic
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -67,18 +67,22 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         console.log('Genre info found:', genreInfo);
         
         filteredMovies = filteredMovies.filter((movie) => {
+          // Debug logging for each movie
+          console.log('Checking movie:', movie.title, 'genres:', movie.genres);
+          
           if (!movie.genres || !Array.isArray(movie.genres)) {
             console.log('Movie has no genres:', movie.title);
             return false;
           }
           
+          // Check if any genre matches
           const hasGenre = movie.genres.some((g: any) => {
-            // Check if genre matches by TMDB ID or regular ID
-            const matchesTmdbId = g.tmdb_id === genreId;
-            const matchesId = g.id === genreId;
+            // Multiple ways to match genre
+            const matchesTmdbId = g.tmdb_id && g.tmdb_id === genreId;
+            const matchesId = g.id && parseInt(g.id) === genreId;
             const matchesName = genreInfo && g.name && g.name.toLowerCase() === genreInfo.name.toLowerCase();
             
-            console.log('Checking genre for movie:', movie.title, {
+            console.log('Genre match check:', {
               movieGenre: g,
               targetGenreId: genreId,
               targetGenreName: genreInfo?.name,
