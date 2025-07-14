@@ -53,11 +53,11 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
     } else if (contentType === 'animation') {
       const animationGenreId = 16;
       filteredMovies = filteredMovies.filter((movie) => {
-        return movie.genres?.some((g: any) => g.id === animationGenreId || g.name?.toLowerCase().includes('animation'));
+        return movie.genres?.some((g: any) => g.id === animationGenreId || g.tmdb_id === animationGenreId || g.name?.toLowerCase().includes('animation'));
       });
     }
 
-    // Filter by genre - simplified and more robust logic
+    // Filter by genre - updated logic to work with populated content_genres
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -73,12 +73,12 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
           }
           
           const hasGenre = movie.genres.some((g: any) => {
-            // Check multiple ways genres might be stored
+            // Check if genre matches by TMDB ID or regular ID
             const matchesTmdbId = g.tmdb_id === genreId;
             const matchesId = g.id === genreId;
             const matchesName = genreInfo && g.name && g.name.toLowerCase() === genreInfo.name.toLowerCase();
             
-            console.log('Checking genre:', {
+            console.log('Checking genre for movie:', movie.title, {
               movieGenre: g,
               targetGenreId: genreId,
               targetGenreName: genreInfo?.name,
@@ -90,7 +90,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
             return matchesTmdbId || matchesId || matchesName;
           });
           
-          console.log('Movie:', movie.title, 'has matching genre:', hasGenre, 'genres:', movie.genres);
+          console.log('Movie:', movie.title, 'has matching genre:', hasGenre);
           return hasGenre;
         });
         

@@ -10,6 +10,7 @@ import HomePagination from '@/components/HomePagination';
 import SEOHeader from '@/components/SEOHeader';
 import MoviesWithSections from '@/components/MoviesWithSections';
 import SEOFooter from '@/components/SEOFooter';
+import { toast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 18;
 
@@ -39,6 +40,13 @@ const Index = () => {
       if (!lastDiscovery || now - parseInt(lastDiscovery) > oneHour) {
         autoDiscoveryService.runAutoDiscovery().then(() => {
           localStorage.setItem('lastAutoDiscovery', now.toString());
+          toast({
+            title: "Content Updated",
+            description: "New movies and TV shows have been discovered and added to the database.",
+            className: "notification-success"
+          });
+        }).catch((error) => {
+          console.error('Auto-discovery failed:', error);
         });
       }
     }
@@ -65,6 +73,17 @@ const Index = () => {
   // Handle genre change
   const handleGenreChange = (value: string) => {
     setSelectedGenre(value);
+    // Show notification when genre is selected
+    if (value && value !== 'all') {
+      const genreName = genres.find(g => g.id.toString() === value)?.name;
+      if (genreName) {
+        toast({
+          title: "Genre Filter Applied",
+          description: `Showing ${genreName} content`,
+          className: "notification-success"
+        });
+      }
+    }
   };
 
   // Reset page when search term or genre changes
@@ -73,6 +92,15 @@ const Index = () => {
   }, [debouncedSearchTerm, selectedGenre, contentType]);
 
   const currentMovies = paginatedMovies();
+
+  // Debug logging for genre filtering
+  useEffect(() => {
+    if (selectedGenre && selectedGenre !== 'all') {
+      console.log('Selected genre:', selectedGenre);
+      console.log('Available genres:', genres);
+      console.log('Movies with genres:', allMovies.slice(0, 5).map(m => ({ title: m.title, genres: m.genres })));
+    }
+  }, [selectedGenre, genres, allMovies]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">

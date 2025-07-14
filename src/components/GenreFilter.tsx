@@ -34,7 +34,7 @@ const GenreFilter = ({ genres, selectedGenre, onGenreSelect }: GenreFilterProps)
             onClick={() => onGenreSelect(genre.id)}
             className={`rounded-full transition-all duration-300 text-xs px-2 py-1 h-6 ${
               selectedGenre === genre.id 
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg border-purple-400' 
                 : 'bg-transparent border border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white'
             } ${
               (genre.name === 'Bollywood' || genre.name === 'K-Drama') 
