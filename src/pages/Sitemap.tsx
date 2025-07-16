@@ -24,7 +24,7 @@ const Sitemap = () => {
   useEffect(() => {
     // Generate sitemap XML
     const generateSitemap = () => {
-      const baseUrl = 'https://cinestreambd.onrender.com';
+      const baseUrl = 'https://moviesuggest.xyz';
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>

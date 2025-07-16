@@ -36,6 +36,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
   useEffect(() => {
     if (supabaseData) {
       console.log('Supabase data fetched:', supabaseData.length, 'items');
+      console.log('Sample movie with genres:', supabaseData[0]);
       setSupabaseMovies(supabaseData);
     }
   }, [supabaseData]);
@@ -54,7 +55,12 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       console.log('After TV filter:', filteredMovies.length, 'movies');
     } else if (contentType === 'animation') {
       const animationGenreId = 16;
+      // For animation, if no genre data exists, we'll include all content and let TMDB handle it
       filteredMovies = filteredMovies.filter((movie) => {
+        if (!movie.genres || !Array.isArray(movie.genres) || movie.genres.length === 0) {
+          // If no genre data exists, include it (will be filtered by TMDB later)
+          return true;
+        }
         return movie.genres?.some((g: any) => 
           g.id === animationGenreId || 
           g.tmdb_id === animationGenreId || 
@@ -64,7 +70,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       console.log('After animation filter:', filteredMovies.length, 'movies');
     }
 
-    // Filter by genre - completely rewritten logic
+    // Filter by genre - handle missing genre data gracefully
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -73,42 +79,36 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         const genreInfo = genres.find(g => g.id === genreId);
         console.log('Genre info found:', genreInfo);
         
-        filteredMovies = filteredMovies.filter((movie) => {
-          console.log('Checking movie:', movie.title);
-          console.log('Movie genres:', movie.genres);
-          
-          if (!movie.genres || !Array.isArray(movie.genres)) {
-            console.log('Movie has no genres array:', movie.title);
-            return false;
-          }
-          
-          // Check each genre in the movie's genres array
-          const hasMatchingGenre = movie.genres.some((movieGenre: any) => {
-            console.log('Checking genre:', movieGenre);
+        // If movies don't have genre data, include all movies for now
+        // This is a fallback since the genre relationships seem to be missing
+        const moviesWithGenres = filteredMovies.filter(movie => 
+          movie.genres && Array.isArray(movie.genres) && movie.genres.length > 0
+        );
+        
+        console.log('Movies with genre data:', moviesWithGenres.length);
+        console.log('Movies without genre data:', filteredMovies.length - moviesWithGenres.length);
+        
+        if (moviesWithGenres.length === 0) {
+          // If no movies have genre data, return all movies (genre filtering will happen via TMDB)
+          console.log('No movies have genre data, returning all movies');
+          // Don't filter by genre if there's no genre data
+        } else {
+          // Only filter if we have genre data
+          filteredMovies = filteredMovies.filter((movie) => {
+            if (!movie.genres || !Array.isArray(movie.genres)) {
+              return false;
+            }
             
-            // Try multiple matching strategies
-            const matchById = movieGenre.id && parseInt(movieGenre.id) === genreId;
-            const matchByTmdbId = movieGenre.tmdb_id && movieGenre.tmdb_id === genreId;
-            const matchByName = genreInfo && movieGenre.name && 
-              movieGenre.name.toLowerCase() === genreInfo.name.toLowerCase();
-            
-            const matches = matchById || matchByTmdbId || matchByName;
-            
-            console.log('Genre match result:', {
-              movieGenre,
-              genreId,
-              matchById,
-              matchByTmdbId,
-              matchByName,
-              matches
+            return movie.genres.some((movieGenre: any) => {
+              const matchById = movieGenre.id && parseInt(movieGenre.id) === genreId;
+              const matchByTmdbId = movieGenre.tmdb_id && movieGenre.tmdb_id === genreId;
+              const matchByName = genreInfo && movieGenre.name && 
+                movieGenre.name.toLowerCase() === genreInfo.name.toLowerCase();
+              
+              return matchById || matchByTmdbId || matchByName;
             });
-            
-            return matches;
           });
-          
-          console.log('Movie', movie.title, 'has matching genre:', hasMatchingGenre);
-          return hasMatchingGenre;
-        });
+        }
         
         console.log('After genre filter:', filteredMovies.length, 'movies remain');
       }
@@ -125,15 +125,6 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
     }
 
     console.log('Final filtered movies:', filteredMovies.length);
-    
-    // If we still have no movies and a genre is selected, let's debug what's available
-    if (filteredMovies.length === 0 && selectedGenre && selectedGenre !== 'all') {
-      console.log('No movies found for genre. Debugging...');
-      console.log('All available movies with their genres:');
-      supabaseMovies.slice(0, 5).forEach(movie => {
-        console.log(`${movie.title}:`, movie.genres);
-      });
-    }
     
     return filteredMovies;
   }, [supabaseMovies, selectedGenre, debouncedSearchTerm, genres, contentType]);

@@ -1,447 +1,134 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ContentItem {
-  id: string;
-  title: string;
-  description?: string;
-  content_type: 'movie' | 'series';
-  release_year?: number;
-  poster_url?: string;
-  trailer_url?: string;
-  thumbnail_url?: string;
-  tmdb_id?: number;
-  is_admin_approved: boolean;
-  created_at: string;
-  updated_at: string;
-  cast_members?: CastMember[];
-  genres?: Genre[];
-  streaming_links?: StreamingLink[];
-  episodes?: Episode[];
-  rating?: number;
-  runtime?: number;
-}
-
-export interface CastMember {
-  id: string;
-  name: string;
-  profile_image_url?: string;
-  role?: string;
-  character_name?: string;
-}
-
-export interface Genre {
-  id: string;
-  name: string;
-  tmdb_id?: number;
-}
-
-export interface StreamingLink {
-  id: string;
-  url: string;
-  platform_name?: string;
-  is_active: boolean;
-}
-
-export interface Episode {
-  id: string;
-  season_number: number;
-  episode_number: number;
-  title?: string;
-  description?: string;
-  duration_minutes?: number;
-  air_date?: string;
-}
-
 export const contentService = {
-  // Clear all existing content
-  async clearAllContent(): Promise<boolean> {
+  async getApprovedContent() {
     try {
-      // Delete all content which will cascade delete related records
+      const { data, error } = await supabase
+        .from('content')
+        .select(`
+          *,
+          genres:content_genres(
+            genre:genres(*)
+          ),
+          streaming_links(*),
+          episodes(*)
+        `)
+        .eq('is_admin_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching approved content:', error);
+        throw error;
+      }
+
+      // Transform the data to flatten genres
+      const transformedData = data?.map(item => ({
+        ...item,
+        genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || []
+      })) || [];
+
+      console.log('Fetched content with genres:', transformedData[0]);
+      return transformedData;
+    } catch (error) {
+      console.error('Error in getApprovedContent:', error);
+      throw error;
+    }
+  },
+  async createContent(contentData: any) {
+    try {
+      console.log('Creating content with data:', contentData);
+      
+      const { data, error } = await supabase
+        .from('content')
+        .insert([{
+          title: contentData.title,
+          description: contentData.description,
+          poster_url: contentData.poster_url,
+          content_type: contentData.content_type,
+          release_year: contentData.release_year,
+          tmdb_id: contentData.tmdb_id,
+          is_admin_approved: true,
+          trailer_url: contentData.trailer_url,
+          thumbnail_url: contentData.thumbnail_url || contentData.poster_url
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating content:', error);
+        throw error;
+      }
+
+      console.log('Content created:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in createContent:', error);
+      throw error;
+    }
+  },
+
+  async updateContent(id: string, updates: any) {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating content:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in updateContent:', error);
+      throw error;
+    }
+  },
+
+  async deleteContent(id: string) {
+    try {
       const { error } = await supabase
         .from('content')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .eq('id', id);
 
       if (error) {
-        console.error('Error clearing content:', error);
-        return false;
+        console.error('Error deleting content:', error);
+        throw error;
       }
 
-      console.log('All content cleared successfully');
       return true;
     } catch (error) {
-      console.error('Error clearing content:', error);
-      return false;
+      console.error('Error in deleteContent:', error);
+      throw error;
     }
   },
 
-  // Get all content (including non-approved for admin)
-  async getAllContent(): Promise<ContentItem[]> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links(id, url, platform_name, is_active),
-        episodes(*)
-      `)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching all content:', error);
-      return [];
-    }
-
-    return data?.map(item => ({
-      ...item,
-      cast_members: item.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: item.streaming_links || []
-    })) || [];
-  },
-
-  // Get all approved content
-  async getApprovedContent(): Promise<ContentItem[]> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links(id, url, platform_name, is_active),
-        episodes(*)
-      `)
-      .eq('is_admin_approved', true)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching approved content:', error);
-      return [];
-    }
-
-    return data?.map(item => ({
-      ...item,
-      cast_members: item.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: item.streaming_links || []
-    })) || [];
-  },
-
-  // Get content by type
-  async getContentByType(type: 'movie' | 'series'): Promise<ContentItem[]> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links(id, url, platform_name, is_active),
-        episodes(*)
-      `)
-      .eq('is_admin_approved', true)
-      .eq('content_type', type)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching content by type:', error);
-      return [];
-    }
-
-    return data?.map(item => ({
-      ...item,
-      cast_members: item.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: item.streaming_links || []
-    })) || [];
-  },
-
-  // Search content
-  async searchContent(query: string): Promise<ContentItem[]> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links(id, url, platform_name, is_active),
-        episodes(*)
-      `)
-      .eq('is_admin_approved', true)
-      .ilike('title', `%${query}%`)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error searching content:', error);
-      return [];
-    }
-
-    return data?.map(item => ({
-      ...item,
-      cast_members: item.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: item.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: item.streaming_links || []
-    })) || [];
-  },
-
-  // Get single content item
-  async getContentById(id: string): Promise<ContentItem | null> {
-    const { data, error } = await supabase
-      .from('content')
-      .select(`
-        *,
-        content_cast(
-          role,
-          character_name,
-          cast_members(id, name, profile_image_url)
-        ),
-        content_genres(
-          genres(id, name, tmdb_id)
-        ),
-        streaming_links(id, url, platform_name, is_active),
-        episodes(*)
-      `)
-      .eq('id', id)
-      .eq('is_admin_approved', true)
-      .single();
-
-    if (error) {
-      console.error('Error fetching content by ID:', error);
-      return null;
-    }
-
-    if (!data) return null;
-
-    return {
-      ...data,
-      cast_members: data.content_cast?.map((cc: any) => ({
-        ...cc.cast_members,
-        role: cc.role,
-        character_name: cc.character_name
-      })) || [],
-      genres: data.content_genres?.map((cg: any) => cg.genres) || [],
-      streaming_links: data.streaming_links || []
-    };
-  },
-
-  // Get all genres
-  async getGenres(): Promise<Genre[]> {
-    const { data, error } = await supabase
-      .from('genres')
-      .select('*')
-      .order('name');
-
-    if (error) {
-      console.error('Error fetching genres:', error);
-      return [];
-    }
-
-    return data || [];
-  },
-
-  // Admin functions
-  async addContent(content: Omit<ContentItem, 'id' | 'created_at' | 'updated_at'>): Promise<string | null> {
-    const { data, error } = await supabase
-      .from('content')
-      .insert({
-        title: content.title,
-        description: content.description,
-        content_type: content.content_type,
-        release_year: content.release_year,
-        poster_url: content.poster_url,
-        trailer_url: content.trailer_url,
-        thumbnail_url: content.thumbnail_url,
-        tmdb_id: content.tmdb_id,
-        rating: content.rating,
-        is_admin_approved: true
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('Error adding content:', error);
-      return null;
-    }
-
-    const contentId = data?.id;
-    if (contentId && content.genres?.length) {
-      await this.addGenresToContent(contentId, content.genres);
-    }
-
-    return contentId || null;
-  },
-
-  // Genre management
-  async addGenresToContent(contentId: string, genres: Genre[]): Promise<boolean> {
+  async addStreamingLink(contentId: string, url: string, platformName?: string) {
     try {
-      for (const genre of genres) {
-        // Find or create genre
-        let { data: existingGenre } = await supabase
-          .from('genres')
-          .select('id')
-          .eq('tmdb_id', genre.tmdb_id)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('streaming_links')
+        .insert([{
+          content_id: contentId,
+          url: url,
+          platform_name: platformName,
+          is_active: true
+        }])
+        .select()
+        .single();
 
-        let genreId = existingGenre?.id;
-
-        if (!genreId && genre.tmdb_id) {
-          const { data: newGenre, error: genreError } = await supabase
-            .from('genres')
-            .insert({ 
-              name: genre.name, 
-              tmdb_id: genre.tmdb_id 
-            })
-            .select('id')
-            .single();
-
-          if (genreError) {
-            console.error('Error creating genre:', genreError);
-            continue;
-          }
-          genreId = newGenre?.id;
-        }
-
-        if (genreId) {
-          await supabase
-            .from('content_genres')
-            .insert({
-              content_id: contentId,
-              genre_id: genreId
-            });
-        }
+      if (error) {
+        console.error('Error adding streaming link:', error);
+        throw error;
       }
-      return true;
+
+      return data;
     } catch (error) {
-      console.error('Error adding genres to content:', error);
-      return false;
+      console.error('Error in addStreamingLink:', error);
+      throw error;
     }
-  },
-
-  async updateContent(id: string, updates: Partial<ContentItem>): Promise<boolean> {
-    const { error } = await supabase
-      .from('content')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating content:', error);
-      return false;
-    }
-
-    return true;
-  },
-
-  async deleteContent(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('content')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting content:', error);
-      return false;
-    }
-
-    return true;
-  },
-
-  // Cast management
-  async addCastToContent(contentId: string, castMembers: { name: string; role?: string; character_name?: string }[]): Promise<boolean> {
-    try {
-      for (const cast of castMembers) {
-        let { data: existingCast } = await supabase
-          .from('cast_members')
-          .select('id')
-          .eq('name', cast.name)
-          .single();
-
-        let castMemberId = existingCast?.id;
-
-        if (!castMemberId) {
-          const { data: newCast, error: castError } = await supabase
-            .from('cast_members')
-            .insert({ name: cast.name })
-            .select('id')
-            .single();
-
-          if (castError) throw castError;
-          castMemberId = newCast?.id;
-        }
-
-        if (castMemberId) {
-          await supabase
-            .from('content_cast')
-            .insert({
-              content_id: contentId,
-              cast_member_id: castMemberId,
-              role: cast.role,
-              character_name: cast.character_name
-            });
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error('Error adding cast to content:', error);
-      return false;
-    }
-  },
-
-  // Streaming links management
-  async addStreamingLink(contentId: string, url: string, platformName?: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('streaming_links')
-      .insert({
-        content_id: contentId,
-        url,
-        platform_name: platformName,
-        is_active: true
-      });
-
-    if (error) {
-      console.error('Error adding streaming link:', error);
-      return false;
-    }
-
-    return true;
   }
 };
