@@ -6,37 +6,37 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
-    <loc>https://cinestreambd.onrender.com/</loc>
+    <loc>https://moviesuggest.xyz/</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://cinestreambd.onrender.com/admin/login</loc>
+    <loc>https://moviesuggest.xyz/admin/login</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://cinestreambd.onrender.com/movie/bd29e5a9-5a8a-4996-bb43-9c9bee02814d</loc>
+    <loc>https://moviesuggest.xyz/movie/bd29e5a9-5a8a-4996-bb43-9c9bee02814d</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://cinestreambd.onrender.com/watch/bd29e5a9-5a8a-4996-bb43-9c9bee02814d</loc>
+    <loc>https:///moviesuggest.xyz/watch/bd29e5a9-5a8a-4996-bb43-9c9bee02814d</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://cinestreambd.onrender.com/movie/773856a6-5f67-44bf-833f-98d4227e1214</loc>
+    <loc>https://moviesuggest.xyz/movie/773856a6-5f67-44bf-833f-98d4227e1214</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://cinestreambd.onrender.com/watch/773856a6-5f67-44bf-833f-98d4227e1214</loc>
+    <loc>https://moviesuggest.xyz/watch/773856a6-5f67-44bf-833f-98d4227e1214</loc>
     <lastmod>2025-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
