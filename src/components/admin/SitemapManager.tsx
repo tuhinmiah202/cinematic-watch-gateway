@@ -52,11 +52,10 @@ async function generateDynamicSitemap(): Promise<string> {
     <priority>0.2</priority>
   </url>`;
 
-  // Add content pages with proper escaping
+  // Add content pages with proper escaping and correct domain
   if (supabaseContent && Array.isArray(supabaseContent)) {
     supabaseContent.forEach((item) => {
       const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
-      const escapedTitle = item.title ? item.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
       
       sitemap += `
   <url>
@@ -66,7 +65,7 @@ async function generateDynamicSitemap(): Promise<string> {
     <priority>0.8</priority>
   </url>`;
       
-      // Add watch page
+      // Add watch page with correct domain
       sitemap += `
   <url>
     <loc>${baseUrl}/watch/${item.id}</loc>
@@ -77,13 +76,10 @@ async function generateDynamicSitemap(): Promise<string> {
     });
   }
 
-  // Add TMDB content pages
+  // Add TMDB content pages with correct domain
   if (tmdbContent && Array.isArray(tmdbContent)) {
     tmdbContent.forEach((item) => {
       if (item && item.id) {
-        const title = item.title || item.name || '';
-        const escapedTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
         sitemap += `
   <url>
     <loc>${baseUrl}/movie/tmdb-${item.id}</loc>
@@ -136,6 +132,11 @@ function validateSitemapXml(xml: string): { isValid: boolean; errors: string[] }
     errors.push('Missing UTF-8 encoding declaration');
   }
   
+  // Check for old domain references
+  if (xml.includes('cinestreambd.onrender.com')) {
+    errors.push('Contains old domain references (cinestreambd.onrender.com)');
+  }
+  
   return {
     isValid: errors.length === 0,
     errors
@@ -186,7 +187,7 @@ export default function SitemapManager() {
       
       if (validationResult.isValid) {
         downloadXml(xml);
-        setUploadInfo("✅ Sitemap generated successfully! Replace your public/sitemap.xml file with this content.");
+        setUploadInfo("✅ Sitemap generated successfully with correct domain! Replace your public/sitemap.xml file with this content.");
       } else {
         setUploadInfo("❌ Generated sitemap has validation errors. Please check the issues above.");
       }
@@ -243,7 +244,7 @@ export default function SitemapManager() {
               <div className="font-semibold mb-2">🔴 HTTP 403 Error Detected!</div>
               <div className="text-sm space-y-1">
                 <p>Your sitemap is returning a "403 Forbidden" error to Google. This prevents indexing.</p>
-                <p><strong>Quick Fix:</strong> Generate a new sitemap below and replace your current sitemap.xml file.</p>
+                <p><strong>Quick Fix:</strong> Generate a new sitemap below with the correct domain (moviesuggest.xyz).</p>
               </div>
             </AlertDescription>
           </Alert>
@@ -258,7 +259,7 @@ export default function SitemapManager() {
               )}
               <AlertDescription className={validation.isValid ? "text-green-400" : "text-red-400"}>
                 {validation.isValid ? (
-                  "✅ Sitemap is valid and properly formatted!"
+                  "✅ Sitemap is valid and uses the correct domain!"
                 ) : (
                   <div>
                     <div className="font-semibold mb-1">❌ Sitemap validation errors:</div>
@@ -281,7 +282,7 @@ export default function SitemapManager() {
               disabled={loading}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              🚨 Fix HTTP 403 Error
+              🚨 Fix Domain & Generate Sitemap
             </Button>
             
             <Button

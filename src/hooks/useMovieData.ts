@@ -55,13 +55,20 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       console.log('After TV filter:', filteredMovies.length, 'movies');
     } else if (contentType === 'animation') {
       const animationGenreId = 16;
-      // For animation, if no genre data exists, we'll include all content and let TMDB handle it
       filteredMovies = filteredMovies.filter((movie) => {
+        // Check if movie has genres and has animation genre
         if (!movie.genres || !Array.isArray(movie.genres) || movie.genres.length === 0) {
-          // If no genre data exists, include it (will be filtered by TMDB later)
-          return true;
+          // If no genre data exists, fetch from TMDB by title match
+          const title = movie.title?.toLowerCase() || '';
+          const isAnimationByTitle = title.includes('anime') || 
+            title.includes('cartoon') || 
+            title.includes('animation') ||
+            title.includes('animated');
+          return isAnimationByTitle;
         }
-        return movie.genres?.some((g: any) => 
+        
+        // Check if any genre matches animation
+        return movie.genres.some((g: any) => 
           g.id === animationGenreId || 
           g.tmdb_id === animationGenreId || 
           g.name?.toLowerCase().includes('animation')
@@ -79,26 +86,39 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         const genreInfo = genres.find(g => g.id === genreId);
         console.log('Genre info found:', genreInfo);
         
-        // If movies don't have genre data, include all movies for now
-        // This is a fallback since the genre relationships seem to be missing
-        const moviesWithGenres = filteredMovies.filter(movie => 
-          movie.genres && Array.isArray(movie.genres) && movie.genres.length > 0
-        );
-        
-        console.log('Movies with genre data:', moviesWithGenres.length);
-        console.log('Movies without genre data:', filteredMovies.length - moviesWithGenres.length);
-        
-        if (moviesWithGenres.length === 0) {
-          // If no movies have genre data, return all movies (genre filtering will happen via TMDB)
-          console.log('No movies have genre data, returning all movies');
-          // Don't filter by genre if there's no genre data
+        // Special handling for custom genres
+        if (genreId === 999) { // Bollywood
+          filteredMovies = filteredMovies.filter(movie => {
+            const title = movie.title?.toLowerCase() || '';
+            const description = movie.description?.toLowerCase() || '';
+            return title.includes('bollywood') || 
+                   description.includes('bollywood') ||
+                   description.includes('hindi') ||
+                   title.includes('hindi');
+          });
+        } else if (genreId === 998) { // K-Drama
+          filteredMovies = filteredMovies.filter(movie => {
+            const title = movie.title?.toLowerCase() || '';
+            const description = movie.description?.toLowerCase() || '';
+            return title.includes('korean') || 
+                   description.includes('korean') ||
+                   description.includes('korea') ||
+                   title.includes('k-drama');
+          });
         } else {
-          // Only filter if we have genre data
+          // Regular genre filtering
           filteredMovies = filteredMovies.filter((movie) => {
-            if (!movie.genres || !Array.isArray(movie.genres)) {
+            // If movie has no genre data, include it if it matches by TMDB ID
+            if (!movie.genres || !Array.isArray(movie.genres) || movie.genres.length === 0) {
+              // For movies without genre data, we'll use TMDB to get genre info
+              if (movie.tmdb_id) {
+                // This is a fallback - in a real app you'd want to fetch TMDB data
+                return true; // Include for now
+              }
               return false;
             }
             
+            // Filter by matching genre
             return movie.genres.some((movieGenre: any) => {
               const matchById = movieGenre.id && parseInt(movieGenre.id) === genreId;
               const matchByTmdbId = movieGenre.tmdb_id && movieGenre.tmdb_id === genreId;

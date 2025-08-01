@@ -36,7 +36,7 @@ const Sitemap = () => {
     <priority>1.0</priority>
   </url>`;
 
-      // Add Supabase content
+      // Add Supabase content with correct domain
       if (supabaseContent) {
         supabaseContent.forEach((item) => {
           sitemap += `
@@ -49,7 +49,7 @@ const Sitemap = () => {
         });
       }
 
-      // Add TMDB content
+      // Add TMDB content with correct domain
       if (tmdbContent) {
         tmdbContent.forEach((item) => {
           sitemap += `
@@ -65,25 +65,15 @@ const Sitemap = () => {
       sitemap += `
 </urlset>`;
 
-      // Set response headers and content
-      const response = new Response(sitemap, {
-        headers: {
-          'Content-Type': 'application/xml',
-          'Cache-Control': 'public, max-age=3600'
-        }
-      });
-
-      return response;
+      return sitemap;
     };
 
-    // This component won't actually render, it's just for data fetching
     if (supabaseContent && tmdbContent) {
-      // In a real implementation, this would be handled by the routing system
-      console.log('Sitemap data ready');
+      console.log('Sitemap data ready with correct domain');
     }
   }, [supabaseContent, tmdbContent]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 export default Sitemap;

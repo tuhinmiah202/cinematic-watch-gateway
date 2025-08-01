@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export const contentService = {
@@ -34,6 +35,41 @@ export const contentService = {
       throw error;
     }
   },
+
+  async getContentById(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select(`
+          *,
+          genres:content_genres(
+            genre:genres(*)
+          ),
+          streaming_links(*),
+          episodes(*)
+        `)
+        .eq('id', id)
+        .eq('is_admin_approved', true)
+        .single();
+
+      if (error) {
+        console.error('Error fetching content by ID:', error);
+        throw error;
+      }
+
+      // Transform the data to flatten genres
+      const transformedData = {
+        ...data,
+        genres: data.genres?.map((g: any) => g.genre).filter(Boolean) || []
+      };
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error in getContentById:', error);
+      throw error;
+    }
+  },
+
   async createContent(contentData: any) {
     try {
       console.log('Creating content with data:', contentData);
