@@ -1,8 +1,27 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+export interface ContentItem {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  content_type: 'movie' | 'series';
+  release_year: number | null;
+  tmdb_id: number | null;
+  is_admin_approved: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  trailer_url: string | null;
+  thumbnail_url: string | null;
+  rating?: number;
+  genres: any[];
+  streaming_links: any[];
+  episodes: any[];
+}
+
 export const contentService = {
-  async getApprovedContent() {
+  async getApprovedContent(): Promise<ContentItem[]> {
     try {
       const { data, error } = await supabase
         .from('content')
@@ -36,7 +55,39 @@ export const contentService = {
     }
   },
 
-  async getContentById(id: string) {
+  async getAllContent(): Promise<ContentItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select(`
+          *,
+          genres:content_genres(
+            genre:genres(*)
+          ),
+          streaming_links(*),
+          episodes(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all content:', error);
+        throw error;
+      }
+
+      // Transform the data to flatten genres
+      const transformedData = data?.map(item => ({
+        ...item,
+        genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || []
+      })) || [];
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error in getAllContent:', error);
+      throw error;
+    }
+  },
+
+  async getContentById(id: string): Promise<ContentItem> {
     try {
       const { data, error } = await supabase
         .from('content')
@@ -103,6 +154,10 @@ export const contentService = {
     }
   },
 
+  async addContent(contentData: any) {
+    return this.createContent(contentData);
+  },
+
   async updateContent(id: string, updates: any) {
     try {
       const { data, error } = await supabase
@@ -164,6 +219,17 @@ export const contentService = {
       return data;
     } catch (error) {
       console.error('Error in addStreamingLink:', error);
+      throw error;
+    }
+  },
+
+  async addCastToContent(contentId: string, castData: any) {
+    try {
+      // This is a placeholder function - implement based on your cast table structure
+      console.log('Adding cast to content:', contentId, castData);
+      return true;
+    } catch (error) {
+      console.error('Error in addCastToContent:', error);
       throw error;
     }
   }

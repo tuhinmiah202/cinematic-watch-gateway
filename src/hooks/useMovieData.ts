@@ -58,12 +58,17 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       filteredMovies = filteredMovies.filter((movie) => {
         // Check if movie has genres and has animation genre
         if (!movie.genres || !Array.isArray(movie.genres) || movie.genres.length === 0) {
-          // If no genre data exists, fetch from TMDB by title match
+          // If no genre data exists, check title/description for animation keywords
           const title = movie.title?.toLowerCase() || '';
+          const description = movie.description?.toLowerCase() || '';
           const isAnimationByTitle = title.includes('anime') || 
             title.includes('cartoon') || 
             title.includes('animation') ||
-            title.includes('animated');
+            title.includes('animated') ||
+            description.includes('anime') ||
+            description.includes('cartoon') ||
+            description.includes('animation') ||
+            description.includes('animated');
           return isAnimationByTitle;
         }
         
@@ -77,7 +82,7 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       console.log('After animation filter:', filteredMovies.length, 'movies');
     }
 
-    // Filter by genre - handle missing genre data gracefully
+    // Filter by genre - this is where we fix the main issue
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
       console.log('Filtering by genre ID:', genreId);
@@ -106,31 +111,96 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
                    title.includes('k-drama');
           });
         } else {
-          // Regular genre filtering
+          // For regular TMDB genres, since most movies don't have genre data,
+          // let's use TMDB API to get genre info for the movies
+          const beforeFilterCount = filteredMovies.length;
           filteredMovies = filteredMovies.filter((movie) => {
-            // If movie has no genre data, include it if it matches by TMDB ID
-            if (!movie.genres || !Array.isArray(movie.genres) || movie.genres.length === 0) {
-              // For movies without genre data, we'll use TMDB to get genre info
-              if (movie.tmdb_id) {
-                // This is a fallback - in a real app you'd want to fetch TMDB data
-                return true; // Include for now
-              }
-              return false;
+            // If movie has genre data, use it
+            if (movie.genres && Array.isArray(movie.genres) && movie.genres.length > 0) {
+              return movie.genres.some((movieGenre: any) => {
+                const matchById = movieGenre.id && parseInt(movieGenre.id) === genreId;
+                const matchByTmdbId = movieGenre.tmdb_id && movieGenre.tmdb_id === genreId;
+                const matchByName = genreInfo && movieGenre.name && 
+                  movieGenre.name.toLowerCase() === genreInfo.name.toLowerCase();
+                
+                return matchById || matchByTmdbId || matchByName;
+              });
             }
             
-            // Filter by matching genre
-            return movie.genres.some((movieGenre: any) => {
-              const matchById = movieGenre.id && parseInt(movieGenre.id) === genreId;
-              const matchByTmdbId = movieGenre.tmdb_id && movieGenre.tmdb_id === genreId;
-              const matchByName = genreInfo && movieGenre.name && 
-                movieGenre.name.toLowerCase() === genreInfo.name.toLowerCase();
+            // If no genre data but we have TMDB ID, we could fetch it
+            // For now, let's do keyword matching based on genre names
+            if (genreInfo) {
+              const title = movie.title?.toLowerCase() || '';
+              const description = movie.description?.toLowerCase() || '';
+              const genreName = genreInfo.name.toLowerCase();
               
-              return matchById || matchByTmdbId || matchByName;
-            });
+              // Simple keyword matching for some common genres
+              switch (genreName) {
+                case 'action':
+                  return title.includes('action') || description.includes('action') || 
+                         description.includes('fight') || description.includes('battle');
+                case 'comedy':
+                  return title.includes('comedy') || description.includes('comedy') || 
+                         description.includes('funny') || description.includes('humor');
+                case 'horror':
+                  return title.includes('horror') || description.includes('horror') || 
+                         description.includes('scary') || description.includes('ghost');
+                case 'romance':
+                  return title.includes('romance') || description.includes('romance') || 
+                         description.includes('love') || title.includes('love');
+                case 'drama':
+                  return title.includes('drama') || description.includes('drama');
+                case 'thriller':
+                  return title.includes('thriller') || description.includes('thriller') || 
+                         description.includes('suspense');
+                case 'crime':
+                  return title.includes('crime') || description.includes('crime') || 
+                         description.includes('police') || description.includes('detective');
+                case 'adventure':
+                  return title.includes('adventure') || description.includes('adventure') || 
+                         description.includes('journey');
+                case 'fantasy':
+                  return title.includes('fantasy') || description.includes('fantasy') || 
+                         description.includes('magic') || description.includes('magical');
+                case 'science fiction':
+                  return title.includes('sci-fi') || description.includes('sci-fi') || 
+                         description.includes('science fiction') || description.includes('space') ||
+                         description.includes('future');
+                case 'documentary':
+                  return title.includes('documentary') || description.includes('documentary') ||
+                         movie.content_type === 'documentary';
+                case 'animation':
+                  return title.includes('animation') || description.includes('animation') ||
+                         title.includes('animated') || description.includes('animated');
+                case 'family':
+                  return title.includes('family') || description.includes('family') ||
+                         description.includes('children') || description.includes('kids');
+                case 'music':
+                  return title.includes('music') || description.includes('music') ||
+                         description.includes('musical') || description.includes('singer');
+                case 'mystery':
+                  return title.includes('mystery') || description.includes('mystery') ||
+                         description.includes('detective') || description.includes('investigation');
+                case 'war':
+                  return title.includes('war') || description.includes('war') ||
+                         description.includes('battle') || description.includes('military');
+                case 'western':
+                  return title.includes('western') || description.includes('western') ||
+                         description.includes('cowboy') || description.includes('wild west');
+                case 'history':
+                  return title.includes('history') || description.includes('history') ||
+                         description.includes('historical') || description.includes('period');
+                default:
+                  // For other genres, return false so they're filtered out
+                  return false;
+              }
+            }
+            
+            return false;
           });
+          
+          console.log(`After ${genreInfo?.name || 'unknown'} genre filter: ${filteredMovies.length} movies (was ${beforeFilterCount})`);
         }
-        
-        console.log('After genre filter:', filteredMovies.length, 'movies remain');
       }
     }
 

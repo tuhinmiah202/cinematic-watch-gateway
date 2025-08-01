@@ -32,22 +32,43 @@ export const useHomeSections = () => {
       })
       .slice(0, 20);
 
-    // Get greatest movies (8+ rating)
+    // Get greatest movies (fallback to release_year for sorting if no rating)
     processedSections.greatestMovies = allContent
-      .filter(item => item.content_type === 'movie' && (item.rating || 0) >= 8.0)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .filter(item => item.content_type === 'movie')
+      .sort((a, b) => {
+        const ratingA = (a as any).rating || 0;
+        const ratingB = (b as any).rating || 0;
+        if (ratingA === ratingB) {
+          return (b.release_year || 0) - (a.release_year || 0);
+        }
+        return ratingB - ratingA;
+      })
       .slice(0, 15);
 
-    // Get highest rated movies (7+ rating)
+    // Get highest rated movies (fallback to release_year for sorting if no rating)
     processedSections.highestRatedMovies = allContent
-      .filter(item => item.content_type === 'movie' && (item.rating || 0) >= 7.0)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .filter(item => item.content_type === 'movie')
+      .sort((a, b) => {
+        const ratingA = (a as any).rating || 0;
+        const ratingB = (b as any).rating || 0;
+        if (ratingA === ratingB) {
+          return (b.release_year || 0) - (a.release_year || 0);
+        }
+        return ratingB - ratingA;
+      })
       .slice(0, 15);
 
-    // Get highest rated series (7+ rating)
+    // Get highest rated series (fallback to release_year for sorting if no rating)
     processedSections.highestRatedSeries = allContent
-      .filter(item => item.content_type === 'series' && (item.rating || 0) >= 7.0)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .filter(item => item.content_type === 'series')
+      .sort((a, b) => {
+        const ratingA = (a as any).rating || 0;
+        const ratingB = (b as any).rating || 0;
+        if (ratingA === ratingB) {
+          return (b.release_year || 0) - (a.release_year || 0);
+        }
+        return ratingB - ratingA;
+      })
       .slice(0, 15);
   }
 

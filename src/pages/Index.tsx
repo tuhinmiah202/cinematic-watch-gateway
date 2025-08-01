@@ -40,11 +40,14 @@ const Index = () => {
       if (!lastDiscovery || now - parseInt(lastDiscovery) > oneHour) {
         autoDiscoveryService.runAutoDiscovery().then(() => {
           localStorage.setItem('lastAutoDiscovery', now.toString());
-          toast({
-            title: "Content Updated",
-            description: "New movies and TV shows have been discovered and added to the database.",
-            className: "notification-success"
-          });
+          // Only show toast for actual auto-discovery, not for genre changes
+          if (!selectedGenre) {
+            toast({
+              title: "Content Updated",
+              description: "New movies and TV shows have been discovered and added to the database.",
+              className: "notification-success"
+            });
+          }
         }).catch((error) => {
           console.error('Auto-discovery failed:', error);
         });
@@ -70,7 +73,7 @@ const Index = () => {
     setSearchTerm(term);
   };
 
-  // Handle genre change - removed the notification toast
+  // Handle genre change - no notification toast
   const handleGenreChange = (value: string) => {
     setSelectedGenre(value);
     console.log('Genre changed to:', value);

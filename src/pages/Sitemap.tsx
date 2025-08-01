@@ -13,16 +13,21 @@ const Sitemap = () => {
   const { data: tmdbContent } = useQuery({
     queryKey: ['tmdb-popular-sitemap'],
     queryFn: async () => {
-      const [movies, tvShows] = await Promise.all([
-        tmdbService.getPopularMovies(),
-        tmdbService.getPopularTVShows()
-      ]);
-      return [...movies.results, ...tvShows.results];
+      try {
+        const [movies, tvShows] = await Promise.all([
+          tmdbService.getPopularMovies(),
+          tmdbService.getPopularTVShows()
+        ]);
+        return [...movies.results, ...tvShows.results];
+      } catch (error) {
+        console.error('Error fetching TMDB content:', error);
+        return [];
+      }
     }
   });
 
   useEffect(() => {
-    // Generate sitemap XML
+    // Generate sitemap XML with proper structure
     const generateSitemap = () => {
       const baseUrl = 'https://moviesuggest.xyz';
       const currentDate = new Date().toISOString().split('T')[0];
@@ -36,29 +41,32 @@ const Sitemap = () => {
     <priority>1.0</priority>
   </url>`;
 
-      // Add Supabase content with correct domain
-      if (supabaseContent) {
+      // Add Supabase content with proper escaping
+      if (supabaseContent && Array.isArray(supabaseContent)) {
         supabaseContent.forEach((item) => {
+          const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
           sitemap += `
   <url>
     <loc>${baseUrl}/movie/${item.id}</loc>
-    <lastmod>${item.updated_at.split('T')[0]}</lastmod>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
         });
       }
 
-      // Add TMDB content with correct domain
-      if (tmdbContent) {
+      // Add TMDB content
+      if (tmdbContent && Array.isArray(tmdbContent)) {
         tmdbContent.forEach((item) => {
-          sitemap += `
+          if (item && item.id) {
+            sitemap += `
   <url>
     <loc>${baseUrl}/movie/${item.id}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
+          }
         });
       }
 
@@ -68,8 +76,8 @@ const Sitemap = () => {
       return sitemap;
     };
 
-    if (supabaseContent && tmdbContent) {
-      console.log('Sitemap data ready with correct domain');
+    if (supabaseContent || tmdbContent) {
+      console.log('Sitemap data ready with moviesuggest.xyz domain');
     }
   }, [supabaseContent, tmdbContent]);
 
