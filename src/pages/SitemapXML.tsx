@@ -34,7 +34,7 @@ const SitemapXML = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${currentDate}</lastmod>
@@ -42,13 +42,19 @@ const SitemapXML = () => {
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>${baseUrl}/admin/login</loc>
+    <loc>${baseUrl}/about</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.2</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/privacy</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>`;
 
-      // Add Supabase content if available
+      // Add Supabase content
       if (supabaseContent && Array.isArray(supabaseContent)) {
         supabaseContent.forEach((item) => {
           const lastmod = item.updated_at ? item.updated_at.split('T')[0] : currentDate;
@@ -70,7 +76,7 @@ const SitemapXML = () => {
         });
       }
 
-      // Add TMDB content if available
+      // Add TMDB content
       if (tmdbContent && Array.isArray(tmdbContent)) {
         tmdbContent.forEach((item) => {
           if (item && item.id) {
@@ -88,46 +94,23 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set proper content type header
-      if (document.head) {
-        const existingMeta = document.querySelector('meta[http-equiv="Content-Type"]');
-        if (existingMeta) {
-          existingMeta.remove();
-        }
+      // Set response headers properly
+      if (typeof window !== 'undefined') {
+        // Clear the document
+        document.open();
+        document.write(sitemap);
+        document.close();
         
-        const metaTag = document.createElement('meta');
-        metaTag.setAttribute('http-equiv', 'Content-Type');
-        metaTag.setAttribute('content', 'application/xml; charset=UTF-8');
-        document.head.appendChild(metaTag);
+        // Set the content type
+        document.contentType = 'application/xml';
+        
+        // Override the document title
+        document.title = 'Sitemap';
       }
-
-      // Clear body and display XML
-      if (document.body) {
-        document.body.innerHTML = '';
-        document.body.style.cssText = 'font-family: monospace; white-space: pre; margin: 0; padding: 0; background: white; color: #333;';
-        document.body.textContent = sitemap;
-      }
-
-      // Set document title
-      document.title = 'Sitemap';
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
-  if (isLoadingSupabase || isLoadingTmdb) {
-    return (
-      <div style={{ 
-        fontFamily: 'monospace', 
-        padding: '20px',
-        backgroundColor: 'white',
-        color: '#333',
-        minHeight: '100vh'
-      }}>
-        <h1>Generating sitemap...</h1>
-        <p>Please wait while we fetch the latest content.</p>
-      </div>
-    );
-  }
-
+  // Return null for server-side rendering
   return null;
 };
 
