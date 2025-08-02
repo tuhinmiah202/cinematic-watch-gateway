@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Navbar } from "./components/Navbar";
-import { SEOFooter } from "./components/SEOFooter";
+import Navbar from "./components/Navbar";
+import SEOFooter from "./components/SEOFooter";
 import Index from "./pages/Index";
 import MovieDetail from "./pages/MovieDetail";
 import WatchMovie from "./pages/WatchMovie";
@@ -42,7 +42,7 @@ const App = () => {
                 path="*"
                 element={
                   <>
-                    <Navbar />
+                    <Navbar onSearch={() => {}} />
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/movie/:id" element={<MovieDetail />} />

@@ -46,6 +46,75 @@ export const adminService = {
     }
   },
 
+  async getAllContent(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select('*')
+        .eq('is_admin_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all content:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAllContent:', error);
+      throw error;
+    }
+  },
+
+  async addFromTMDB(tmdbData: any): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('content')
+        .insert([{
+          title: tmdbData.title || tmdbData.name,
+          description: tmdbData.overview,
+          poster_url: tmdbData.poster_path,
+          content_type: tmdbData.media_type === 'tv' ? 'series' : 'movie',
+          release_year: new Date(tmdbData.release_date || tmdbData.first_air_date || '2024-01-01').getFullYear(),
+          tmdb_id: tmdbData.id,
+          trailer_url: '',
+          thumbnail_url: tmdbData.poster_path,
+          is_admin_approved: true
+        }]);
+
+      if (error) {
+        console.error('Error adding from TMDB:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in addFromTMDB:', error);
+      return false;
+    }
+  },
+
+  async addCustomContent(contentData: any): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('content')
+        .insert([{
+          ...contentData,
+          is_admin_approved: true
+        }]);
+
+      if (error) {
+        console.error('Error adding custom content:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in addCustomContent:', error);
+      return false;
+    }
+  },
+
   async approveSubmission(id: string): Promise<boolean> {
     try {
       const { error } = await supabase

@@ -93,9 +93,6 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set proper content type and headers for XML
-      document.contentType = 'application/xml';
-      
       // Clear existing content and display XML
       document.body.innerHTML = '';
       document.body.style.cssText = 'font-family: monospace; white-space: pre-wrap; margin: 0; padding: 0; background: white;';
