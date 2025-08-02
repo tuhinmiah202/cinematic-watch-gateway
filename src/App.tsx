@@ -38,6 +38,10 @@ const App = () => {
             <Routes>
               <Route path="/sitemap-xml" element={<SitemapXML />} />
               <Route path="/sitemap" element={<Sitemap />} />
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/manage" element={<AdminManage />} />
               <Route
                 path="*"
                 element={
@@ -47,9 +51,6 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/movie/:id" element={<MovieDetail />} />
                       <Route path="/watch/:id" element={<WatchMovie />} />
-                      <Route path="/admin/login" element={<AdminLogin />} />
-                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                      <Route path="/admin/manage" element={<AdminManage />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="*" element={<NotFound />} />
