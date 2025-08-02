@@ -34,12 +34,7 @@ const SitemapXML = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${currentDate}</lastmod>
@@ -93,35 +88,28 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Clear existing content and display XML
-      document.body.innerHTML = '';
-      document.body.style.cssText = 'font-family: monospace; white-space: pre-wrap; margin: 0; padding: 0; background: white;';
-      
-      // Create proper XML display
-      const pre = document.createElement('pre');
-      pre.textContent = sitemap;
-      pre.style.cssText = 'margin: 0; font-size: 12px; line-height: 1.4; color: #333;';
-      document.body.appendChild(pre);
-      
-      // Set proper document title and meta tags
-      document.title = 'Sitemap - MovieSuggest';
-      
-      // Remove existing meta tags and add proper ones
-      const existingMeta = document.querySelector('meta[http-equiv="Content-Type"]');
-      if (existingMeta) {
-        existingMeta.remove();
+      // Set proper content type header
+      if (document.head) {
+        const existingMeta = document.querySelector('meta[http-equiv="Content-Type"]');
+        if (existingMeta) {
+          existingMeta.remove();
+        }
+        
+        const metaTag = document.createElement('meta');
+        metaTag.setAttribute('http-equiv', 'Content-Type');
+        metaTag.setAttribute('content', 'application/xml; charset=UTF-8');
+        document.head.appendChild(metaTag);
       }
-      
-      const metaTag = document.createElement('meta');
-      metaTag.setAttribute('http-equiv', 'Content-Type');
-      metaTag.setAttribute('content', 'application/xml; charset=UTF-8');
-      document.head.appendChild(metaTag);
 
-      // Add cache control meta tag
-      const cacheMetaTag = document.createElement('meta');
-      cacheMetaTag.setAttribute('http-equiv', 'Cache-Control');
-      cacheMetaTag.setAttribute('content', 'public, max-age=3600');
-      document.head.appendChild(cacheMetaTag);
+      // Clear body and display XML
+      if (document.body) {
+        document.body.innerHTML = '';
+        document.body.style.cssText = 'font-family: monospace; white-space: pre; margin: 0; padding: 0; background: white; color: #333;';
+        document.body.textContent = sitemap;
+      }
+
+      // Set document title
+      document.title = 'Sitemap';
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
