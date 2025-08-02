@@ -1,6 +1,4 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import Navbar from '@/components/Navbar';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useMovieData } from '@/hooks/useMovieData';
 import { useHomeSections } from '@/hooks/useHomeSections';
@@ -101,8 +99,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
-      <Navbar onSearch={handleSearch} />
-      
       <div className="container mx-auto px-4 pt-6">
         <SEOHeader 
           selectedGenre={selectedGenre}

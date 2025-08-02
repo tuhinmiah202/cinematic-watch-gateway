@@ -23,8 +23,8 @@ const Navbar = ({ onSearch }: NavbarProps) => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo - Website name on the left */}
-          <Link to="/" className="text-xl font-bold">
-            <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg">
+          <Link to="/" className="text-xl font-bold flex-shrink-0">
+            <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg whitespace-nowrap">
               Movie Suggestion
             </span>
           </Link>
@@ -47,7 +47,7 @@ const Navbar = ({ onSearch }: NavbarProps) => {
           </form>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4 flex-shrink-0">
             <Link to="/" className="text-white hover:text-purple-400 transition-colors font-medium">
               Home
             </Link>
@@ -66,7 +66,7 @@ const Navbar = ({ onSearch }: NavbarProps) => {
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden text-white hover:bg-purple-600/20"
+            className="md:hidden text-white hover:bg-purple-600/20 flex-shrink-0"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
