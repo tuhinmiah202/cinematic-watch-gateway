@@ -7,6 +7,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/sitemap-xml"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -17,11 +21,40 @@
       "headers": [
         {
           "key": "Content-Type",
-          "value": "application/xml; charset=utf-8"
+          "value": "application/xml; charset=UTF-8"
         },
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600, s-maxage=86400"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap-xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=UTF-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
         }
       ]
     },
