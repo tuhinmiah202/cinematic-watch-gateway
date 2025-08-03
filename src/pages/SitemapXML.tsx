@@ -34,7 +34,12 @@ const SitemapXML = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${currentDate}</lastmod>
@@ -94,23 +99,39 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set response headers properly
+      // Set proper response headers and content
       if (typeof window !== 'undefined') {
-        // Clear the document
-        document.open();
+        // Create a blob with the sitemap content
+        const blob = new Blob([sitemap], { type: 'application/xml; charset=UTF-8' });
+        const url = URL.createObjectURL(blob);
+        
+        // Replace the entire document with the sitemap
+        document.open('application/xml', 'replace');
         document.write(sitemap);
         document.close();
         
-        // Set the content type
-        document.contentType = 'application/xml';
-        
-        // Override the document title
-        document.title = 'Sitemap';
+        // Clean up
+        URL.revokeObjectURL(url);
       }
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
-  // Return null for server-side rendering
+  // Show loading state while generating sitemap
+  if (isLoadingSupabase || isLoadingTmdb) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'Arial, sans-serif',
+        color: '#333'
+      }}>
+        Generating sitemap...
+      </div>
+    );
+  }
+
   return null;
 };
 
