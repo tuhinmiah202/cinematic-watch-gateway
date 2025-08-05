@@ -34,12 +34,7 @@ const SitemapXML = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${currentDate}</lastmod>
@@ -99,37 +94,27 @@ const SitemapXML = () => {
       sitemap += `
 </urlset>`;
 
-      // Set proper response headers and content
-      if (typeof window !== 'undefined') {
-        // Create a blob with the sitemap content
-        const blob = new Blob([sitemap], { type: 'application/xml; charset=UTF-8' });
-        const url = URL.createObjectURL(blob);
-        
-        // Replace the entire document with the sitemap
+      // Return the sitemap as plain text response
+      const response = new Response(sitemap, {
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600',
+          'X-Robots-Tag': 'all'
+        }
+      });
+
+      // For client-side, we need to replace the document content
+      if (typeof document !== 'undefined') {
         document.open('application/xml', 'replace');
         document.write(sitemap);
         document.close();
-        
-        // Clean up
-        URL.revokeObjectURL(url);
       }
     }
   }, [supabaseContent, tmdbContent, isLoadingSupabase, isLoadingTmdb]);
 
-  // Show loading state while generating sitemap
+  // Return minimal loading state
   if (isLoadingSupabase || isLoadingTmdb) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontFamily: 'Arial, sans-serif',
-        color: '#333'
-      }}>
-        Generating sitemap...
-      </div>
-    );
+    return null;
   }
 
   return null;

@@ -7,7 +7,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000 // Reduced from 1000000 to 5 seconds
+const TOAST_REMOVE_DELAY = 1000 // Very fast removal
 
 type ToasterToast = ToastProps & {
   id: string
@@ -75,6 +75,10 @@ const addToRemoveQueue = (toastId: string) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
+      // Don't show toasts automatically, only when explicitly called
+      if (!action.toast.title && !action.toast.description) {
+        return state;
+      }
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
@@ -139,6 +143,11 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  // Only show toasts with actual content
+  if (!props.title && !props.description) {
+    return { id: '', dismiss: () => {}, update: () => {} };
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>
