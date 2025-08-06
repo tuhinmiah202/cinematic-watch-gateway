@@ -30,6 +30,10 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     },
@@ -47,6 +51,10 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
