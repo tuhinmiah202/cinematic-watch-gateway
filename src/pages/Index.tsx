@@ -8,7 +8,6 @@ import HomePagination from '@/components/HomePagination';
 import SEOHeader from '@/components/SEOHeader';
 import MoviesWithSections from '@/components/MoviesWithSections';
 import SEOFooter from '@/components/SEOFooter';
-import { toast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 18;
 
@@ -28,7 +27,7 @@ const Index = () => {
     isLoading: isLoadingSections
   } = useHomeSections();
 
-  // Run auto-discovery on component mount (only on first page)
+  // Run auto-discovery on component mount (only on first page) - NO TOAST NOTIFICATION
   useEffect(() => {
     if (currentPage === 1 && !debouncedSearchTerm && !selectedGenre && contentType === 'all') {
       const lastDiscovery = localStorage.getItem('lastAutoDiscovery');
@@ -38,14 +37,7 @@ const Index = () => {
       if (!lastDiscovery || now - parseInt(lastDiscovery) > oneHour) {
         autoDiscoveryService.runAutoDiscovery().then(() => {
           localStorage.setItem('lastAutoDiscovery', now.toString());
-          // Only show toast for actual auto-discovery, not for genre changes
-          if (!selectedGenre) {
-            toast({
-              title: "Content Updated",
-              description: "New movies and TV shows have been discovered and added to the database.",
-              className: "notification-success"
-            });
-          }
+          // Removed toast notification completely
         }).catch((error) => {
           console.error('Auto-discovery failed:', error);
         });

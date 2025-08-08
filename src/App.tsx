@@ -16,7 +16,6 @@ import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import Sitemap from "./pages/Sitemap";
-import SitemapXML from "./pages/SitemapXML";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,7 +35,6 @@ const App = () => {
         <BrowserRouter>
           <div className="min-h-screen bg-black text-white">
             <Routes>
-              <Route path="/sitemap-xml" element={<SitemapXML />} />
               <Route path="/sitemap" element={<Sitemap />} />
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/login" element={<AdminLogin />} />

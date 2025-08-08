@@ -7,11 +7,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/sitemap.xml",
-      "destination": "/sitemap-xml"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!sitemap\\.xml).)*",
       "destination": "/index.html"
     }
   ],
@@ -30,31 +26,6 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
-    },
-    {
-      "source": "/sitemap-xml",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/xml; charset=UTF-8"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, s-maxage=86400"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "all"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
         }
       ]
     }
