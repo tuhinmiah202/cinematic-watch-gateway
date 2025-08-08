@@ -7,7 +7,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml).)*",
+      "source": "/((?!sitemap\\.xml|robots\\.txt).)*",
       "destination": "/index.html"
     }
   ],
@@ -26,6 +26,19 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=UTF-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
         }
       ]
     }

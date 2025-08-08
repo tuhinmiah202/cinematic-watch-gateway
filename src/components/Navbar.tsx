@@ -23,8 +23,8 @@ const Navbar = ({ onSearch }: NavbarProps) => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo - Website name on the left */}
-          <Link to="/" className="text-xl font-bold flex-shrink-0">
-            <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg whitespace-nowrap">
+          <Link to="/" className="text-xl font-bold flex-shrink-0 min-w-0">
+            <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg">
               Movie Suggestion
             </span>
           </Link>
