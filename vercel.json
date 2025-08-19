@@ -7,7 +7,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt).)*",
+      "source": "/((?!api|_next|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
