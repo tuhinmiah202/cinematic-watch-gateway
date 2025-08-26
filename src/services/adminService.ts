@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { tmdbService } from '@/services/tmdbService';
 
 export interface PendingSubmission {
   id: string;
@@ -68,17 +69,20 @@ export const adminService = {
 
   async addFromTMDB(tmdbData: any): Promise<boolean> {
     try {
+      // Ensure we store a full image URL, not just the "/abc.jpg" path
+      const posterUrl = tmdbService.getImageUrl(tmdbData.poster_path);
+
       const { error } = await supabase
         .from('content')
         .insert([{
           title: tmdbData.title || tmdbData.name,
           description: tmdbData.overview,
-          poster_url: tmdbData.poster_path,
+          poster_url: posterUrl,
           content_type: tmdbData.media_type === 'tv' ? 'series' : 'movie',
           release_year: new Date(tmdbData.release_date || tmdbData.first_air_date || '2024-01-01').getFullYear(),
           tmdb_id: tmdbData.id,
           trailer_url: '',
-          thumbnail_url: tmdbData.poster_path,
+          thumbnail_url: posterUrl,
           is_admin_approved: true
         }]);
 

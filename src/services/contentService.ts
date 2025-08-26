@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { tmdbService } from '@/services/tmdbService';
 
 export interface ContentItem {
   id: string;
@@ -19,6 +20,13 @@ export interface ContentItem {
   streaming_links: any[];
   episodes: any[];
 }
+
+const normalizePosterUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return tmdbService.getImageUrl(url);
+  return url;
+};
 
 export const contentService = {
   async getApprovedContent(): Promise<ContentItem[]> {
@@ -41,11 +49,13 @@ export const contentService = {
         throw error;
       }
 
-      // Transform the data to flatten genres
-      const transformedData = data?.map(item => ({
+      // Transform the data to flatten genres and normalize image URLs
+      const transformedData = (data ?? []).map(item => ({
         ...item,
+        poster_url: normalizePosterUrl(item.poster_url),
+        thumbnail_url: normalizePosterUrl(item.thumbnail_url || item.poster_url),
         genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || []
-      })) || [];
+      }));
 
       console.log('Fetched content with genres:', transformedData[0]);
       return transformedData;
@@ -74,11 +84,13 @@ export const contentService = {
         throw error;
       }
 
-      // Transform the data to flatten genres
-      const transformedData = data?.map(item => ({
+      // Transform the data to flatten genres and normalize image URLs
+      const transformedData = (data ?? []).map(item => ({
         ...item,
+        poster_url: normalizePosterUrl(item.poster_url),
+        thumbnail_url: normalizePosterUrl(item.thumbnail_url || item.poster_url),
         genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || []
-      })) || [];
+      }));
 
       return transformedData;
     } catch (error) {
@@ -108,9 +120,11 @@ export const contentService = {
         throw error;
       }
 
-      // Transform the data to flatten genres
+      // Transform the data to flatten genres and normalize image URLs
       const transformedData = {
         ...data,
+        poster_url: normalizePosterUrl(data.poster_url),
+        thumbnail_url: normalizePosterUrl(data.thumbnail_url || data.poster_url),
         genres: data.genres?.map((g: any) => g.genre).filter(Boolean) || []
       };
 
