@@ -14,7 +14,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!api|_next|.*\\..*).*)",
+      "source": "/((?!api|_next|sitemap\\.xml|robots\\.txt|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
