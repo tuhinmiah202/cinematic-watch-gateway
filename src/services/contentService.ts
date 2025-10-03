@@ -74,7 +74,13 @@ export const contentService = {
           genres:content_genres(
             genre:genres(*)
           ),
-          streaming_links(*),
+          streaming_links(
+            id,
+            url,
+            platform_name,
+            is_active,
+            created_at
+          ),
           episodes(*)
         `)
         .order('created_at', { ascending: false });
@@ -89,9 +95,11 @@ export const contentService = {
         ...item,
         poster_url: normalizePosterUrl(item.poster_url),
         thumbnail_url: normalizePosterUrl(item.thumbnail_url || item.poster_url),
-        genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || []
+        genres: item.genres?.map((g: any) => g.genre).filter(Boolean) || [],
+        streaming_links: (item.streaming_links || []).filter((link: any) => link.is_active !== false)
       }));
 
+      console.log('getAllContent: Sample with streaming links:', transformedData[0]);
       return transformedData;
     } catch (error) {
       console.error('Error in getAllContent:', error);

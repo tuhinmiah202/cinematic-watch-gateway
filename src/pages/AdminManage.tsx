@@ -93,7 +93,7 @@ const AdminManage = () => {
     setIsLoading(true);
     
     try {
-      const contentId = await contentService.addContent({
+      const newContent = await contentService.addContent({
         title: formData.title,
         description: formData.description,
         poster_url: formData.posterUrl,
@@ -104,8 +104,8 @@ const AdminManage = () => {
       });
       
       // Add streaming link separately if provided
-      if (contentId && formData.streamingUrl) {
-        await contentService.addStreamingLink(contentId, formData.streamingUrl, 'Custom');
+      if (newContent?.id && formData.streamingUrl) {
+        await contentService.addStreamingLink(newContent.id, formData.streamingUrl, 'Custom');
       }
       
       toast({

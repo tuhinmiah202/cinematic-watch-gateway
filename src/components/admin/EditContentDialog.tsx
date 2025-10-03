@@ -34,6 +34,20 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
 
   useEffect(() => {
     if (content) {
+      console.log('EditContentDialog: Content received:', content);
+      console.log('EditContentDialog: Streaming links from content:', content.streaming_links);
+      
+      const streamingLinks = Array.isArray(content.streaming_links) 
+        ? content.streaming_links
+            .filter((link: any) => link && link.url) // Filter out null/invalid links
+            .map((link: any) => ({
+              url: link.url,
+              platform_name: link.platform_name || 'Custom'
+            }))
+        : [];
+      
+      console.log('EditContentDialog: Processed streaming links:', streamingLinks);
+      
       setFormData({
         title: content.title || '',
         description: content.description || '',
@@ -43,10 +57,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
         cast_members: content.cast_members?.map((member: any) => 
           typeof member === 'string' ? member : member.name
         ) || [],
-        streaming_links: content.streaming_links?.map((link: any) => ({
-          url: link.url,
-          platform_name: link.platform_name || 'Custom'
-        })) || []
+        streaming_links: streamingLinks
       });
     }
   }, [content]);
@@ -99,7 +110,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      console.log('Saving content with data:', formData);
+      console.log('Saving content with streaming links:', formData.streaming_links);
       
       const updateData = {
         title: formData.title,
@@ -110,6 +121,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
       };
 
       console.log('Update data being sent:', updateData);
+      console.log('Streaming links to save:', formData.streaming_links);
       
       // Update the main content
       await contentService.updateContent(content.id, updateData);
