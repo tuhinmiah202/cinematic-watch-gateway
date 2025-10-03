@@ -103,7 +103,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
       
       const updateData = {
         title: formData.title,
-        description: formData.description, // This will now be properly saved
+        description: formData.description,
         release_year: formData.release_year ? parseInt(formData.release_year) : undefined,
         rating: formData.rating ? parseFloat(formData.rating) : undefined,
         runtime: formData.runtime ? parseInt(formData.runtime) : undefined,
@@ -114,9 +114,10 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
       // Update the main content
       await contentService.updateContent(content.id, updateData);
       
-      // Clear existing streaming links and cast before adding new ones
-      // Note: This is a simplified approach. In production, you might want more granular control
+      // Delete all existing streaming links first
+      await contentService.deleteStreamingLinks(content.id);
       
+      // Add all the streaming links from the form
       if (formData.streaming_links.length > 0) {
         for (const link of formData.streaming_links) {
           await contentService.addStreamingLink(content.id, link.url, link.platform_name);
@@ -131,7 +132,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
       
       toast({
         title: "Success",
-        description: "Content updated successfully. The changes will appear on the detail page."
+        description: "Streaming links saved successfully!"
       });
       
       onSave();
@@ -140,7 +141,7 @@ const EditContentDialog = ({ content, isOpen, onClose, onSave }: EditContentDial
       console.error('Error updating content:', error);
       toast({
         title: "Error",
-        description: "Failed to update content",
+        description: "Failed to update content. Please try again.",
         variant: "destructive"
       });
     } finally {

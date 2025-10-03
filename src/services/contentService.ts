@@ -237,6 +237,25 @@ export const contentService = {
     }
   },
 
+  async deleteStreamingLinks(contentId: string) {
+    try {
+      const { error } = await supabase
+        .from('streaming_links')
+        .delete()
+        .eq('content_id', contentId);
+
+      if (error) {
+        console.error('Error deleting streaming links:', error);
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteStreamingLinks:', error);
+      throw error;
+    }
+  },
+
   async addCastToContent(contentId: string, castData: any) {
     try {
       // This is a placeholder function - implement based on your cast table structure
