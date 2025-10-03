@@ -20,17 +20,8 @@ const MovieDetail = () => {
   };
 
   const handleWatchNow = () => {
-    // Check if ad was shown for this specific movie
-    const adShownKey = `adShown_${movieId}`;
-    const adShown = sessionStorage.getItem(adShownKey);
-    
-    if (!adShown) {
-      // First click for this movie - mark as shown
-      sessionStorage.setItem(adShownKey, 'true');
-    }
-    
-    // Navigate to watch page
-    navigate(`/watch/${movieId}`);
+    // Navigate to first download step
+    navigate(`/download-step1/${movieId}`);
   };
 
   // Try to fetch from Supabase first (for admin content)

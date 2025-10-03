@@ -1,0 +1,57 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { contentService } from "@/services/contentService";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+
+const DownloadStep1 = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const { data: movie } = useQuery({
+    queryKey: ['content', id],
+    queryFn: () => contentService.getContentById(id!),
+    enabled: !!id,
+  });
+
+  const handleDownloadClick = () => {
+    navigate(`/download-step2/${id}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80 py-20 px-4">
+      <div className="max-w-2xl mx-auto text-center space-y-8">
+        <div className="space-y-4">
+          <h1 className="text-4xl font-bold">{movie?.title}</h1>
+          <p className="text-muted-foreground text-lg">
+            Prepare to download your content
+          </p>
+        </div>
+
+        <div className="bg-card p-8 rounded-lg shadow-lg space-y-6">
+          <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+            <Download className="w-12 h-12 text-primary" />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold">Step 1 of 2</h2>
+            <p className="text-muted-foreground">
+              Click the button below to proceed to the next step
+            </p>
+          </div>
+
+          <Button 
+            onClick={handleDownloadClick}
+            size="lg"
+            className="w-full max-w-xs mx-auto"
+          >
+            <Download className="mr-2 h-5 w-5" />
+            Continue to Download
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DownloadStep1;
