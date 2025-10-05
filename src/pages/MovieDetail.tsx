@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
+import { useAdClickTracker } from '@/hooks/useAdClickTracker';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
+  const { handleClickWithAd } = useAdClickTracker(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -20,8 +22,7 @@ const MovieDetail = () => {
   };
 
   const handleWatchNow = () => {
-    // Navigate to first download step
-    navigate(`/download-step1/${movieId}`);
+    handleClickWithAd(() => navigate(`/download-step1/${movieId}`));
   };
 
   // Try to fetch from Supabase first (for admin content)

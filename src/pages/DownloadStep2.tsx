@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useAdClickTracker } from "@/hooks/useAdClickTracker";
 
 const DownloadStep2 = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { handleClickWithAd } = useAdClickTracker(id || '');
 
   const { data: movie } = useQuery({
     queryKey: ['content', id],
@@ -15,7 +17,7 @@ const DownloadStep2 = () => {
   });
 
   const handleDownloadClick = () => {
-    navigate(`/watch/${id}`);
+    handleClickWithAd(() => navigate(`/watch/${id}`));
   };
 
   return (

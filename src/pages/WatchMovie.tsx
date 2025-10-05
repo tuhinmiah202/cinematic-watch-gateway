@@ -14,6 +14,7 @@ import {
   CarouselNext,
 } from "@/components/ui/carousel";
 import MovieCard from '@/components/MovieCard';
+import { useAdClickTracker } from '@/hooks/useAdClickTracker';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ const WatchMovie = () => {
   const movieId = id || '0';
   const [countdown, setCountdown] = useState(3);
   const [showWatchButton, setShowWatchButton] = useState(false);
+  const { handleClickWithAd } = useAdClickTracker(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -124,17 +126,17 @@ const WatchMovie = () => {
   }, []);
 
   const handleWatchNow = () => {
-    // Get streaming URL from Supabase content or show alternatives
-    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
-    
-    if (streamingUrl) {
-      window.open(streamingUrl, '_blank');
-    } else {
-      // Show popular streaming platforms in a new tab search
-      const title = (movie as any)?.title || (movie as any)?.name || 'movie';
-      const searchQuery = encodeURIComponent(`watch ${title} online`);
-      window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
-    }
+    handleClickWithAd(() => {
+      const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
+      
+      if (streamingUrl) {
+        window.open(streamingUrl, '_blank');
+      } else {
+        const title = (movie as any)?.title || (movie as any)?.name || 'movie';
+        const searchQuery = encodeURIComponent(`watch ${title} online`);
+        window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
+      }
+    });
   };
 
   if (isLoading) {
