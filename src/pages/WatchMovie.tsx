@@ -125,18 +125,6 @@ const WatchMovie = () => {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    // Load native banner ad script
-    const script = document.createElement('script');
-    script.src = '//pl27791049.revenuecpmgate.com/74a3ef4065e44a43907ca65e4253d2c2/invoke.js';
-    script.async = true;
-    script.setAttribute('data-cfasync', 'false');
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   const handleWatchNow = () => {
     handleClickWithAd(() => {
@@ -262,12 +250,6 @@ const WatchMovie = () => {
                             Download Now
                           </Button>
                         </div>
-                        
-                        {/* Native Banner Ad */}
-                        <div className="my-4">
-                          <div id="container-74a3ef4065e44a43907ca65e4253d2c2"></div>
-                        </div>
-                        
                         <p className="text-gray-300 text-xs mt-3 px-4">
                           You will be redirected to the download link
                         </p>

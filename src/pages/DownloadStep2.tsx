@@ -4,6 +4,7 @@ import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useAdClickTracker } from "@/hooks/useAdClickTracker";
+import { useEffect } from "react";
 
 const DownloadStep2 = () => {
   const { id } = useParams();
@@ -25,6 +26,19 @@ const DownloadStep2 = () => {
     if (clickCount === 1) return "Click 1 more time";
     return "Ready! Click to proceed";
   };
+
+  useEffect(() => {
+    // Load native banner ad script
+    const script = document.createElement('script');
+    script.src = '//pl27791049.revenuecpmgate.com/74a3ef4065e44a43907ca65e4253d2c2/invoke.js';
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 py-20 px-4">
@@ -56,6 +70,12 @@ const DownloadStep2 = () => {
             <Download className="mr-2 h-5 w-5" />
             Get Download Link
           </Button>
+
+          {/* Native Banner Ads */}
+          <div className="space-y-4 mt-6">
+            <div id="container-74a3ef4065e44a43907ca65e4253d2c2"></div>
+            <div id="container-74a3ef4065e44a43907ca65e4253d2c2"></div>
+          </div>
         </div>
       </div>
     </div>
