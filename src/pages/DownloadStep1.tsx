@@ -28,15 +28,48 @@ const DownloadStep1 = () => {
   };
 
   useEffect(() => {
-    // Load native banner ad script
-    const script = document.createElement('script');
-    script.src = '//pl27791049.revenuecpmgate.com/74a3ef4065e44a43907ca65e4253d2c2/invoke.js';
-    script.async = true;
-    script.setAttribute('data-cfasync', 'false');
-    document.body.appendChild(script);
+    // Load banner ad scripts for each ad
+    const loadBannerAd = (containerId: string, adIndex: number) => {
+      // Create atOptions script for this specific ad
+      const atOptionsScript = document.createElement('script');
+      atOptionsScript.type = 'text/javascript';
+      atOptionsScript.innerHTML = `
+        atOptions${adIndex} = {
+          'key' : '9733ddf1f8648b3b155c611384f5dee2',
+          'format' : 'iframe',
+          'height' : 250,
+          'width' : 300,
+          'params' : {}
+        };`;
+      
+      // Create invoke script
+      const invokeScript = document.createElement('script');
+      invokeScript.type = 'text/javascript';
+      invokeScript.src = '//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js';
+      invokeScript.async = true;
+      invokeScript.id = `ad-script-${adIndex}`;
+      
+      document.head.appendChild(atOptionsScript);
+      document.head.appendChild(invokeScript);
+      
+      return { atOptionsScript, invokeScript };
+    };
+    
+    // Load 3 banner ads
+    const ad1 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-1', 1);
+    const ad2 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-2', 2);
+    const ad3 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-3', 3);
 
     return () => {
-      document.body.removeChild(script);
+      // Cleanup all scripts
+      [ad1, ad2, ad3].forEach(ad => {
+        if (ad.atOptionsScript && document.head.contains(ad.atOptionsScript)) {
+          document.head.removeChild(ad.atOptionsScript);
+        }
+        if (ad.invokeScript && document.head.contains(ad.invokeScript)) {
+          document.head.removeChild(ad.invokeScript);
+        }
+      });
     };
   }, []);
 
@@ -71,10 +104,17 @@ const DownloadStep1 = () => {
             Continue to Download
           </Button>
 
-          {/* Native Banner Ads */}
+          {/* New Banner Ads */}
           <div className="space-y-4 mt-6">
-            <div id="container-74a3ef4065e44a43907ca65e4253d2c2"></div>
-            <div id="container-74a3ef4065e44a43907ca65e4253d2c2"></div>
+            <div className="flex justify-center">
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2-1"></div>
+            </div>
+            <div className="flex justify-center">
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2-2"></div>
+            </div>
+            <div className="flex justify-center">
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2-3"></div>
+            </div>
           </div>
         </div>
       </div>
