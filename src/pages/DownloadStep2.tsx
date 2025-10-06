@@ -27,51 +27,6 @@ const DownloadStep2 = () => {
     return "Ready! Click to proceed";
   };
 
-  useEffect(() => {
-    // Add the banner ad scripts directly
-    const addBannerAd = () => {
-      // Create atOptions script
-      const atOptionsScript = document.createElement('script');
-      atOptionsScript.type = 'text/javascript';
-      atOptionsScript.innerHTML = `
-        atOptions = {
-          'key' : '9733ddf1f8648b3b155c611384f5dee2',
-          'format' : 'iframe',
-          'height' : 250,
-          'width' : 300,
-          'params' : {}
-        };`;
-      
-      // Create invoke script
-      const invokeScript = document.createElement('script');
-      invokeScript.type = 'text/javascript';
-      invokeScript.src = '//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js';
-      invokeScript.async = true;
-      
-      document.head.appendChild(atOptionsScript);
-      document.head.appendChild(invokeScript);
-      
-      return { atOptionsScript, invokeScript };
-    };
-    
-    // Load banner ads
-    const scripts = [];
-    for (let i = 0; i < 3; i++) {
-      scripts.push(addBannerAd());
-    }
-
-    return () => {
-      // Cleanup
-      scripts.forEach(({ atOptionsScript, invokeScript }) => {
-        if (document.head.contains(atOptionsScript)) {
-          document.head.removeChild(atOptionsScript);
-        }
-        if (document.head.contains(invokeScript)) {
-          document.head.removeChild(invokeScript);
-        }
-      });
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 py-20 px-4">
@@ -104,18 +59,6 @@ const DownloadStep2 = () => {
             Get Download Link
           </Button>
 
-          {/* New Banner Ads */}
-          <div className="space-y-4 mt-6">
-            <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
-            </div>
-            <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
-            </div>
-            <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
