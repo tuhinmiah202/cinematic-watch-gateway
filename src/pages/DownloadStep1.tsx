@@ -8,7 +8,7 @@ import { useAdClickTracker } from "@/hooks/useAdClickTracker";
 const DownloadStep1 = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { handleClickWithAd } = useAdClickTracker(id || '');
+  const { handleClickWithAd, clickCount } = useAdClickTracker(id || '');
 
   const { data: movie } = useQuery({
     queryKey: ['content', id],
@@ -18,6 +18,12 @@ const DownloadStep1 = () => {
 
   const handleDownloadClick = () => {
     handleClickWithAd(() => navigate(`/download-step2/${id}`));
+  };
+
+  const getClickMessage = () => {
+    if (clickCount === 0) return "Click the button 2 times to proceed";
+    if (clickCount === 1) return "Click 1 more time";
+    return "Ready! Click to proceed";
   };
 
   return (
@@ -38,7 +44,7 @@ const DownloadStep1 = () => {
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold">Step 1 of 2</h2>
             <p className="text-muted-foreground">
-              Click the button below to proceed to the next step
+              {getClickMessage()}
             </p>
           </div>
 

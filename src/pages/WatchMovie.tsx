@@ -23,7 +23,7 @@ const WatchMovie = () => {
   const movieId = id || '0';
   const [countdown, setCountdown] = useState(3);
   const [showWatchButton, setShowWatchButton] = useState(false);
-  const { handleClickWithAd } = useAdClickTracker(movieId);
+  const { handleClickWithAd, clickCount } = useAdClickTracker(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -139,6 +139,12 @@ const WatchMovie = () => {
     });
   };
 
+  const getClickMessage = () => {
+    if (clickCount === 0) return "Click the button 2 times to proceed";
+    if (clickCount === 1) return "Click 1 more time";
+    return "Ready! Click to proceed";
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
@@ -233,7 +239,7 @@ const WatchMovie = () => {
                     
                     {hasStreamingLink ? (
                       <>
-                        <p className="text-gray-300 text-xs mb-4">Click below to access the streaming link</p>
+                        <p className="text-gray-300 text-xs mb-4">{getClickMessage()}</p>
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}
@@ -249,7 +255,7 @@ const WatchMovie = () => {
                       </>
                     ) : (
                       <>
-                        <p className="text-gray-300 text-xs mb-4">👉 Find legal streaming platforms (e.g., Netflix, Disney+, Prime)</p>
+                        <p className="text-gray-300 text-xs mb-4">{getClickMessage()}</p>
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}

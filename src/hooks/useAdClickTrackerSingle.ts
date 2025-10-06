@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 const AD_URL = 'https://www.revenuecpmgate.com/jv9gi4g38?key=3033a8c9472ea7342ecdcbf17d0b52f2';
 const RESET_TIMEOUT = 60000; // 1 minute in milliseconds
 
-export const useAdClickTracker = (contentId: string) => {
-  const [clickCount, setClickCount] = useState(0);
+export const useAdClickTrackerSingle = (contentId: string) => {
+  const [hasClicked, setHasClicked] = useState(false);
 
   useEffect(() => {
-    const storageKey = `ad_clicks_${contentId}`;
-    const timestampKey = `ad_clicks_timestamp_${contentId}`;
+    const storageKey = `ad_clicks_single_${contentId}`;
+    const timestampKey = `ad_clicks_single_timestamp_${contentId}`;
     const stored = localStorage.getItem(storageKey);
     const timestamp = localStorage.getItem(timestampKey);
     
@@ -19,29 +19,24 @@ export const useAdClickTracker = (contentId: string) => {
     if (now - lastClickTime > RESET_TIMEOUT) {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(timestampKey);
-      setClickCount(0);
+      setHasClicked(false);
     } else {
-      setClickCount(stored ? parseInt(stored, 10) : 0);
+      setHasClicked(stored === 'true');
     }
   }, [contentId]);
 
   const handleClickWithAd = (callback: () => void) => {
-    const storageKey = `ad_clicks_${contentId}`;
-    const timestampKey = `ad_clicks_timestamp_${contentId}`;
-    const newCount = clickCount + 1;
+    const storageKey = `ad_clicks_single_${contentId}`;
+    const timestampKey = `ad_clicks_single_timestamp_${contentId}`;
     
-    localStorage.setItem(storageKey, newCount.toString());
+    localStorage.setItem(storageKey, 'true');
     localStorage.setItem(timestampKey, Date.now().toString());
-    setClickCount(newCount);
+    setHasClicked(true);
 
-    if (newCount <= 2) {
-      // Show ad on 1st and 2nd click, don't execute callback
-      window.open(AD_URL, '_blank');
-    } else {
-      // Execute callback on 3rd+ click
-      callback();
-    }
+    // Open ad and execute callback
+    window.open(AD_URL, '_blank');
+    callback();
   };
 
-  return { handleClickWithAd, clickCount };
+  return { handleClickWithAd, hasClicked };
 };
