@@ -28,13 +28,13 @@ const DownloadStep2 = () => {
   };
 
   useEffect(() => {
-    // Load banner ad scripts for each ad
-    const loadBannerAd = (containerId: string, adIndex: number) => {
-      // Create atOptions script for this specific ad
+    // Add the banner ad scripts directly
+    const addBannerAd = () => {
+      // Create atOptions script
       const atOptionsScript = document.createElement('script');
       atOptionsScript.type = 'text/javascript';
       atOptionsScript.innerHTML = `
-        atOptions${adIndex} = {
+        atOptions = {
           'key' : '9733ddf1f8648b3b155c611384f5dee2',
           'format' : 'iframe',
           'height' : 250,
@@ -47,7 +47,6 @@ const DownloadStep2 = () => {
       invokeScript.type = 'text/javascript';
       invokeScript.src = '//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js';
       invokeScript.async = true;
-      invokeScript.id = `ad-script-${adIndex}`;
       
       document.head.appendChild(atOptionsScript);
       document.head.appendChild(invokeScript);
@@ -55,19 +54,20 @@ const DownloadStep2 = () => {
       return { atOptionsScript, invokeScript };
     };
     
-    // Load 3 banner ads
-    const ad1 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-4', 4);
-    const ad2 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-5', 5);
-    const ad3 = loadBannerAd('container-9733ddf1f8648b3b155c611384f5dee2-6', 6);
+    // Load banner ads
+    const scripts = [];
+    for (let i = 0; i < 3; i++) {
+      scripts.push(addBannerAd());
+    }
 
     return () => {
-      // Cleanup all scripts
-      [ad1, ad2, ad3].forEach(ad => {
-        if (ad.atOptionsScript && document.head.contains(ad.atOptionsScript)) {
-          document.head.removeChild(ad.atOptionsScript);
+      // Cleanup
+      scripts.forEach(({ atOptionsScript, invokeScript }) => {
+        if (document.head.contains(atOptionsScript)) {
+          document.head.removeChild(atOptionsScript);
         }
-        if (ad.invokeScript && document.head.contains(ad.invokeScript)) {
-          document.head.removeChild(ad.invokeScript);
+        if (document.head.contains(invokeScript)) {
+          document.head.removeChild(invokeScript);
         }
       });
     };
@@ -107,13 +107,13 @@ const DownloadStep2 = () => {
           {/* New Banner Ads */}
           <div className="space-y-4 mt-6">
             <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2-4"></div>
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
             </div>
             <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2-5"></div>
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
             </div>
             <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2-6"></div>
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
             </div>
           </div>
         </div>
