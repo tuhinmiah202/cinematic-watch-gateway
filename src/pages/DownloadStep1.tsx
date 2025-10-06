@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ArrowLeft } from "lucide-react";
 import { useAdClickTracker } from "@/hooks/useAdClickTracker";
 import { useEffect } from "react";
 
@@ -19,6 +19,10 @@ const DownloadStep1 = () => {
 
   const handleDownloadClick = () => {
     handleClickWithAd(() => navigate(`/download-step2/${id}`));
+  };
+
+  const handleBackClick = () => {
+    navigate(`/movie/${id}`);
   };
 
   const getClickMessage = () => {
@@ -75,6 +79,17 @@ const DownloadStep1 = () => {
         </div>
 
         <div className="bg-card p-8 rounded-lg shadow-lg space-y-6">
+          {/* Back Button */}
+          <div className="flex justify-start">
+            <Button 
+              variant="outline" 
+              onClick={handleBackClick}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
           <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
             <Download className="w-12 h-12 text-primary" />
           </div>
