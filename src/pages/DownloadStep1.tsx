@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
 import { useAdClickTracker } from "@/hooks/useAdClickTracker";
 import { useEffect } from "react";
 
@@ -21,9 +21,6 @@ const DownloadStep1 = () => {
     handleClickWithAd(() => navigate(`/download-step2/${id}`));
   };
 
-  const handleBackClick = () => {
-    navigate(`/movie/${id}`);
-  };
 
   const getClickMessage = () => {
     if (clickCount === 0) return "Click the button 2 times to proceed";
@@ -79,17 +76,6 @@ const DownloadStep1 = () => {
         </div>
 
         <div className="bg-card p-8 rounded-lg shadow-lg space-y-6">
-          {/* Back Button */}
-          <div className="flex justify-start">
-            <Button 
-              variant="outline" 
-              onClick={handleBackClick}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
           <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
             <Download className="w-12 h-12 text-primary" />
           </div>
@@ -104,17 +90,15 @@ const DownloadStep1 = () => {
           <Button 
             onClick={handleDownloadClick}
             size="lg"
-            className="w-full max-w-xs mx-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            className="w-full max-w-xs mx-auto bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
             <Download className="mr-2 h-5 w-5" />
             Continue to Download
           </Button>
 
-          {/* Banner Ads */}
-          <div className="space-y-4 mt-8">
-            <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
-            </div>
+          {/* Banner Ad */}
+          <div className="mt-8 flex justify-center">
+            <div id="container-9733ddf1f8648b3b155c611384f5dee2" className="min-h-[250px]"></div>
           </div>
         </div>
       </div>

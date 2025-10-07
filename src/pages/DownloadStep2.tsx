@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
 import { useAdClickTracker } from "@/hooks/useAdClickTracker";
 import { useEffect } from "react";
 
@@ -21,9 +21,6 @@ const DownloadStep2 = () => {
     handleClickWithAd(() => navigate(`/watch/${id}`));
   };
 
-  const handleBackClick = () => {
-    navigate(`/download-step1/${id}`);
-  };
 
   const getClickMessage = () => {
     if (clickCount === 0) return "Click the button 2 times to proceed";
@@ -79,17 +76,6 @@ const DownloadStep2 = () => {
         </div>
 
         <div className="bg-card p-8 rounded-lg shadow-lg space-y-6">
-          {/* Back Button */}
-          <div className="flex justify-start">
-            <Button 
-              variant="outline" 
-              onClick={handleBackClick}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
           <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
             <Download className="w-12 h-12 text-primary" />
           </div>
@@ -110,11 +96,9 @@ const DownloadStep2 = () => {
             Get Download Link
           </Button>
 
-          {/* Banner Ads */}
-          <div className="space-y-4 mt-8">
-            <div className="flex justify-center">
-              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
-            </div>
+          {/* Banner Ad */}
+          <div className="mt-8 flex justify-center">
+            <div id="container-9733ddf1f8648b3b155c611384f5dee2" className="min-h-[250px]"></div>
           </div>
         </div>
       </div>
