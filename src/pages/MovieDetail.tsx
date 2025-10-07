@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
-import { useAdClickTracker } from '@/hooks/useAdClickTracker';
+import { useAdClickTrackerSingle } from '@/hooks/useAdClickTrackerSingle';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
-  const { handleClickWithAd, clickCount } = useAdClickTracker(movieId);
+  const { handleClickWithAd, hasClicked } = useAdClickTrackerSingle(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -339,9 +339,9 @@ const MovieDetail = () => {
 
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
-              {clickCount < 2 && (
+              {!hasClicked && (
                 <p className="text-yellow-400 text-sm mb-2 font-semibold">
-                  {clickCount === 0 ? "Click Watch Now 2 times to proceed" : "Click 1 more time"}
+                  Click Watch Now 1 time to proceed
                 </p>
               )}
               <Button 
