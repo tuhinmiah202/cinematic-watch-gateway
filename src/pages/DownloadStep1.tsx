@@ -104,36 +104,18 @@ const DownloadStep1 = () => {
           <Button 
             onClick={handleDownloadClick}
             size="lg"
-            className="w-full max-w-xs mx-auto"
+            className="w-full max-w-xs mx-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
             <Download className="mr-2 h-5 w-5" />
             Continue to Download
           </Button>
 
-          {/* Banner Ad */}
-          <div className="flex justify-center mt-6">
-            <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
+          {/* Banner Ads */}
+          <div className="space-y-4 mt-8">
+            <div className="flex justify-center">
+              <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
+            </div>
           </div>
-          
-          {/* Alternative Banner Ad Implementation */}
-          <div 
-            className="flex justify-center mt-6"
-            dangerouslySetInnerHTML={{
-              __html: `
-                <script type="text/javascript">
-                  atOptions = {
-                    'key' : '9733ddf1f8648b3b155c611384f5dee2',
-                    'format' : 'iframe',
-                    'height' : 250,
-                    'width' : 300,
-                    'params' : {}
-                  };
-                </script>
-                <script type="text/javascript" src="//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js"></script>
-                <div id="container-9733ddf1f8648b3b155c611384f5dee2-alt"></div>
-              `
-            }}
-          />
         </div>
       </div>
     </div>

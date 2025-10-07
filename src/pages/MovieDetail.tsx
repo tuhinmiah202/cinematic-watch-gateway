@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
-import { useAdClickTrackerSingle } from '@/hooks/useAdClickTrackerSingle';
+import { useAdClickTracker } from '@/hooks/useAdClickTracker';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
-  const { handleClickWithAd } = useAdClickTrackerSingle(movieId);
+  const { handleClickWithAd, clickCount } = useAdClickTracker(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -339,9 +339,14 @@ const MovieDetail = () => {
 
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
+              {clickCount < 2 && (
+                <p className="text-yellow-400 text-sm mb-2 font-semibold">
+                  {clickCount === 0 ? "Click Watch Now 2 times to proceed" : "Click 1 more time"}
+                </p>
+              )}
               <Button 
                 size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg w-full md:w-auto"
+                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-auto"
                 onClick={handleWatchNow}
               >
                 <Play className="w-5 h-5 mr-2" />
