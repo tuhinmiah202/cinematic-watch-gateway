@@ -31,6 +31,42 @@ const DownloadStep2 = () => {
     return "Ready! Click to proceed";
   };
 
+  useEffect(() => {
+    // Set up atOptions globally first
+    (window as any).atOptions = {
+      'key': '9733ddf1f8648b3b155c611384f5dee2',
+      'format': 'iframe',
+      'height': 250,
+      'width': 300,
+      'params': {}
+    };
+    
+    // Create and load the invoke script
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = '//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js';
+    script.async = true;
+    
+    // Add error handling
+    script.onerror = () => {
+      console.log('Banner ad script failed to load');
+    };
+    
+    script.onload = () => {
+      console.log('Banner ad script loaded successfully');
+    };
+    
+    document.head.appendChild(script);
+    
+    return () => {
+      // Cleanup
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+      // Clear global atOptions
+      delete (window as any).atOptions;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 py-20 px-4">
@@ -74,6 +110,30 @@ const DownloadStep2 = () => {
             Get Download Link
           </Button>
 
+          {/* Banner Ad */}
+          <div className="flex justify-center mt-6">
+            <div id="container-9733ddf1f8648b3b155c611384f5dee2"></div>
+          </div>
+          
+          {/* Alternative Banner Ad Implementation */}
+          <div 
+            className="flex justify-center mt-6"
+            dangerouslySetInnerHTML={{
+              __html: `
+                <script type="text/javascript">
+                  atOptions = {
+                    'key' : '9733ddf1f8648b3b155c611384f5dee2',
+                    'format' : 'iframe',
+                    'height' : 250,
+                    'width' : 300,
+                    'params' : {}
+                  };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js"></script>
+                <div id="container-9733ddf1f8648b3b155c611384f5dee2-alt"></div>
+              `
+            }}
+          />
         </div>
       </div>
     </div>
