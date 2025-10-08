@@ -127,7 +127,8 @@ const MovieDetail = () => {
   });
 
   const movie = supabaseContent || tmdbContent;
-  const isLoading = isLoadingSupabase || isLoadingTmdb;
+  // Only show loading for the initial content fetch
+  const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
 
   // Calculate dependencies for related content query before any early returns.
   const currentMovieTmdbId = movie ? ((movie as any).tmdb_id || movie.id) : null;
@@ -340,17 +341,18 @@ const MovieDetail = () => {
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
               {!hasClicked && (
-                <p className="text-yellow-400 text-sm mb-2 font-semibold">
-                  Click Watch Now 1 time to proceed
+                <p className="text-yellow-400 text-sm mb-2 font-semibold animate-pulse">
+                  ⚠️ Click Watch Now 1 time to proceed
                 </p>
               )}
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-auto"
+                className="relative bg-gradient-to-r from-red-600 via-red-500 to-red-700 hover:from-red-700 hover:via-red-600 hover:to-red-800 text-white px-10 py-4 text-xl font-bold shadow-[0_0_30px_rgba(220,38,38,0.5)] hover:shadow-[0_0_40px_rgba(220,38,38,0.8)] transition-all duration-300 transform hover:scale-110 w-full md:w-auto border-2 border-red-400 hover:border-red-300 animate-pulse hover:animate-none"
                 onClick={handleWatchNow}
               >
-                <Play className="w-5 h-5 mr-2" />
+                <Play className="w-6 h-6 mr-2 fill-white" />
                 Watch Now
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 hover:opacity-20 blur-xl transition-opacity duration-300"></span>
               </Button>
             </div>
 
