@@ -24,19 +24,19 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
   const genres = Array.isArray(genresData) ? genresData : [];
 
   // Fetch from Supabase - user-added content only
+  // Use shared query key to avoid duplicate fetches
   const {
     data: supabaseData,
     isLoading: isLoadingSupabase,
   } = useQuery({
-    queryKey: ['supabase-content', selectedGenre, debouncedSearchTerm, contentType],
+    queryKey: ['approved-content'],
     queryFn: () => contentService.getApprovedContent(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Update supabaseMovies when data is fetched
   useEffect(() => {
     if (supabaseData) {
-      console.log('Supabase data fetched:', supabaseData.length, 'items');
-      console.log('Sample movie with genres:', supabaseData[0]);
       setSupabaseMovies(supabaseData);
     }
   }, [supabaseData]);
@@ -44,15 +44,12 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
   // Filter and process only Supabase content
   const allMovies = useCallback(() => {
     let filteredMovies = [...supabaseMovies];
-    console.log('Starting with', filteredMovies.length, 'movies');
 
     // Filter by content type first
     if (contentType === 'movie') {
       filteredMovies = filteredMovies.filter(movie => movie.content_type === 'movie');
-      console.log('After movie filter:', filteredMovies.length, 'movies');
     } else if (contentType === 'tv') {
       filteredMovies = filteredMovies.filter(movie => movie.content_type === 'series');
-      console.log('After TV filter:', filteredMovies.length, 'movies');
     } else if (contentType === 'animation') {
       const animationGenreId = 16;
       filteredMovies = filteredMovies.filter((movie) => {
@@ -79,17 +76,14 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
           g.name?.toLowerCase().includes('animation')
         );
       });
-      console.log('After animation filter:', filteredMovies.length, 'movies');
     }
 
     // Filter by genre - this is where we fix the main issue
     if (selectedGenre && selectedGenre !== 'all' && selectedGenre !== '') {
       const genreId = parseInt(selectedGenre);
-      console.log('Filtering by genre ID:', genreId);
       
       if (!isNaN(genreId)) {
         const genreInfo = genres.find(g => g.id === genreId);
-        console.log('Genre info found:', genreInfo);
         
         // Special handling for custom genres
         if (genreId === 999) { // Bollywood
@@ -113,7 +107,6 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         } else {
           // For regular TMDB genres, since most movies don't have genre data,
           // let's use TMDB API to get genre info for the movies
-          const beforeFilterCount = filteredMovies.length;
           filteredMovies = filteredMovies.filter((movie) => {
             // If movie has genre data, use it
             if (movie.genres && Array.isArray(movie.genres) && movie.genres.length > 0) {
@@ -198,8 +191,6 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
             
             return false;
           });
-          
-          console.log(`After ${genreInfo?.name || 'unknown'} genre filter: ${filteredMovies.length} movies (was ${beforeFilterCount})`);
         }
       }
     }
@@ -207,14 +198,10 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
     // Filter by search term
     if (debouncedSearchTerm) {
       const lowerSearchTerm = debouncedSearchTerm.toLowerCase();
-      const beforeSearchCount = filteredMovies.length;
       filteredMovies = filteredMovies.filter((movie) => {
         return movie.title?.toLowerCase().includes(lowerSearchTerm);
       });
-      console.log('After search filter:', filteredMovies.length, 'movies (was', beforeSearchCount, ')');
     }
-
-    console.log('Final filtered movies:', filteredMovies.length);
     
     return filteredMovies;
   }, [supabaseMovies, selectedGenre, debouncedSearchTerm, genres, contentType]);

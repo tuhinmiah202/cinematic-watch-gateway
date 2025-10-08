@@ -4,9 +4,11 @@ import { contentService } from '@/services/contentService';
 
 export const useHomeSections = () => {
   // Get all user-added content from Supabase
+  // Use shared query key to avoid duplicate fetches with useMovieData
   const { data: allContent, isLoading } = useQuery({
-    queryKey: ['home-sections-content'],
+    queryKey: ['approved-content'],
     queryFn: () => contentService.getApprovedContent(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Process the content into different sections

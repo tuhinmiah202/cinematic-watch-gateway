@@ -162,7 +162,7 @@ const MovieDetail = () => {
         return combined
           .sort(() => 0.5 - Math.random()) // Randomize for variety
           .filter(item => item.id != currentMovieTmdbId) // Use != to handle potential type difference
-          .slice(0, 10); // Limit to 10
+          .slice(0, 8); // Reduced to 8 for better performance
       } catch (error) {
         console.error('Error fetching related content:', error);
         return [];
