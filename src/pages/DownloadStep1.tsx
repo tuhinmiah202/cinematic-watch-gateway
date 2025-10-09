@@ -4,7 +4,6 @@ import { contentService } from "@/services/contentService";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useAdClickTracker } from "@/hooks/useAdClickTracker";
-import { useEffect } from "react";
 
 const DownloadStep1 = () => {
   const { id } = useParams();
@@ -27,43 +26,6 @@ const DownloadStep1 = () => {
     if (clickCount === 1) return "Click 1 more time";
     return "Ready! Click to proceed";
   };
-
-  useEffect(() => {
-    // Set up atOptions globally first
-    (window as any).atOptions = {
-      'key': '9733ddf1f8648b3b155c611384f5dee2',
-      'format': 'iframe',
-      'height': 250,
-      'width': 300,
-      'params': {}
-    };
-    
-    // Create and load the invoke script
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = '//www.highperformanceformat.com/9733ddf1f8648b3b155c611384f5dee2/invoke.js';
-    script.async = true;
-    
-    // Add error handling
-    script.onerror = () => {
-      console.log('Banner ad script failed to load');
-    };
-    
-    script.onload = () => {
-      console.log('Banner ad script loaded successfully');
-    };
-    
-    document.head.appendChild(script);
-    
-    return () => {
-      // Cleanup
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-      // Clear global atOptions
-      delete (window as any).atOptions;
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 py-20 px-4">
@@ -95,11 +57,6 @@ const DownloadStep1 = () => {
             <Download className="mr-2 h-5 w-5" />
             Continue to Download
           </Button>
-
-          {/* Banner Ad */}
-          <div className="mt-8 flex justify-center">
-            <div id="container-9733ddf1f8648b3b155c611384f5dee2" className="min-h-[250px]"></div>
-          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { tmdbService } from '@/services/tmdbService';
 import { Star, Calendar, Tv } from 'lucide-react';
 
@@ -28,6 +28,7 @@ interface MovieCardProps {
 const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Function to determine if content is from Supabase
   const isSupabaseContent = !!(movie as any).content_type;
@@ -58,6 +59,10 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
       <Link 
         to={`/movie/${movie.id}`}
         className="group block"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          navigate(`/movie/${movie.id}`);
+        }}
       >
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
           <div className="relative aspect-[2/3] overflow-hidden">
@@ -106,6 +111,10 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
     <Link 
       to={`/movie/${movie.id}`}
       className="group block"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        navigate(`/movie/${movie.id}`);
+      }}
     >
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
         <div className="relative aspect-[2/3] overflow-hidden">
