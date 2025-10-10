@@ -63,10 +63,8 @@ const Index = () => {
     setSearchTerm(term);
   };
 
-  // Handle genre change - no notification toast
   const handleGenreChange = (value: string) => {
     setSelectedGenre(value);
-    console.log('Genre changed to:', value);
   };
 
   // Reset page when search term or genre changes
@@ -76,18 +74,6 @@ const Index = () => {
 
   const currentMovies = paginatedMovies();
 
-  // Debug logging for genre filtering
-  useEffect(() => {
-    if (selectedGenre && selectedGenre !== 'all') {
-      console.log('Selected genre:', selectedGenre);
-      console.log('Available genres:', genres);
-      console.log('Total movies available:', allMovies.length);
-      console.log('Sample movies with genres:', allMovies.slice(0, 3).map(m => ({ 
-        title: m.title, 
-        genres: m.genres 
-      })));
-    }
-  }, [selectedGenre, genres, allMovies]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">

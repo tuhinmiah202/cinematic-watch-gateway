@@ -1,6 +1,7 @@
 
 import MovieCard from './MovieCard';
 import MovieSection from './MovieSection';
+import { Skeleton } from './ui/skeleton';
 
 interface MoviesWithSectionsProps {
   currentMovies: any[];
@@ -24,6 +25,15 @@ const MoviesWithSections = ({
   isLoadingSections
 }: MoviesWithSectionsProps) => {
   if (!showHomeSections) {
+    if (currentMovies.length === 0 && isLoadingSections) {
+      return (
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
+          {[...Array(18)].map((_, i) => (
+            <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6">
         {currentMovies.map((movie, index) => (

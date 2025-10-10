@@ -173,8 +173,19 @@ const MovieDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row gap-6 mb-6 animate-pulse">
+            <div className="flex-shrink-0 mx-auto md:mx-0">
+              <div className="w-48 h-72 md:w-56 md:h-84 bg-gray-700 rounded-lg"></div>
+            </div>
+            <div className="flex-1 space-y-4">
+              <div className="h-8 bg-gray-700 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+              <div className="h-20 bg-gray-700 rounded"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -397,20 +408,11 @@ const MovieDetail = () => {
           </div>
         )}
 
-        {/* SEO Content Section */}
-        <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20 mb-6">
-          <h2 className="text-xl font-bold text-white mb-4">About {title}</h2>
-          <p className="text-gray-300 mb-4 leading-relaxed">
+        {/* SEO Content Section - Simplified */}
+        <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-4 border border-purple-500/20 mb-6">
+          <p className="text-gray-300 text-sm leading-relaxed">
             {seoContent.description}
           </p>
-          <div className="text-sm text-gray-400">
-            <p className="mb-2">
-              <strong>Popular searches:</strong> {seoContent.keywords.slice(0, 4).join(', ')}
-            </p>
-            <p>
-              <strong>Related content:</strong> {seoContent.keywords.slice(4).join(', ')}
-            </p>
-          </div>
         </div>
 
         {/* Related Content Section */}
