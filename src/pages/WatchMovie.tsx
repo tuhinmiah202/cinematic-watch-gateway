@@ -263,11 +263,11 @@ const WatchMovie = () => {
                             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                           >
                             <ExternalLink className="w-5 h-5 mr-2" />
-                            Find Streaming Options
+                            Download Now
                           </Button>
                         </div>
                         <p className="text-gray-300 text-xs mt-3 px-4">
-                          You will be redirected to search for streaming options
+                          Click to start your download
                         </p>
                       </>
                     )}
