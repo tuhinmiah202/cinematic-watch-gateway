@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LogOut, Film, Plus, Search, Home, Settings, Bell } from 'lucide-react';
+import { LogOut, Film, Plus, Search, Home, Settings, Bell, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SitemapManager from "@/components/admin/SitemapManager";
 import NotificationsPanel from "@/components/admin/NotificationsPanel";
 import { Network } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
+import { adSettingsService } from '@/services/adSettingsService';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -40,6 +41,17 @@ const AdminDashboard = () => {
   const [manualStreamingUrl, setManualStreamingUrl] = useState('');
 
   const [currentTab, setCurrentTab] = useState<"dashboard" | "sitemap" | "notifications">("dashboard");
+  const [adsEnabled, setAdsEnabled] = useState(adSettingsService.areAdsEnabled());
+
+  const handleToggleAds = () => {
+    const newState = !adsEnabled;
+    adSettingsService.toggleAds(newState);
+    setAdsEnabled(newState);
+    toast({
+      title: newState ? "Ads Enabled" : "Ads Disabled",
+      description: newState ? "All ads are now active." : "All ads have been turned off.",
+    });
+  };
 
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth');
@@ -293,7 +305,7 @@ const AdminDashboard = () => {
         {currentTab === "dashboard" && (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-white flex items-center gap-2 text-sm">
@@ -343,6 +355,31 @@ const AdminDashboard = () => {
                     onClick={() => navigate('/admin/manage')}
                   >
                     Manage Content
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className={`border-gray-700 ${adsEnabled ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white flex items-center gap-2 text-sm">
+                    {adsEnabled ? (
+                      <ToggleRight className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <ToggleLeft className="w-4 h-4 text-red-400" />
+                    )}
+                    Ads Control
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    className={`w-full text-sm ${
+                      adsEnabled 
+                        ? 'bg-red-600 hover:bg-red-700' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                    onClick={handleToggleAds}
+                  >
+                    {adsEnabled ? 'Disable Ads' : 'Enable Ads'}
                   </Button>
                 </CardContent>
               </Card>

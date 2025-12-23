@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
+import { adSettingsService } from '@/services/adSettingsService';
 
 const AD_URL = 'https://www.revenuecpmgate.com/jv9gi4g38?key=3033a8c9472ea7342ecdcbf17d0b52f2';
 const RESET_TIMEOUT = 60000; // 1 minute in milliseconds
 
 export const useAdClickTrackerSingle = (contentId: string) => {
   const [hasClicked, setHasClicked] = useState(false);
+  const [adsEnabled, setAdsEnabled] = useState(adSettingsService.areAdsEnabled());
+
+  useEffect(() => {
+    const handleAdSettingsChange = (e: CustomEvent) => {
+      setAdsEnabled(e.detail.adsEnabled);
+    };
+
+    window.addEventListener('adSettingsChanged', handleAdSettingsChange as EventListener);
+    return () => {
+      window.removeEventListener('adSettingsChanged', handleAdSettingsChange as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const storageKey = `ad_clicks_single_${contentId}`;
@@ -26,6 +39,12 @@ export const useAdClickTrackerSingle = (contentId: string) => {
   }, [contentId]);
 
   const handleClickWithAd = (callback: () => void) => {
+    // If ads are disabled, execute callback directly without showing ad
+    if (!adsEnabled) {
+      callback();
+      return;
+    }
+
     const storageKey = `ad_clicks_single_${contentId}`;
     const timestampKey = `ad_clicks_single_timestamp_${contentId}`;
     
@@ -38,5 +57,5 @@ export const useAdClickTrackerSingle = (contentId: string) => {
     callback();
   };
 
-  return { handleClickWithAd, hasClicked };
+  return { handleClickWithAd, hasClicked, adsEnabled };
 };
