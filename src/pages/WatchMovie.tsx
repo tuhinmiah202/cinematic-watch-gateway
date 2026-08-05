@@ -113,38 +113,60 @@ const WatchMovie = () => {
     const fetchTorrent = async () => {
       if (!finalImdbId) return;
       setIsTorrentLoading(true);
+      setTorrentData(null); // Reset
 
-      try {
-        const type = isTV ? 'series' : 'movie';
-        const torrentioUrl = isTV
-          ? `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei/stream/series/${finalImdbId}:${season}:${episode}.json`
-          : `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei/stream/movie/${finalImdbId}.json`;
+      const providers = 'yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei';
 
-        const response = await fetch(torrentioUrl);
-        const data = await response.json();
+      // Try multiple Torrentio mirrors for reliability
+      const mirrors = [
+        `https://torrentio.strem.fun/providers=${providers}`,
+        `https://torrentio.fun/providers=${providers}`,
+        `https://strem.fun/providers=${providers}`
+      ];
 
-        if (data.streams && data.streams.length > 0) {
-          // Priority 1: Hindi/Dual Audio
-          const hindiStreams = data.streams.filter((s: any) =>
-            s.title.toLowerCase().includes('hindi') ||
-            s.title.toLowerCase().includes('dual audio')
-          );
+      let foundStream = false;
 
-          const selectedStream = hindiStreams.length > 0 ? hindiStreams[0] : data.streams[0];
+      for (const mirror of mirrors) {
+        if (foundStream) break;
 
-          // Torrentio streams usually provide an infoHash
-          if (selectedStream.infoHash) {
-             const magnet = `magnet:?xt=urn:btih:${selectedStream.infoHash}&dn=${encodeURIComponent(selectedStream.title.split('\n')[0])}`;
-             setTorrentData({ magnet, title: selectedStream.title });
-          } else if (selectedStream.url && selectedStream.url.startsWith('magnet:')) {
-             setTorrentData({ magnet: selectedStream.url, title: selectedStream.title });
+        try {
+          const type = isTV ? 'series' : 'movie';
+          const url = isTV
+            ? `${mirror}/stream/series/${finalImdbId}:${season}:${episode}.json`
+            : `${mirror}/stream/movie/${finalImdbId}.json`;
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          const data = await response.json();
+
+          if (data.streams && data.streams.length > 0) {
+            // Priority 1: Hindi/Dual Audio
+            const hindiStreams = data.streams.filter((s: any) =>
+              s.title.toLowerCase().includes('hindi') ||
+              s.title.toLowerCase().includes('dual audio')
+            );
+
+            const selectedStream = hindiStreams.length > 0 ? hindiStreams[0] : data.streams[0];
+
+            if (selectedStream.infoHash) {
+               const magnet = `magnet:?xt=urn:btih:${selectedStream.infoHash}&dn=${encodeURIComponent(selectedStream.title.split('\n')[0])}`;
+               setTorrentData({ magnet, title: selectedStream.title });
+               foundStream = true;
+            } else if (selectedStream.url && selectedStream.url.startsWith('magnet:')) {
+               setTorrentData({ magnet: selectedStream.url, title: selectedStream.title });
+               foundStream = true;
+            }
           }
+        } catch (error) {
+          console.warn(`Mirror ${mirror} failed:`, error);
         }
-      } catch (error) {
-        console.error("Torrentio error:", error);
-      } finally {
-        setIsTorrentLoading(false);
       }
+
+      setIsTorrentLoading(false);
     };
 
     if (finalImdbId) {
@@ -153,32 +175,36 @@ const WatchMovie = () => {
   }, [finalImdbId, isTV, season, episode]);
 
   const getEmbedUrl = () => {
+    // If torrent is selected but failed, it will fallback to embed.su or other servers automatically
     if (selectedServer === 'torrent' && torrentData?.magnet) {
       const encodedMagnet = encodeURIComponent(torrentData.magnet);
       return `https://b-cdn.net/${encodedMagnet}`;
     }
 
-    if (!tmdbId) return '';
+    // Default Embed.su logic for failure or non-torrent servers
+    if (!tmdbId && !finalImdbId) return '';
+
+    const idForEmbed = finalImdbId || tmdbId;
 
     if (isTV) {
       switch (selectedServer) {
+        case 'torrent': // Fallback for torrent
+          return `https://embed.su/embed/tv/${idForEmbed}/${season}/${episode}`;
         case 'server1':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2':
           return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
-        case 'server3':
-          return `https://www.2embed.cc/embed/tv?tmdb=${tmdbId}&s=${season}&e=${episode}`;
         default:
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
+        case 'torrent': // Fallback for torrent
+          return `https://embed.su/embed/movie/${idForEmbed}`;
         case 'server1':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2':
           return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
-        case 'server3':
-          return `https://www.2embed.cc/embed/movie?tmdb=${tmdbId}`;
         default:
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -237,12 +263,6 @@ const WatchMovie = () => {
                 <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
                 <p className="text-white font-medium">Fetching best Hindi torrent stream...</p>
               </div>
-            ) : selectedServer === 'torrent' && !torrentData?.magnet ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-10 p-6 text-center">
-                <Film className="h-16 w-16 text-gray-500 mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Torrent Stream Found</h3>
-                <p className="text-gray-400 max-w-md">We couldn't find a direct torrent stream for this title. Please switch to another server below.</p>
-              </div>
             ) : (
               <iframe
                 src={getEmbedUrl()}
@@ -263,9 +283,9 @@ const WatchMovie = () => {
             </div>
           </div>
 
-          {/* Torrent Download Button */}
-          {selectedServer === 'torrent' && torrentData?.magnet && (
-            <div className="mt-4">
+          {/* Download Button Section */}
+          <div className="mt-4 flex flex-col gap-2">
+            {selectedServer === 'torrent' && torrentData?.magnet ? (
               <Button
                 onClick={() => window.open(torrentData.magnet, '_self')}
                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-6 rounded-2xl shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
@@ -273,11 +293,22 @@ const WatchMovie = () => {
                 <Download className="w-6 h-6" />
                 Download Movie via Torrent (Hindi Dubbed)
               </Button>
-              <p className="text-[10px] text-gray-500 text-center mt-2 px-4 line-clamp-1">
-                Found: {torrentData.title.split('\n')[0]}
+            ) : (
+              <Button
+                onClick={() => window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank')}
+                className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 border border-white/10"
+              >
+                <Download className="w-6 h-6" />
+                Search & Download Torrent (External)
+              </Button>
+            )}
+
+            {torrentData?.title && (
+              <p className="text-[10px] text-gray-500 text-center px-4 line-clamp-1">
+                Active Torrent: {torrentData.title.split('\n')[0]}
               </p>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Controls & Server Switcher */}
           <div className="mt-6 flex flex-col md:flex-row gap-6 items-start justify-between bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
