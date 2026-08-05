@@ -64,6 +64,23 @@ const WatchMovie = () => {
     enabled: !!tmdbId && !imdbId
   });
 
+  const { data: relatedContent = [] } = useQuery({
+    queryKey: ['watch-related-content', tmdbId, isTV],
+    queryFn: async () => {
+      if (!tmdbId) return [];
+
+      const response = isTV
+        ? await tmdbService.getTVShowRecommendations(Number(tmdbId))
+        : await tmdbService.getMovieRecommendations(Number(tmdbId));
+
+      return (response.results || [])
+        .filter((item) => item.id !== Number(tmdbId))
+        .slice(0, 12)
+        .map((item) => ({ ...item, media_type: isTV ? 'tv' : 'movie' }));
+    },
+    enabled: Number.isFinite(Number(tmdbId)) && Number(tmdbId) > 0
+  });
+
   const finalImdbId = useMemo(() => {
     const rawId = imdbId || externalIds?.imdb_id;
     if (!rawId) return null;
