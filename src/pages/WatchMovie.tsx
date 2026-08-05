@@ -83,7 +83,11 @@ const WatchMovie = () => {
     enabled: !!tmdbId && !imdbId
   });
 
-  const finalImdbId = imdbId || externalIds?.imdb_id;
+  const finalImdbId = useMemo(() => {
+    const rawId = imdbId || externalIds?.imdb_id;
+    if (!rawId) return null;
+    return rawId.toString().startsWith('tt') ? rawId.toString() : `tt${rawId}`;
+  }, [imdbId, externalIds]);
 
   // Related content ("More Like This")
   const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
@@ -113,15 +117,14 @@ const WatchMovie = () => {
     const fetchTorrent = async () => {
       if (!finalImdbId) return;
       setIsTorrentLoading(true);
-      setTorrentData(null); // Reset
+      setTorrentData(null);
 
       const providers = 'yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei';
 
-      // Try multiple Torrentio mirrors for reliability
       const mirrors = [
-        `https://torrentio.strem.fun/providers=${providers}`,
-        `https://torrentio.fun/providers=${providers}`,
-        `https://strem.fun/providers=${providers}`
+        `https://torrentio.strem.fun`,
+        `https://torrentio.fun`,
+        `https://strem.fun`
       ];
 
       let foundStream = false;
@@ -132,11 +135,11 @@ const WatchMovie = () => {
         try {
           const type = isTV ? 'series' : 'movie';
           const url = isTV
-            ? `${mirror}/stream/series/${finalImdbId}:${season}:${episode}.json`
-            : `${mirror}/stream/movie/${finalImdbId}.json`;
+            ? `${mirror}/providers=${providers}/stream/series/${finalImdbId}:${season}:${episode}.json`
+            : `${mirror}/providers=${providers}/stream/movie/${finalImdbId}.json`;
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
 
           const response = await fetch(url, { signal: controller.signal });
           clearTimeout(timeoutId);
@@ -144,25 +147,26 @@ const WatchMovie = () => {
           const data = await response.json();
 
           if (data.streams && data.streams.length > 0) {
-            // Priority 1: Hindi/Dual Audio
             const hindiStreams = data.streams.filter((s: any) =>
               s.title.toLowerCase().includes('hindi') ||
-              s.title.toLowerCase().includes('dual audio')
+              s.title.toLowerCase().includes('dual audio') ||
+              s.title.toLowerCase().includes('hindi dubbed')
             );
 
             const selectedStream = hindiStreams.length > 0 ? hindiStreams[0] : data.streams[0];
 
             if (selectedStream.infoHash) {
-               const magnet = `magnet:?xt=urn:btih:${selectedStream.infoHash}&dn=${encodeURIComponent(selectedStream.title.split('\n')[0])}`;
+               const trackers = "&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce";
+               const magnet = `magnet:?xt=urn:btih:${selectedStream.infoHash}&dn=${encodeURIComponent(selectedStream.title.split('\n')[0])}${trackers}`;
                setTorrentData({ magnet, title: selectedStream.title });
                foundStream = true;
-            } else if (selectedStream.url && selectedStream.url.startsWith('magnet:')) {
+            } else if (selectedStream.url && (selectedStream.url.startsWith('magnet:') || selectedStream.url.includes('infoHash'))) {
                setTorrentData({ magnet: selectedStream.url, title: selectedStream.title });
                foundStream = true;
             }
           }
         } catch (error) {
-          console.warn(`Mirror ${mirror} failed:`, error);
+          console.warn(`Mirror ${mirror} failed or timed out`);
         }
       }
 
@@ -175,20 +179,18 @@ const WatchMovie = () => {
   }, [finalImdbId, isTV, season, episode]);
 
   const getEmbedUrl = () => {
-    // If torrent is selected but failed, it will fallback to embed.su or other servers automatically
     if (selectedServer === 'torrent' && torrentData?.magnet) {
       const encodedMagnet = encodeURIComponent(torrentData.magnet);
       return `https://b-cdn.net/${encodedMagnet}`;
     }
 
-    // Default Embed.su logic for failure or non-torrent servers
     if (!tmdbId && !finalImdbId) return '';
 
     const idForEmbed = finalImdbId || tmdbId;
 
     if (isTV) {
       switch (selectedServer) {
-        case 'torrent': // Fallback for torrent
+        case 'torrent':
           return `https://embed.su/embed/tv/${idForEmbed}/${season}/${episode}`;
         case 'server1':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
@@ -199,7 +201,7 @@ const WatchMovie = () => {
       }
     } else {
       switch (selectedServer) {
-        case 'torrent': // Fallback for torrent
+        case 'torrent':
           return `https://embed.su/embed/movie/${idForEmbed}`;
         case 'server1':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
@@ -210,6 +212,8 @@ const WatchMovie = () => {
       }
     }
   };
+
+  const isTorrentFallback = selectedServer === 'torrent' && !torrentData?.magnet;
 
   if (isLoading) {
     return (
@@ -250,7 +254,7 @@ const WatchMovie = () => {
           <div className="flex-1 text-center truncate px-4">
             <h1 className="text-lg font-bold truncate">{title}</h1>
           </div>
-          <div className="w-[100px] md:w-[150px]"></div> {/* Spacer for symmetry */}
+          <div className="w-[100px] md:w-[150px]"></div>
         </div>
       </div>
 
@@ -272,10 +276,11 @@ const WatchMovie = () => {
                 title="Player"
                 allowFullScreen
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                sandbox={isTorrentFallback ? "allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock" : undefined}
               ></iframe>
             )}
 
-            {/* Disclaimer overlay for first load */}
+            {/* Disclaimer overlay */}
             <div className="absolute top-4 left-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-gray-400 border border-white/10 uppercase tracking-widest font-black">
                 {selectedServer === 'torrent' ? 'Premium Torrent Server (Hindi Priority)' : selectedServer === 'server1' ? 'Server 1: Multi-Audio' : 'Server 2: High Quality'}
@@ -286,13 +291,13 @@ const WatchMovie = () => {
           {/* Download Button Section */}
           <div className="mt-4 flex flex-col gap-2">
             {selectedServer === 'torrent' && torrentData?.magnet ? (
-              <Button
-                onClick={() => window.open(torrentData.magnet, '_self')}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-6 rounded-2xl shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+              <a
+                href={torrentData.magnet}
+                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3 no-underline"
               >
                 <Download className="w-6 h-6" />
                 Download Movie via Torrent (Hindi Dubbed)
-              </Button>
+              </a>
             ) : (
               <Button
                 onClick={() => window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank')}
@@ -386,7 +391,6 @@ const WatchMovie = () => {
             )}
           </div>
 
-          {/* Ad Protection Notice */}
           <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-4">
             <div className="bg-yellow-500/20 p-2 rounded-xl">
               <Layout className="w-5 h-5 text-yellow-500" />
@@ -394,7 +398,7 @@ const WatchMovie = () => {
             <div>
               <h4 className="text-yellow-500 font-bold text-sm">Player Optimization</h4>
               <p className="text-gray-400 text-xs mt-1">
-                We've optimized the player for all browsers. If the video doesn't play, please try switching between Server 1, 2, or 3.
+                We've optimized the player for all browsers. If the video doesn't play, please try switching between Torrent Stream, Server 1, or 2.
               </p>
             </div>
           </div>
