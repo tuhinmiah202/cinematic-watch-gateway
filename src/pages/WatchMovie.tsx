@@ -162,7 +162,8 @@ const WatchMovie = () => {
 
   const getEmbedUrl = () => {
     if (selectedServer === 'torrent' && torrentData?.magnet) {
-      return `https://b-cdn.net/${encodeURIComponent(torrentData.magnet)}`;
+      // Use webtor.io - a much more reliable web-based torrent player
+      return `https://webtor.io/show?magnet=${encodeURIComponent(torrentData.magnet)}`;
     }
 
     // Server Fallbacks
@@ -172,6 +173,7 @@ const WatchMovie = () => {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
+        case 'hindi': return `https://hindiapi.top/video/tv/${tmdbId}/${season}/${episode}`;
         case 'torrent': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
@@ -179,6 +181,7 @@ const WatchMovie = () => {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
+        case 'hindi': return `https://hindiapi.top/video/movie/${tmdbId}`;
         case 'torrent': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -271,18 +274,28 @@ const WatchMovie = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Torrentio Download */}
-              <a
-                href={torrentData?.magnet || `https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`}
-                target={torrentData?.magnet ? "_self" : "_blank"}
-                rel="noreferrer"
-                className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg no-underline text-white`}
-              >
-                <div className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  <span className="font-bold text-sm">{torrentData?.magnet ? 'Magnet Download' : 'Manual Torrent Search'}</span>
-                </div>
-                <span className="text-[9px] opacity-70 uppercase font-black">Hindi Dubbed Priority</span>
-              </a>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={handleDownloadMagnet}
+                  className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg text-white w-full ${!torrentData?.magnet ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    <span className="font-bold text-sm">Download Torrent</span>
+                  </div>
+                  <span className="text-[9px] opacity-70 uppercase font-black">Hindi Dubbed Priority</span>
+                </Button>
+                {torrentData?.magnet && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyMagnet}
+                    className="text-[10px] text-gray-500 hover:text-white"
+                  >
+                    Copy Magnet Link (Manual)
+                  </Button>
+                )}
+              </div>
 
               {/* Direct Download */}
               <a
@@ -298,16 +311,16 @@ const WatchMovie = () => {
                 <span className="text-[9px] opacity-70 uppercase font-black">Multi-Audio / Fast</span>
               </a>
 
-              {/* Server 2 Fallback */}
+              {/* Server Switch Fallback */}
               <Button
-                onClick={() => setSelectedServer('server2')}
-                className="h-14 bg-gray-800 hover:bg-gray-700 hover:scale-[1.02] transition-all border border-white/5 rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg"
+                onClick={() => setSelectedServer('hindi')}
+                className="h-14 bg-purple-900/50 hover:bg-purple-800 hover:scale-[1.02] transition-all border border-purple-500/20 rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg"
               >
                 <div className="flex items-center gap-2 text-white">
-                  <Server className="w-4 h-4" />
-                  <span className="font-bold text-sm">Switch to VidLink</span>
+                  <Film className="w-4 h-4" />
+                  <span className="font-bold text-sm">Hindi Specialist</span>
                 </div>
-                <span className="text-[9px] opacity-50 uppercase font-black text-white">Alternative Source</span>
+                <span className="text-[9px] opacity-50 uppercase font-black text-white">Dedicated Hindi Server</span>
               </Button>
             </div>
 
@@ -329,11 +342,14 @@ const WatchMovie = () => {
                 <Button onClick={() => setSelectedServer('torrent')} variant={selectedServer === 'torrent' ? 'default' : 'outline'} className={selectedServer === 'torrent' ? 'bg-orange-600' : 'border-white/10'}>
                   <Download className="w-4 h-4 mr-2" /> Torrent Stream
                 </Button>
-                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={selectedServer === 'server1' ? 'bg-purple-600' : 'border-white/10'}>
-                  <Server className="w-4 h-4 mr-2" /> Server 1
+                <Button onClick={() => setSelectedServer('hindi')} variant={selectedServer === 'hindi' ? 'default' : 'outline'} className={selectedServer === 'hindi' ? 'bg-orange-500' : 'border-white/10'}>
+                  <Globe className="w-4 h-4 mr-2" /> Server: Hindi
                 </Button>
                 <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={selectedServer === 'server2' ? 'bg-purple-600' : 'border-white/10'}>
-                  <Server className="w-4 h-4 mr-2" /> Server 2
+                  <Server className="w-4 h-4 mr-2" /> Server: VidLink
+                </Button>
+                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={selectedServer === 'server1' ? 'bg-purple-600' : 'border-white/10'}>
+                  <Server className="w-4 h-4 mr-2" /> Server: Vidsrc
                 </Button>
               </div>
             </div>
