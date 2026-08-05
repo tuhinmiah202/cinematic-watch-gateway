@@ -56,6 +56,16 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
         return await tmdbService.getPopularMovies(page);
       } else if (contentType === 'tv') {
         return await tmdbService.getPopularTVShows(page);
+      } else if (contentType === 'hindi') {
+        // Fetch movies with Hindi original language or specific keywords
+        const response = await fetch(
+          `https://api.themoviedb.org/3/discover/movie?api_key=566149bf98e53cc39a4c04bfe01c03fc&with_original_language=hi&page=${page}&sort_by=popularity.desc`
+        );
+        const data = await response.json();
+        return {
+          results: data.results.map((item: any) => ({ ...item, media_type: 'movie' })),
+          total_pages: data.total_pages
+        };
       } else {
         // For 'all', we might want to combine or just show popular movies
         return await tmdbService.getPopularMovies(page);

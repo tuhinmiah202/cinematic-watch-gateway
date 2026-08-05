@@ -52,6 +52,7 @@ const FilterControls = ({ genres, searchTerm, onSearchTermChange, onGenreChange,
         <ToggleGroupItem value="all" className="bg-gray-800/50 text-gray-300 border-purple-500/20 rounded-md data-[state=on]:bg-purple-600 data-[state=on]:text-white hover:bg-gray-700/50">All</ToggleGroupItem>
         <ToggleGroupItem value="movie" className="bg-gray-800/50 text-gray-300 border-purple-500/20 rounded-md data-[state=on]:bg-purple-600 data-[state=on]:text-white hover:bg-gray-700/50">Movies</ToggleGroupItem>
         <ToggleGroupItem value="tv" className="bg-gray-800/50 text-gray-300 border-purple-500/20 rounded-md data-[state=on]:bg-purple-600 data-[state=on]:text-white hover:bg-gray-700/50">TV Series</ToggleGroupItem>
+        <ToggleGroupItem value="hindi" className="bg-gray-800/50 text-orange-400 border-orange-500/20 rounded-md data-[state=on]:bg-orange-600 data-[state=on]:text-white hover:bg-orange-700/50 font-bold">Hindi Dubbed</ToggleGroupItem>
         <ToggleGroupItem value="animation" className="bg-gray-800/50 text-gray-300 border-purple-500/20 rounded-md data-[state=on]:bg-purple-600 data-[state=on]:text-white hover:bg-gray-700/50">Animation</ToggleGroupItem>
       </ToggleGroup>
     </div>
