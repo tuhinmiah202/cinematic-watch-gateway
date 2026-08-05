@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Play, Layout, Globe, Server, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import MovieCard from '@/components/MovieCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const movieId = id || '0';
 
+  const [selectedServer, setSelectedServer] = useState('server1');
+  const [season, setSeason] = useState(1);
+  const [episode, setEpisode] = useState(1);
+
   const handleBack = () => {
-    // Always use browser's natural back behavior to prevent loops
     navigate(-1);
   };
 
@@ -42,7 +45,8 @@ const WatchMovie = () => {
       if (isNaN(numericId)) return null;
       
       try {
-        return await tmdbService.getMovieDetails(numericId);
+        const details = await tmdbService.getMovieDetails(numericId);
+        return details;
       } catch (movieError) {
         try {
           return await tmdbService.getTVShowDetails(numericId);
@@ -54,87 +58,79 @@ const WatchMovie = () => {
     enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
-  const isSupabaseContent = !!supabaseContent;
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || isLoadingTmdb;
-  const isTV = isSupabaseContent
+  const isTV = supabaseContent
     ? supabaseContent.content_type === 'series'
-    : !!(tmdbContent && 'name' in tmdbContent);
+    : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
 
-  const { data: relatedContent, isLoading: isLoadingRelated } = useQuery({
+  const tmdbId = movie?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
+
+  const { data: relatedContent } = useQuery({
     queryKey: ['related-content', movieId, isTV],
     queryFn: async () => {
-      if (isSupabaseContent) {
-        // For Supabase content, show popular content as recommendations
-        try {
-          if (isTV) {
-            const { results } = await tmdbService.getPopularTVShows();
-            return results || [];
-          } else {
-            const { results } = await tmdbService.getPopularMovies();
-            return results || [];
-          }
-        } catch (error) {
-          console.error("Error fetching related content for Supabase item:", error);
-          return [];
+      if (!tmdbId) return [];
+      try {
+        if (isTV) {
+          const data = await tmdbService.getTVShowRecommendations(tmdbId);
+          return data.results || [];
+        } else {
+          const data = await tmdbService.getMovieRecommendations(tmdbId);
+          return data.results || [];
         }
-      } else if (tmdbContent) {
-        // For TMDB content, fetch recommendations
-        const numericId = parseInt(movieId as string);
-        if (isNaN(numericId)) return [];
-        try {
-          if (isTV) {
-            const data = await tmdbService.getTVShowRecommendations(numericId);
-            return data.results || [];
-          } else {
-            const data = await tmdbService.getMovieRecommendations(numericId);
-            return data.results || [];
-          }
-        } catch (error) {
-          console.error("Error fetching related content for TMDB item:", error);
-          return [];
-        }
+      } catch (error) {
+        return [];
       }
-      return [];
     },
-    enabled: !!movie && !isLoading,
+    enabled: !!movie && !!tmdbId,
   });
 
-  const handleWatchNow = () => {
-    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
+  const getEmbedUrl = () => {
+    if (!tmdbId) return '';
 
-    if (streamingUrl) {
-      window.open(streamingUrl, '_blank');
+    // Server 1: SuperEmbed (Hindi Priority)
+    // Server 2: 2Embed
+    // Server 3: Vidsrc
+
+    if (isTV) {
+      switch (selectedServer) {
+        case 'server1':
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+        case 'server2':
+          return `https://www.2embed.cc/embed/tv?tmdb=${tmdbId}&s=${season}&e=${episode}`;
+        case 'server3':
+          return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        default:
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+      }
     } else {
-      const title = (movie as any)?.title || (movie as any)?.name || 'movie';
-      const tmdbId = (movie as any)?.tmdb_id || (movie as any)?.id;
-      
-      // Use vidsrc as a direct player fallback for TMDB content
-      const playerUrl = isTV
-        ? `https://vidsrc.me/embed/tv?tmdb=${tmdbId}`
-        : `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-
-      window.open(playerUrl, '_blank');
+      switch (selectedServer) {
+        case 'server1':
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+        case 'server2':
+          return `https://www.2embed.cc/embed/movie?tmdb=${tmdbId}`;
+        case 'server3':
+          return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+        default:
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+      }
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
       </div>
     );
   }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="text-center text-white">
-          <h1 className="text-xl font-bold mb-4">Content not found</h1>
-          <Button 
-            onClick={() => navigate('/')}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
+          <h1 className="text-2xl font-bold mb-4">Content not found</h1>
+          <Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">
             Return Home
           </Button>
         </div>
@@ -142,126 +138,167 @@ const WatchMovie = () => {
     );
   }
 
-  const title = isSupabaseContent ? (movie as any).title : ((movie as any).title || (movie as any).name);
-  const posterUrl = isSupabaseContent 
-    ? (movie as any).poster_url || '/placeholder.svg'
-    : tmdbService.getImageUrl((movie as any).poster_path);
-
-  const hasStreamingLink = (movie as any)?.streaming_links?.[0]?.url;
+  const title = movie.title || movie.name;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <div className="bg-black/50 backdrop-blur-md border-b border-purple-500/20">
-        <div className="container mx-auto px-4 py-4">
+      <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button 
             onClick={handleBack}
-            variant="outline" 
-            size="sm" 
-            className="bg-black/50 text-white border-white/20 hover:bg-white/10"
+            variant="ghost"
+            className="text-gray-400 hover:text-white hover:bg-white/5"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Movie
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            <span className="hidden md:inline">Back to Detail</span>
           </Button>
+          <div className="flex-1 text-center truncate px-4">
+            <h1 className="text-lg font-bold truncate">{title}</h1>
+          </div>
+          <div className="w-[100px] md:w-[150px]"></div> {/* Spacer for symmetry */}
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-            {/* Poster and mobile title */}
-            <div className="flex flex-row gap-4 items-start lg:block lg:col-span-4">
-              <div className="w-1/3 lg:w-full shrink-0">
-                <img
-                  src={posterUrl}
-                  alt={title}
-                  className="w-full h-auto object-cover rounded-xl shadow-2xl"
-                />
-              </div>
-              <div className="w-2/3 lg:hidden">
-                <h1 className="text-lg font-bold text-white mb-1 line-clamp-3">{title}</h1>
-                <p className="text-xs text-gray-300">
-                  {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
-                </p>
-              </div>
-            </div>
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Player Container */}
+          <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/5 group">
+            <iframe
+              src={getEmbedUrl()}
+              className="w-full h-full"
+              allowFullScreen
+              frameBorder="0"
+              scrolling="no"
+              title="Player"
+              sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
+            ></iframe>
 
-            {/* Details and Watch Button */}
-            <div className="w-full lg:col-span-8 mt-6 lg:mt-0">
-              {/* Movie Info for Desktop */}
-              <div className="hidden lg:block mb-6 text-left">
-                <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">{title}</h1>
-                <p className="text-lg text-gray-300">
-                  {hasStreamingLink ? 'Direct streaming available' : 'Search for streaming options'}
-                </p>
-              </div>
-
-              {/* Embedded Player or Watch Button */}
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-purple-500/20">
-                  <div className="text-center">
-                    <Play className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                    <h2 className="text-xl lg:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
-                    
-                    {hasStreamingLink ? (
-                      <>
-                        <div className="w-full max-w-sm mx-auto">
-                          <Button 
-                            onClick={handleWatchNow}
-                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                          >
-                            <ExternalLink className="w-5 h-5 mr-2" />
-                            Stream Now
-                          </Button>
-                        </div>
-                        <p className="text-gray-300 text-xs mt-3 px-4">
-                          Direct streaming available for this content
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-full max-w-sm mx-auto">
-                          <Button 
-                            onClick={handleWatchNow}
-                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                          >
-                            <ExternalLink className="w-5 h-5 mr-2" />
-                            Stream Now
-                          </Button>
-                        </div>
-                        <p className="text-gray-300 text-xs mt-3 px-4">
-                          Click to start streaming via our premium player
-                        </p>
-                      </>
-                    )}
-                  </div>
-              </div>
+            {/* Disclaimer overlay for first load */}
+            <div className="absolute top-4 left-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-gray-400 border border-white/10 uppercase tracking-widest font-black">
+                {selectedServer === 'server1' ? 'Server 1: Hindi Priority' : selectedServer === 'server2' ? 'Server 2: Multi-Language' : 'Server 3: Fast Buffer'}
+               </span>
             </div>
           </div>
-          
-          {/* Related Content */}
-          <div className="mt-12">
-            {/* Related Content */}
-            {relatedContent && relatedContent.length > 0 && (
-              <div className="text-left relative">
-                <h2 className="text-xl font-bold text-white mb-4">You might also like</h2>
-                  <Carousel
-                    opts={{
-                      align: "start",
-                      slidesToScroll: 2,
-                    }}
-                    className="w-full"
-                  >
-                    <CarouselContent className="-ml-2 md:-ml-4">
-                      {relatedContent.map((movie, index) => (
-                        <CarouselItem key={`${movie.id}-${index}`} className="pl-2 md:pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
-                          <MovieCard movie={movie} />
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="left-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
-                    <CarouselNext className="right-2 bg-black/50 text-white border-white/20 hover:bg-white/10 disabled:hidden" />
-                  </Carousel>
+
+          {/* Controls & Server Switcher */}
+          <div className="mt-6 flex flex-col md:flex-row gap-6 items-start justify-between bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <Globe className="w-5 h-5 text-purple-400" />
+                <h2 className="text-xl font-bold">Select Server</h2>
               </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => setSelectedServer('server1')}
+                  variant={selectedServer === 'server1' ? 'default' : 'outline'}
+                  className={selectedServer === 'server1' ? 'bg-purple-600 hover:bg-purple-700' : 'border-white/10 hover:bg-white/5'}
+                >
+                  <Server className="w-4 h-4 mr-2" />
+                  Server 1 (Hindi)
+                </Button>
+                <Button
+                  onClick={() => setSelectedServer('server2')}
+                  variant={selectedServer === 'server2' ? 'default' : 'outline'}
+                  className={selectedServer === 'server2' ? 'bg-purple-600 hover:bg-purple-700' : 'border-white/10 hover:bg-white/5'}
+                >
+                  <Server className="w-4 h-4 mr-2" />
+                  Server 2
+                </Button>
+                <Button
+                  onClick={() => setSelectedServer('server3')}
+                  variant={selectedServer === 'server3' ? 'default' : 'outline'}
+                  className={selectedServer === 'server3' ? 'bg-purple-600 hover:bg-purple-700' : 'border-white/10 hover:bg-white/5'}
+                >
+                  <Server className="w-4 h-4 mr-2" />
+                  Server 3
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                Tip: Server 1 usually contains Hindi dubbed content by default. If it doesn't work, try Server 2 or 3.
+              </p>
+            </div>
+
+            {isTV && (
+              <div className="w-full md:w-auto space-y-4">
+                <div className="flex items-center gap-3">
+                  <List className="w-5 h-5 text-blue-400" />
+                  <h2 className="text-xl font-bold">Episodes</h2>
+                </div>
+                <div className="flex gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-500 uppercase font-black ml-1">Season</label>
+                    <Select value={season.toString()} onValueChange={(v) => setSeason(parseInt(v))}>
+                      <SelectTrigger className="w-24 bg-black/40 border-white/10 text-white rounded-xl">
+                        <SelectValue placeholder="S1" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 border-white/10 text-white">
+                        {[...Array(20)].map((_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>S {i + 1}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-500 uppercase font-black ml-1">Episode</label>
+                    <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}>
+                      <SelectTrigger className="w-24 bg-black/40 border-white/10 text-white rounded-xl">
+                        <SelectValue placeholder="E1" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 border-white/10 text-white">
+                        {[...Array(50)].map((_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>E {i + 1}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Ad Protection Notice */}
+          <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-4">
+            <div className="bg-yellow-500/20 p-2 rounded-xl">
+              <Layout className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div>
+              <h4 className="text-yellow-500 font-bold text-sm">Ad Shield Active</h4>
+              <p className="text-gray-400 text-xs mt-1">
+                We've applied sandboxing to the player to reduce pop-under ads. If the video doesn't play, please disable your browser's ad-blocker for this site or try a different server.
+              </p>
+            </div>
+          </div>
+
+          {/* Related Content */}
+          <div className="mt-16">
+            <h2 className="text-2xl font-black text-white mb-8 flex items-center gap-3">
+                <span className="w-2 h-8 bg-purple-600 rounded-full"></span>
+                More Like This
+            </h2>
+            {relatedContent && relatedContent.length > 0 ? (
+              <div className="relative">
+                <Carousel
+                  opts={{
+                    align: "start",
+                    slidesToScroll: 2,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent className="-ml-4">
+                    {relatedContent.map((movie, index) => (
+                      <CarouselItem key={`${movie.id}-${index}`} className="pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
+                        <MovieCard movie={movie} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-colors" />
+                  <CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-colors" />
+                </Carousel>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No recommendations found.</p>
             )}
           </div>
         </div>
