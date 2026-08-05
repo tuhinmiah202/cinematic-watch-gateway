@@ -88,14 +88,14 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: Vidsrc.to (Stremio-style scraper, best for Hindi)
+    // Server 1: Embed.su (Best for Hollywood Hindi Dubbed)
     // Server 2: AutoEmbed.to (Hindi Specialist)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server2':
           return `https://autoembed.to/tv/tmdb/${tmdbId}-${season}-${episode}`;
         case 'server3':
@@ -106,7 +106,7 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.to/embed/movie/${tmdbId}`;
+          return `https://embed.su/embed/movie/${tmdbId}`;
         case 'server2':
           return `https://autoembed.to/movie/tmdb/${tmdbId}`;
         case 'server3':
@@ -215,7 +215,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (Vidsrc.to) uses Stremio-style scrapers to find the best Hindi/Multi-audio sources. Check the player settings for audio language.
+                Tip: Server 1 (Embed.su) is highly recommended for Hollywood movies in Hindi. Use the player's 'Audio' settings to select Hindi if available.
               </p>
             </div>
 

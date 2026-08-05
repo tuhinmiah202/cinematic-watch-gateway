@@ -57,9 +57,9 @@ export const useMovieData = (selectedGenre: string, debouncedSearchTerm: string,
       } else if (contentType === 'tv') {
         return await tmdbService.getPopularTVShows(page);
       } else if (contentType === 'hindi') {
-        // Fetch movies with Hindi original language or specific keywords
+        // Fetch Hollywood (English) movies that are popular in India (proxy for Hindi Dubbed)
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/movie?api_key=566149bf98e53cc39a4c04bfe01c03fc&with_original_language=hi&page=${page}&sort_by=popularity.desc`
+          `https://api.themoviedb.org/3/discover/movie?api_key=566149bf98e53cc39a4c04bfe01c03fc&with_original_language=en&region=IN&page=${page}&sort_by=popularity.desc`
         );
         const data = await response.json();
         return {
