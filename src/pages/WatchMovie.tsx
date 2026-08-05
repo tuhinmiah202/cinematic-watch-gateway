@@ -88,16 +88,16 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: VidSrc.cc (Updated stable domain - Hollywood Hindi Dubbed)
-    // Server 2: AutoEmbed.co (Hindi Specialist - New Domain)
+    // Server 1: SuperPlayer (SuperEmbed - Cleanest Multi-audio)
+    // Server 2: VidSrc.to (Stable, Great for Hollywood Hindi Dubbed)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
         case 'server2':
-          return `https://autoembed.co/tv/tmdb/${tmdbId}-${season}-${episode}`;
+          return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
@@ -106,9 +106,9 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
         case 'server2':
-          return `https://autoembed.co/movie/tmdb/${tmdbId}`;
+          return `https://vidsrc.to/embed/movie/${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
@@ -216,7 +216,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (Vidsrc.cc) and Server 2 (AutoEmbed) are optimized for Hindi audio. Use the player's 'Audio' settings to select Hindi if it starts in English.
+                Tip: Server 1 (SuperPlayer) is highly recommended for Hindi Dubbed movies. Click the 'Audio' settings inside the player to switch to Hindi.
               </p>
             </div>
 
