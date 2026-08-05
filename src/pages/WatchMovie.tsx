@@ -133,14 +133,12 @@ const WatchMovie = () => {
           const data = await response.json();
 
           if (data.streams && data.streams.length > 0) {
-            // High Priority: Hindi/Dual
-            const hindi = data.streams.filter((s: any) =>
-              s.title.toLowerCase().includes('hindi') ||
-              s.title.toLowerCase().includes('dual') ||
-              s.title.toLowerCase().includes('hindi dubbed')
-            );
+            // Strict Priority: "Hindi Dubbed" -> "Hindi" -> "Dual"
+            const dubbed = data.streams.filter((s: any) => s.title.toLowerCase().includes('hindi dubbed'));
+            const hindi = data.streams.filter((s: any) => s.title.toLowerCase().includes('hindi'));
+            const dual = data.streams.filter((s: any) => s.title.toLowerCase().includes('dual'));
 
-            const best = hindi.length > 0 ? hindi[0] : data.streams[0];
+            const best = dubbed.length > 0 ? dubbed[0] : (hindi.length > 0 ? hindi[0] : (dual.length > 0 ? dual[0] : data.streams[0]));
             const hash = best.infoHash || best.url?.match(/btih:([a-fA-F0-9]+)/)?.[1];
 
             if (hash) {
@@ -187,7 +185,7 @@ const WatchMovie = () => {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
-        case 'hindi': return `https://hindiapi.top/video/tv/${tmdbId}/${season}/${episode}`;
+        case 'hindi': return `https://vidsrc.in/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'torrent': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
@@ -195,7 +193,7 @@ const WatchMovie = () => {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
-        case 'hindi': return `https://hindiapi.top/video/movie/${tmdbId}`;
+        case 'hindi': return `https://vidsrc.in/embed/movie/${tmdbId}`;
         case 'torrent': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -357,7 +355,7 @@ const WatchMovie = () => {
                   <Download className="w-4 h-4 mr-2" /> Torrent Stream
                 </Button>
                 <Button onClick={() => setSelectedServer('hindi')} variant={selectedServer === 'hindi' ? 'default' : 'outline'} className={selectedServer === 'hindi' ? 'bg-orange-500' : 'border-white/10'}>
-                  <Globe className="w-4 h-4 mr-2" /> Server: Hindi
+                  <Globe className="w-4 h-4 mr-2" /> Server: Hindi (Auto)
                 </Button>
                 <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={selectedServer === 'server2' ? 'bg-purple-600' : 'border-white/10'}>
                   <Server className="w-4 h-4 mr-2" /> Server: VidLink
@@ -366,6 +364,9 @@ const WatchMovie = () => {
                   <Server className="w-4 h-4 mr-2" /> Server: Vidsrc
                 </Button>
               </div>
+              <p className="text-[10px] text-gray-500 italic">
+                Note: "Server: Hindi" is specifically optimized for Indian audio tracks. If one server doesn't show the language icon, try switching to another.
+              </p>
             </div>
 
             {isTV && (
