@@ -88,16 +88,16 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: Vidsrc.to (Excellent Hindi coverage & Stable)
-    // Server 2: SmashyStream (Alternative Hindi/Multi)
+    // Server 1: AutoEmbed (Hindi Specialist - MovieLinkBD Style)
+    // Server 2: Vidsrc.pro (Alternative Multi-Language)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server2':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+          return `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
@@ -106,9 +106,9 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://vidsrc.to/embed/movie/${tmdbId}`;
+          return `https://player.autoembed.cc/embed/movie/${tmdbId}`;
         case 'server2':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
+          return `https://vidsrc.pro/embed/movie/${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
@@ -215,7 +215,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (Vidsrc.to) and Server 2 (Smashy) usually provide Hindi dubbed options. In the player, click the 'Audio' or 'CC' icon to manually switch to Hindi if it starts in English.
+                Tip: Server 1 (AutoEmbed) is specialized for Hindi Dubbed content. If audio is in English, check the player settings for a Hindi audio track.
               </p>
             </div>
 
