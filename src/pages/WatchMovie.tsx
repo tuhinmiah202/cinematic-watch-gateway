@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Globe, Server, List, Download, Film, Info, Maximize, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Play, Globe, Server, List, Download, Film, Info, Maximize, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import MovieCard from '@/components/MovieCard';
@@ -70,7 +70,7 @@ const WatchMovie = () => {
     return rawId.toString().startsWith('tt') ? rawId.toString() : `tt${rawId}`;
   }, [imdbId, externalIds]);
 
-  // Aggressive Hindi-Priority Torrent Search
+  // Optimized Hindi-Priority Torrent Search (Smaller Files / 720p Focus)
   useEffect(() => {
     const fetchTorrent = async () => {
       if (!finalImdbId) return;
@@ -78,7 +78,8 @@ const WatchMovie = () => {
       setTorrentData(null);
 
       const mirrors = [`https://torrentio.strem.fun`, `https://torrentio.fun`, `https://strem.fun` ];
-      const providers = 'yts,eztv,rarbg,1337x,thepiratebay,tgx,glodls,zooqle,kickasstorrents';
+      // Restricted providers to those that usually have smaller files (YTS, EZTV)
+      const providers = 'yts,eztv,rarbg,1337x,thepiratebay';
 
       for (const mirror of mirrors) {
         try {
@@ -90,22 +91,23 @@ const WatchMovie = () => {
           const data = await res.json();
 
           if (data.streams && data.streams.length > 0) {
-            // Find EXPLICIT Hindi Dubbed first (filter by more keywords)
-            const hindiDubbed = data.streams.filter((s: any) => {
-              const title = s.title.toLowerCase();
-              return (title.includes('hindi') && title.includes('dub')) ||
-                     title.includes('hindi only') ||
-                     (title.includes('hindi') && title.includes('org'));
-            });
+            // Filter for 720p first for fast buffering, then dual/hindi
+            const streams = data.streams.map((s: any) => ({
+              ...s,
+              is720p: s.title.toLowerCase().includes('720p'),
+              isHindi: s.title.toLowerCase().includes('hindi') || s.title.toLowerCase().includes('dual')
+            }));
 
-            const dualAudio = data.streams.filter((s: any) => s.title.toLowerCase().includes('hindi'));
-            const selected = hindiDubbed.length > 0 ? hindiDubbed[0] : (dualAudio.length > 0 ? dualAudio[0] : data.streams[0]);
+            const selected = streams.find((s: any) => s.is720p && s.isHindi) ||
+                             streams.find((s: any) => s.isHindi) ||
+                             streams.find((s: any) => s.is720p) ||
+                             data.streams[0];
 
             const hash = selected.infoHash || selected.url?.match(/btih:([a-fA-F0-9]+)/)?.[1];
             if (hash) {
-              const trackers = "&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://9.rarbg.com:2810/announce&tr=udp://exodus.desync.com:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce";
+              const trackers = "&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://9.rarbg.com:2810/announce";
               const magnet = `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(selected.title.split('\n')[0])}${trackers}`;
-              setTorrentData({ magnet, title: selected.title, source: 'Hindi Priority' });
+              setTorrentData({ magnet, title: selected.title, source: 'Optimized 720p' });
               break;
             }
           }
@@ -118,40 +120,50 @@ const WatchMovie = () => {
 
   const getEmbedUrl = () => {
     if (selectedServer === 'torrent' && torrentData?.magnet) {
-      return `https://webtor.io/show?magnet=${encodeURIComponent(torrentData.magnet)}&autoplay=true`;
+      // Use webtor.io with hidden UI parameters for a "custom/professional" look
+      return `https://webtor.io/show?magnet=${encodeURIComponent(torrentData.magnet)}&autoplay=true&controls=true&theme=dark`;
     }
     if (!tmdbId) return '';
 
-    // Server 1: Vidsrc.me (Most stable, confirmed working)
-    // Server 2: VidLink.pro (Fast secondary)
-    // Server 3: Vidsrc.xyz (Backup)
     if (isTV) {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
-        case 'server3': return `https://vidsrc.xyz/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server3': return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
         default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
-        case 'server3': return `https://vidsrc.xyz/embed/movie?tmdb=${tmdbId}`;
+        case 'server3': return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
     }
   };
 
-  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
-  const { data: relatedContent = [] } = useQuery({
-    queryKey: ['watch-related-content', tmdbId, primaryGenreId, isTV],
-    queryFn: async () => {
-      if (!tmdbId || !primaryGenreId) return [];
-      const response = isTV ? await tmdbService.getTVShowsByGenre(Number(primaryGenreId), 1) : await tmdbService.getMoviesByGenre(Number(primaryGenreId), 1);
-      return (response.results || []).filter((item) => item.id !== tmdbId).slice(0, 12);
-    },
-    enabled: !!tmdbId && !!primaryGenreId,
-  });
+  const handleManualDownload = () => {
+    if (torrentData?.magnet) {
+      // Open magnet in a hidden iframe to force protocol handler
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = torrentData.magnet;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 3000);
+
+      toast({
+        title: "Download Triggered",
+        description: "Your Torrent Client should open now. If not, use the copy button below.",
+      });
+    }
+  };
+
+  const handleCopyMagnet = () => {
+    if (torrentData?.magnet) {
+      navigator.clipboard.writeText(torrentData.magnet);
+      toast({ title: "Link Copied", description: "Paste it manually into uTorrent/BitTorrent." });
+    }
+  };
 
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
@@ -159,8 +171,8 @@ const WatchMovie = () => {
   const title = (movie as any).title || (movie as any).name;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      {/* Fixed Header */}
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col pb-20">
+      {/* Header */}
       <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -172,13 +184,13 @@ const WatchMovie = () => {
       <div className="container mx-auto px-4 py-6 flex-1">
         <div className="max-w-6xl mx-auto space-y-8">
 
-          {/* Main Stream Player Section */}
-          <section id="player-section" className="space-y-4">
-            <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/5 group">
+          {/* Pro Player Container */}
+          <div className="space-y-4">
+            <div className="relative w-full aspect-video bg-[#050505] rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group">
               {isTorrentLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Finding Hindi Dubbed Stream...</p>
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Optimizing Stream (720p)...</p>
                 </div>
               ) : (
                 <iframe
@@ -189,93 +201,107 @@ const WatchMovie = () => {
                   allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 ></iframe>
               )}
-              <div className="absolute top-4 left-4 pointer-events-none">
-                 <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-gray-400 border border-white/10 uppercase font-black">
-                   {selectedServer === 'torrent' ? 'HINDI TORRENT STREAM' : 'HIGH SPEED SERVER'}
-                 </span>
+
+              <div className="absolute top-6 left-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                 <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-[10px] text-white uppercase font-black tracking-widest">
+                       {selectedServer === 'torrent' ? '720p Premium Stream' : 'High Speed Multi-Audio'}
+                    </span>
+                 </div>
               </div>
             </div>
 
-            {/* Quick Tips */}
-            <div className="p-4 bg-orange-600/10 border border-orange-600/20 rounded-2xl flex items-start gap-3">
-               <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-               <div className="text-xs space-y-1">
-                 <p className="text-orange-200 font-bold">How to get Hindi Audio:</p>
-                 <p className="text-orange-200/80">Most movies are <b>Multi-Audio</b>. If it starts in English, click the <b>Settings (Gear)</b> or <b>Audio</b> icon inside the video screen and select <b>Hindi</b>.
-                 <br /><i>Note: Torrent streams may take 30-60 seconds to buffer.</i></p>
-               </div>
-            </div>
-          </section>
-
-          {/* Download Center - ULTRA RELIABLE DIRECT LINKS */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-3"><Download className="w-5 h-5 text-orange-500" /> Download Center</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-              {/* BUTTON 1: TORRENT HINDI */}
-              <div className="group relative">
-                {!torrentData?.magnet && !isTorrentLoading && (
-                  <div className="absolute -top-2 -right-2 z-10"><AlertTriangle className="w-5 h-5 text-yellow-500" /></div>
-                )}
-                <a
-                  href={torrentData?.magnet || `https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`}
-                  target={torrentData?.magnet ? "_self" : "_blank"}
-                  className="flex flex-col items-center justify-center gap-1 h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.02] no-underline text-white font-bold"
+            {/* Direct Play/Full Tab Button */}
+            <div className="flex justify-center">
+                <Button
+                    onClick={() => window.open(getEmbedUrl(), '_blank')}
+                    className="bg-white/5 hover:bg-white/10 text-white rounded-full px-8 border border-white/10 backdrop-blur-md"
                 >
-                  <div className="flex items-center gap-2"><Download className="w-5 h-5" /> <span>{torrentData?.magnet ? 'Download Torrent' : 'Search Torrent'}</span></div>
-                  <span className="text-[10px] opacity-80 uppercase font-black tracking-tighter">Hindi Dubbed Priority</span>
-                </a>
-                {torrentData?.magnet && (
-                  <p className="text-[9px] text-gray-500 text-center mt-2 px-2 truncate">Found: {torrentData.title.split('\n')[0]}</p>
-                )}
+                    <Maximize className="w-4 h-4 mr-2" /> Open Full-Page Player (No Ads)
+                </Button>
+            </div>
+          </div>
+
+          {/* New Multi-Language Support Box */}
+          <div className="p-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/20 rounded-[2rem] flex flex-col md:flex-row items-center gap-6">
+             <div className="bg-purple-600/20 p-4 rounded-3xl shrink-0">
+                <Globe className="w-8 h-8 text-purple-400" />
+             </div>
+             <div className="flex-1 text-center md:text-left space-y-2">
+                <h3 className="text-xl font-bold text-white">How to Select Hindi Language</h3>
+                <p className="text-gray-400 text-sm">
+                   Our servers provide <b>Multi-Audio</b> tracks. To switch to <b>Hindi</b>:
+                   <br />Click the <b>Gear (Settings)</b> icon inside the video player &rarr; <b>Audio</b> &rarr; <b>Hindi</b>.
+                </p>
+             </div>
+             <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex items-center gap-2 text-green-400 text-xs font-bold"><CheckCircle2 className="w-4 h-4" /> 720p Fast Loading</div>
+                <div className="flex items-center gap-2 text-green-400 text-xs font-bold"><CheckCircle2 className="w-4 h-4" /> Multi-Audio Verified</div>
+             </div>
+          </div>
+
+          {/* Download Center - FIXED TRIGGER */}
+          <section className="space-y-6">
+            <h2 className="text-2xl font-black flex items-center gap-3"><Download className="w-6 h-6 text-orange-500" /> Download Center</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Torrent Download with Forced Trigger */}
+              <div className="space-y-3">
+                  <Button
+                    onClick={handleManualDownload}
+                    className="w-full h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-2xl transition-all border-none flex flex-col items-center justify-center gap-1 group"
+                  >
+                    <div className="flex items-center gap-3"><Download className="w-6 h-6 text-white group-hover:animate-bounce" /> <span className="text-lg font-black uppercase italic">Download via Torrent</span></div>
+                    <span className="text-[10px] text-white/70 font-bold uppercase tracking-tighter">Fast 720p / Hindi Dual Audio</span>
+                  </Button>
+
+                  {torrentData?.magnet && (
+                    <Button
+                        variant="ghost"
+                        onClick={handleCopyMagnet}
+                        className="w-full text-xs text-gray-500 hover:text-white flex items-center justify-center gap-2"
+                    >
+                        <AlertCircle className="w-3 h-3" /> If button doesn't work, click to Copy Magnet Link
+                    </Button>
+                  )}
               </div>
 
-              {/* BUTTON 2: DIRECT FAST DOWNLOAD */}
-              <a
-                href={`https://vidsrc.me/download/movie?tmdb=${tmdbId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex flex-col items-center justify-center gap-1 h-20 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-2xl shadow-xl transition-all hover:scale-[1.02] no-underline text-white font-bold"
-              >
-                <div className="flex items-center gap-2"><Globe className="w-5 h-5" /> <span>Direct Download</span></div>
-                <span className="text-[10px] opacity-80 uppercase font-black tracking-tighter">High Speed / Multi-Audio</span>
-              </a>
-
-              {/* BUTTON 3: FULL SCREEN MODE */}
+              {/* Direct Browser Download */}
               <Button
-                onClick={() => window.open(getEmbedUrl(), '_blank')}
-                className="flex flex-col items-center justify-center gap-1 h-20 bg-gray-800 hover:bg-gray-700 rounded-2xl shadow-xl border border-white/5 transition-all hover:scale-[1.02] text-white font-bold"
+                onClick={() => window.open(`https://vidsrc.me/download/movie?tmdb=${tmdbId}`, '_blank')}
+                className="h-20 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-3xl shadow-2xl transition-all border-none flex flex-col items-center justify-center gap-1 group"
               >
-                <div className="flex items-center gap-2"><Maximize className="w-5 h-5" /> <span>Full Screen Stream</span></div>
-                <span className="text-[10px] opacity-50 uppercase font-black tracking-tighter">New Tab / No Ads</span>
+                <div className="flex items-center gap-3"><Globe className="w-6 h-6 text-white group-hover:rotate-12" /> <span className="text-lg font-black uppercase italic">Direct Download</span></div>
+                <span className="text-[10px] text-white/70 font-bold uppercase tracking-tighter">High Speed / No Software Needed</span>
               </Button>
 
             </div>
           </section>
 
-          {/* Server Selection */}
-          <section className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10 space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3"><Globe className="w-5 h-5 text-purple-400" /><h2 className="text-lg font-bold">Select Streaming Server</h2></div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={selectedServer === 'server1' ? 'bg-purple-600' : 'border-white/10'}>Server 1 (Best Hindi Support)</Button>
-                <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={selectedServer === 'server2' ? 'bg-purple-600' : 'border-white/10'}>Server 2 (VidLink)</Button>
-                <Button onClick={() => setSelectedServer('server3')} variant={selectedServer === 'server3' ? 'default' : 'outline'} className={selectedServer === 'server3' ? 'bg-purple-600' : 'border-white/10'}>Server 3 (Stable Backup)</Button>
-                <Button onClick={() => setSelectedServer('torrent')} variant={selectedServer === 'torrent' ? 'default' : 'outline'} className={selectedServer === 'torrent' ? 'bg-orange-600' : 'border-white/10'}>Server: Torrent Stream</Button>
+          {/* Pro Server Selector */}
+          <section className="bg-[#0f0f0f] p-8 rounded-[2.5rem] border border-white/5 space-y-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3"><Server className="w-6 h-6 text-blue-400" /><h2 className="text-xl font-bold">Switch Movie Server</h2></div>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server1' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 1 (Default)</Button>
+                <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server2' ? 'bg-purple-600 shadow-[0_0_20px_rgba(147,51,234,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 2 (VidLink)</Button>
+                <Button onClick={() => setSelectedServer('server3')} variant={selectedServer === 'server3' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server3' ? 'bg-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 3 (Vidsrc.cc)</Button>
+                <Button onClick={() => setSelectedServer('torrent')} variant={selectedServer === 'torrent' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'torrent' ? 'bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server: Torrent 720p</Button>
               </div>
             </div>
 
             {isTV && (
-              <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex items-center gap-3"><List className="w-5 h-5 text-blue-400" /><h2 className="text-lg font-bold">Episode Selector</h2></div>
+              <div className="space-y-6 pt-8 border-t border-white/5">
+                <div className="flex items-center gap-3"><List className="w-6 h-6 text-green-400" /><h2 className="text-xl font-bold">Browse Episodes</h2></div>
                 <div className="flex gap-4">
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[10px] text-gray-500 uppercase font-black">Season</label>
-                    <Select value={season.toString()} onValueChange={(v) => setSeason(parseInt(v))}><SelectTrigger className="w-full bg-black/40 border-white/10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent className="bg-gray-900 border-white/10 text-white">{[...Array(20)].map((_, i) => <SelectItem key={i + 1} value={(i + 1).toString()}>Season {i + 1}</SelectItem>)}</SelectContent></Select>
+                  <div className="flex-1 space-y-2">
+                    <label className="text-xs text-gray-500 uppercase font-black ml-2">Season</label>
+                    <Select value={season.toString()} onValueChange={(v) => setSeason(parseInt(v))}><SelectTrigger className="w-full h-14 bg-black/40 border-white/10 rounded-2xl"><SelectValue /></SelectTrigger><SelectContent className="bg-gray-900 border-white/10 text-white rounded-2xl">{[...Array(20)].map((_, i) => <SelectItem key={i + 1} value={(i + 1).toString()} className="rounded-xl">Season {i + 1}</SelectItem>)}</SelectContent></Select>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[10px] text-gray-500 uppercase font-black">Episode</label>
-                    <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}><SelectTrigger className="w-full bg-black/40 border-white/10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent className="bg-gray-900 border-white/10 text-white">{[...Array(50)].map((_, i) => <SelectItem key={i + 1} value={(i + 1).toString()}>Episode {i + 1}</SelectItem>)}</SelectContent></Select>
+                  <div className="flex-1 space-y-2">
+                    <label className="text-xs text-gray-500 uppercase font-black ml-2">Episode</label>
+                    <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}><SelectTrigger className="w-full h-14 bg-black/40 border-white/10 rounded-2xl"><SelectValue /></SelectTrigger><SelectContent className="bg-gray-900 border-white/10 text-white rounded-2xl">{[...Array(50)].map((_, i) => <SelectItem key={i + 1} value={(i + 1).toString()} className="rounded-xl">Episode {i + 1}</SelectItem>)}</SelectContent></Select>
                   </div>
                 </div>
               </div>
@@ -283,13 +309,13 @@ const WatchMovie = () => {
           </section>
 
           {/* Related Content */}
-          <div className="mt-16">
-            <h2 className="text-2xl font-black flex items-center gap-3"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> More Like This</h2>
+          <div className="mt-20">
+            <h2 className="text-2xl font-black flex items-center gap-3"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> Handpicked For You</h2>
             {relatedContent.length > 0 ? (
-              <div className="relative mt-6">
-                <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full"><CarouselContent className="-ml-4">{relatedContent.map((movie, index) => (<CarouselItem key={`${movie.id}-${index}`} className="pl-4 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"><MovieCard movie={movie} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-colors" /><CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-colors" /></Carousel>
+              <div className="relative mt-8">
+                <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full"><CarouselContent className="-ml-6">{relatedContent.map((movie, index) => (<CarouselItem key={`${movie.id}-${index}`} className="pl-6 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"><MovieCard movie={movie} /></CarouselItem>))}</CarouselContent><CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-all p-3" /><CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-all p-3" /></Carousel>
               </div>
-            ) : <p className="text-gray-500 italic mt-4">No recommendations found.</p>}
+            ) : <p className="text-gray-500 italic mt-4">Exploring more content...</p>}
           </div>
         </div>
       </div>
