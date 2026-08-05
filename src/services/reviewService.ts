@@ -96,8 +96,9 @@ const movieReviews: Record<string, MovieReview> = {
 };
 
 export const reviewService = {
-  getReview: (tmdbId: string | number): MovieReview | null => {
-    const review = movieReviews[tmdbId.toString()];
+  getReview: (tmdbId?: string | number | null): MovieReview | null => {
+    if (tmdbId === undefined || tmdbId === null) return null;
+    const review = movieReviews[String(tmdbId)];
     return review || null;
   },
 
