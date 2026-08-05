@@ -86,6 +86,24 @@ const WatchMovie = () => {
     return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
   }, [imdbId, externalIds]);
 
+  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
+
+  const { data: relatedContent = [] } = useQuery({
+    queryKey: ['watch-related-content', tmdbId, primaryGenreId, isTV],
+    queryFn: async () => {
+      if (!tmdbId || !primaryGenreId) return [];
+
+      const response = isTV
+        ? await tmdbService.getTVShowsByGenre(Number(primaryGenreId), 1)
+        : await tmdbService.getMoviesByGenre(Number(primaryGenreId), 1);
+
+      return (response.results || [])
+        .filter((item) => item.id !== tmdbId)
+        .slice(0, 12);
+    },
+    enabled: !!tmdbId && !!primaryGenreId,
+  });
+
   // 3. Torrentio Scraper with aggressive fallback logic
   useEffect(() => {
     const fetchTorrent = async () => {
