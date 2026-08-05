@@ -171,14 +171,14 @@ const WatchMovie = () => {
     if (isTV) {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        case 'server2': return `https://vidlink.pro/embed/tv/${tmdbId}/${season}/${episode}`;
+        case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
         case 'torrent': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-        case 'server2': return `https://vidlink.pro/embed/movie/${tmdbId}`;
+        case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
         case 'torrent': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -271,34 +271,32 @@ const WatchMovie = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Torrentio Download */}
-              <Button
-                onClick={() => {
-                  if (torrentData?.magnet) {
-                    window.open(torrentData.magnet, '_blank');
-                  } else {
-                    window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank');
-                  }
-                }}
-                className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg`}
+              <a
+                href={torrentData?.magnet || `https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`}
+                target={torrentData?.magnet ? "_self" : "_blank"}
+                rel="noreferrer"
+                className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg no-underline text-white`}
               >
                 <div className="flex items-center gap-2">
                   <Download className="w-4 h-4" />
                   <span className="font-bold text-sm">{torrentData?.magnet ? 'Magnet Download' : 'Manual Torrent Search'}</span>
                 </div>
                 <span className="text-[9px] opacity-70 uppercase font-black">Hindi Dubbed Priority</span>
-              </Button>
+              </a>
 
               {/* Direct Download */}
-              <Button
-                onClick={() => window.open(`https://vidsrc.to/download/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`, '_blank')}
-                className="h-14 bg-gradient-to-br from-green-600 to-emerald-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg"
+              <a
+                href={`https://vidsrc.to/download/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="h-14 bg-gradient-to-br from-green-600 to-emerald-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg no-underline text-white"
               >
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
                   <span className="font-bold text-sm">Direct Download</span>
                 </div>
                 <span className="text-[9px] opacity-70 uppercase font-black">Multi-Audio / Fast</span>
-              </Button>
+              </a>
 
               {/* Server 2 Fallback */}
               <Button
@@ -307,7 +305,7 @@ const WatchMovie = () => {
               >
                 <div className="flex items-center gap-2 text-white">
                   <Server className="w-4 h-4" />
-                  <span className="font-bold text-sm">Switch to Server 2</span>
+                  <span className="font-bold text-sm">Switch to VidLink</span>
                 </div>
                 <span className="text-[9px] opacity-50 uppercase font-black text-white">Alternative Source</span>
               </Button>
