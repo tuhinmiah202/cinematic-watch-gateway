@@ -90,18 +90,20 @@ const WatchMovie = () => {
           const data = await res.json();
 
           if (data.streams && data.streams.length > 0) {
-            // Find EXPLICIT Hindi Dubbed first
-            const hindiDubbed = data.streams.filter((s: any) =>
-              s.title.toLowerCase().includes('hindi dubbed') ||
-              (s.title.toLowerCase().includes('hindi') && s.title.toLowerCase().includes('dub'))
-            );
+            // Find EXPLICIT Hindi Dubbed first (filter by more keywords)
+            const hindiDubbed = data.streams.filter((s: any) => {
+              const title = s.title.toLowerCase();
+              return (title.includes('hindi') && title.includes('dub')) ||
+                     title.includes('hindi only') ||
+                     (title.includes('hindi') && title.includes('org'));
+            });
 
             const dualAudio = data.streams.filter((s: any) => s.title.toLowerCase().includes('hindi'));
-            const selected = hindiDubbed[0] || dualAudio[0] || data.streams[0];
+            const selected = hindiDubbed.length > 0 ? hindiDubbed[0] : (dualAudio.length > 0 ? dualAudio[0] : data.streams[0]);
 
             const hash = selected.infoHash || selected.url?.match(/btih:([a-fA-F0-9]+)/)?.[1];
             if (hash) {
-              const trackers = "&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://9.rarbg.com:2810/announce";
+              const trackers = "&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://9.rarbg.com:2810/announce&tr=udp://exodus.desync.com:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce";
               const magnet = `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(selected.title.split('\n')[0])}${trackers}`;
               setTorrentData({ magnet, title: selected.title, source: 'Hindi Priority' });
               break;
@@ -120,22 +122,22 @@ const WatchMovie = () => {
     }
     if (!tmdbId) return '';
 
-    // Server 1: Vidsrc.xyz (Most stable, good Hindi)
-    // Server 2: VidLink.pro (Reliable secondary)
-    // Server 3: Vidsrc.me (Solid backup)
+    // Server 1: Vidsrc.me (Most stable, confirmed working)
+    // Server 2: VidLink.pro (Fast secondary)
+    // Server 3: Vidsrc.xyz (Backup)
     if (isTV) {
       switch (selectedServer) {
-        case 'server1': return `https://vidsrc.xyz/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
-        case 'server3': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        default: return `https://vidsrc.xyz/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server3': return `https://vidsrc.xyz/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
-        case 'server1': return `https://vidsrc.xyz/embed/movie?tmdb=${tmdbId}`;
+        case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
-        case 'server3': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-        default: return `https://vidsrc.xyz/embed/movie?tmdb=${tmdbId}`;
+        case 'server3': return `https://vidsrc.xyz/embed/movie?tmdb=${tmdbId}`;
+        default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
     }
   };
@@ -199,7 +201,8 @@ const WatchMovie = () => {
                <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                <div className="text-xs space-y-1">
                  <p className="text-orange-200 font-bold">How to get Hindi Audio:</p>
-                 <p className="text-orange-200/80">Most movies are <b>Multi-Audio</b>. If it starts in English, click the <b>Settings (Gear)</b> or <b>Audio</b> icon inside the video screen and select <b>Hindi</b>.</p>
+                 <p className="text-orange-200/80">Most movies are <b>Multi-Audio</b>. If it starts in English, click the <b>Settings (Gear)</b> or <b>Audio</b> icon inside the video screen and select <b>Hindi</b>.
+                 <br /><i>Note: Torrent streams may take 30-60 seconds to buffer.</i></p>
                </div>
             </div>
           </section>
