@@ -238,7 +238,9 @@ const WatchMovie = () => {
           <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center gap-3">
              <Info className="w-5 h-5 text-purple-400 shrink-0" />
              <p className="text-xs text-purple-200">
-               <span className="font-bold">Hindi Audio Guide:</span> For Hollywood movies, if audio is English, click the <b>Settings (Gear)</b> or <b>Audio icon</b> inside the video player and select <b>Hindi</b>.
+               <span className="font-bold">Hindi Audio Guide:</span> Most Hollywood movies are <b>Multi-Audio</b>.
+               1. <b>In Player:</b> Click the <b>Settings (Gear)</b> or <b>Audio icon</b> to select Hindi.
+               2. <b>After Download:</b> Use your player (VLC/MX Player) settings to switch to the Hindi audio track.
              </p>
           </div>
 
