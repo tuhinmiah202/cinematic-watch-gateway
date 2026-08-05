@@ -15,7 +15,7 @@ const WatchMovie = () => {
   const navigate = useNavigate();
   const movieId = id || '0';
 
-  const [selectedServer, setSelectedServer] = useState('server3');
+  const [selectedServer, setSelectedServer] = useState('server1');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
 
@@ -88,29 +88,29 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: SuperPlayer (SuperEmbed - Cleanest Multi-audio)
-    // Server 2: VidSrc.to (Stable, Great for Hollywood Hindi Dubbed)
-    // Server 3: Vidsrc.me (Reliable fallback)
+    // Server 1: VidSrc.me (Switching to the most reliable Hindi-supporting domain)
+    // Server 2: SuperEmbed (Alternative scraper)
+    // Server 3: 2Embed (Stable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
-        case 'server2':
-          return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
-        case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server2':
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+        case 'server3':
+          return `https://www.2embed.cc/embed/tv?tmdb=${tmdbId}&s=${season}&e=${episode}`;
         default:
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
-        case 'server2':
-          return `https://vidsrc.to/embed/movie/${tmdbId}`;
-        case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+        case 'server2':
+          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+        case 'server3':
+          return `https://www.2embed.cc/embed/movie?tmdb=${tmdbId}`;
         default:
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -216,7 +216,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (SuperPlayer) is highly recommended for Hindi Dubbed movies. Click the 'Audio' settings inside the player to switch to Hindi.
+                Tip: Server 1 and Server 2 are optimized for Multi-Audio (Hindi). If the video starts in English, click the player's 'Audio' or 'Settings' icon to switch to Hindi.
               </p>
             </div>
 
