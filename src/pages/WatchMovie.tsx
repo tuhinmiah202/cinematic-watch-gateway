@@ -15,7 +15,7 @@ const WatchMovie = () => {
   const navigate = useNavigate();
   const movieId = id || '0';
 
-  const [selectedServer, setSelectedServer] = useState('server1');
+  const [selectedServer, setSelectedServer] = useState('server2');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
 
@@ -171,7 +171,6 @@ const WatchMovie = () => {
               frameBorder="0"
               scrolling="no"
               title="Player"
-              sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
             ></iframe>
 
             {/* Disclaimer overlay for first load */}
@@ -264,9 +263,9 @@ const WatchMovie = () => {
               <Layout className="w-5 h-5 text-yellow-500" />
             </div>
             <div>
-              <h4 className="text-yellow-500 font-bold text-sm">Ad Shield Active</h4>
+              <h4 className="text-yellow-500 font-bold text-sm">Player Optimization</h4>
               <p className="text-gray-400 text-xs mt-1">
-                We've applied sandboxing to the player to reduce pop-under ads. If the video doesn't play, please disable your browser's ad-blocker for this site or try a different server.
+                We've optimized the player for all browsers. If the video doesn't play, please try switching between Server 1, 2, or 3.
               </p>
             </div>
           </div>
