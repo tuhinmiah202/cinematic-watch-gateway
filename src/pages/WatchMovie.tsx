@@ -171,14 +171,14 @@ const WatchMovie = () => {
     if (isTV) {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        case 'server2': return `https://vidspark.to/tv/${tmdbId}/${season}/${episode}`;
+        case 'server2': return `https://vidlink.pro/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'torrent': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
         case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-        case 'server2': return `https://vidspark.to/movie/${tmdbId}`;
+        case 'server2': return `https://vidlink.pro/embed/movie/${tmdbId}`;
         case 'torrent': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
@@ -272,12 +272,18 @@ const WatchMovie = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Torrentio Download */}
               <Button
-                onClick={() => torrentData?.magnet ? window.location.href = torrentData.magnet : window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank')}
+                onClick={() => {
+                  if (torrentData?.magnet) {
+                    window.open(torrentData.magnet, '_blank');
+                  } else {
+                    window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank');
+                  }
+                }}
                 className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg`}
               >
                 <div className="flex items-center gap-2">
                   <Download className="w-4 h-4" />
-                  <span className="font-bold text-sm">{torrentData?.magnet ? 'Torrent Download' : 'Manual Torrent Search'}</span>
+                  <span className="font-bold text-sm">{torrentData?.magnet ? 'Magnet Download' : 'Manual Torrent Search'}</span>
                 </div>
                 <span className="text-[9px] opacity-70 uppercase font-black">Hindi Dubbed Priority</span>
               </Button>
