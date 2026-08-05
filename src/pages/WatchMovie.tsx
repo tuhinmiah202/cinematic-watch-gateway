@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Layout, Globe, Server, List, Download, Film, Info } from 'lucide-react';
+import { ArrowLeft, Play, Layout, Globe, Server, List, Download, Film, Info, ExternalLink, Maximize } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import MovieCard from '@/components/MovieCard';
@@ -17,7 +17,7 @@ const WatchMovie = () => {
   const { toast } = useToast();
   const movieId = id || '0';
 
-  const [selectedServer, setSelectedServer] = useState('torrent');
+  const [selectedServer, setSelectedServer] = useState('server1');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [torrentData, setTorrentData] = useState<{ magnet: string; title: string; source: string } | null>(null);
@@ -82,10 +82,10 @@ const WatchMovie = () => {
   const finalImdbId = useMemo(() => {
     const rawId = imdbId || externalIds?.imdb_id;
     if (!rawId) return null;
-    const idStr = rawId.toString();
-    return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
+    return rawId.toString().startsWith('tt') ? rawId.toString() : `tt${rawId}`;
   }, [imdbId, externalIds]);
 
+  // Related content ("More Like This")
   const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
 
   const { data: relatedContent = [] } = useQuery({
@@ -147,20 +147,32 @@ const WatchMovie = () => {
     if (!tmdbId) return '';
     if (isTV) {
       switch (selectedServer) {
-        case 'server1': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server1': return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server2': return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
-        case 'hindi': return `https://vidsrc.in/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        case 'torrent': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        default: return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        case 'server3': return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+        default: return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
       }
     } else {
       switch (selectedServer) {
-        case 'server1': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+        case 'server1': return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         case 'server2': return `https://vidlink.pro/movie/${tmdbId}`;
-        case 'hindi': return `https://vidsrc.in/embed/movie/${tmdbId}`;
-        case 'torrent': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-        default: return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+        case 'server3': return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+        default: return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
       }
+    }
+  };
+
+  const openFullPagePlayer = () => {
+    window.open(getEmbedUrl(), '_blank');
+  };
+
+  const handleDownload = () => {
+    if (torrentData?.magnet) {
+      // Direct assignment works better for some mobile browsers
+      window.location.assign(torrentData.magnet);
+      toast({ title: "Triggering Download", description: "Opening your Torrent client..." });
+    } else {
+      window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank');
     }
   };
 
@@ -198,7 +210,7 @@ const WatchMovie = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5"><ArrowLeft className="w-5 h-5 mr-2" /><span className="hidden md:inline">Back</span></Button>
           <div className="flex-1 text-center truncate px-4"><h1 className="text-lg font-bold truncate">{title}</h1></div>
-          <div className="w-[100px] md:w-[150px]"></div>
+          <Button onClick={openFullPagePlayer} variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 font-bold"><Maximize className="w-4 h-4 mr-2" /> Full Page</Button>
         </div>
       </div>
 
@@ -211,44 +223,44 @@ const WatchMovie = () => {
               <iframe src={getEmbedUrl()} className="w-full h-full" frameBorder="0" scrolling="no" title="Player" allowFullScreen allow="autoplay; encrypted-media; picture-in-picture; fullscreen"></iframe>
             )}
             <div className="absolute top-4 left-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-gray-400 border border-white/10 uppercase tracking-widest font-black">{selectedServer === 'torrent' && torrentData ? 'PREMIUM TORRENT STREAM' : 'HIGH SPEED SERVER'}</span>
+               <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-gray-400 border border-white/10 uppercase tracking-widest font-black">{selectedServer === 'torrent' ? 'TORRENT STREAM' : 'Vidsrc.cc (Multi-Audio)'}</span>
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center gap-3">
-             <Info className="w-5 h-5 text-purple-400 shrink-0" />
-             <p className="text-xs text-purple-200"><span className="font-bold">Hindi Audio Guide:</span> Most movies are <b>Multi-Audio</b>. 1. <b>In Player:</b> Click the <b>Settings (Gear)</b> or <b>Audio icon</b> to select Hindi. 2. <b>After Download:</b> Use VLC/MX Player settings to switch to Hindi track.</p>
+          <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center gap-3">
+             <Info className="w-5 h-5 text-orange-400 shrink-0" />
+             <p className="text-xs text-orange-200"><span className="font-bold">Hindi Priority:</span> 1. On **Server 1**, click the **Settings (Gear)** icon and select **Hindi Audio**. 2. If sound is missing, switch to **VidLink**. 3. Use **Full Page** button for the best experience.</p>
           </div>
 
           <div className="mt-8 space-y-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-3"><Download className="w-5 h-5 text-orange-500" />Download Options</h2>
+            <h2 className="text-xl font-bold text-white flex items-center gap-3"><Download className="w-5 h-5 text-orange-500" />Download Center</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex flex-col gap-2">
-                <a
-                  href={torrentData?.magnet || "#"}
-                  onClick={(e) => { if (!torrentData?.magnet) { e.preventDefault(); window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank'); } }}
-                  className={`h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg text-white w-full no-underline ${!torrentData?.magnet ? 'opacity-70' : ''}`}
+                <Button
+                  onClick={handleDownload}
+                  className="h-14 bg-gradient-to-br from-orange-600 to-red-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg text-white w-full"
                 >
-                  <div className="flex items-center gap-2"><Download className="w-4 h-4" /><span className="font-bold text-sm">{torrentData?.magnet ? 'Download Magnet' : 'Manual Torrent Search'}</span></div>
-                  <span className="text-[9px] opacity-70 uppercase font-black text-white">Direct Client Trigger</span>
-                </a>
-                {torrentData?.magnet && <Button variant="ghost" size="sm" onClick={handleCopyMagnet} className="text-[10px] text-gray-500 hover:text-white">Copy Link if Download fails</Button>}
+                  <div className="flex items-center gap-2"><Download className="w-4 h-4" /><span className="font-bold text-sm">Download Movie</span></div>
+                  <span className="text-[9px] opacity-70 uppercase font-black">Torrent / Dual Audio</span>
+                </Button>
+                {torrentData?.magnet && <Button variant="ghost" size="sm" onClick={handleCopyMagnet} className="text-[10px] text-gray-500 hover:text-white underline">Manual Link (If button fails)</Button>}
               </div>
-              <a href={`https://vidsrc.to/download/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`} target="_blank" rel="noreferrer" className="h-14 bg-gradient-to-br from-green-600 to-emerald-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg no-underline text-white"><div className="flex items-center gap-2"><Globe className="w-4 h-4" /><span className="font-bold text-sm">Direct Download</span></div><span className="text-[9px] opacity-70 uppercase font-black">Multi-Audio / Fast</span></a>
-              <Button onClick={() => setSelectedServer('hindi')} className="h-14 bg-purple-900/50 hover:bg-purple-800 hover:scale-[1.02] transition-all border border-purple-500/20 rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg"><div className="flex items-center gap-2 text-white"><Film className="w-4 h-4" /><span className="font-bold text-sm">Hindi Specialist</span></div><span className="text-[9px] opacity-50 uppercase font-black text-white">Dedicated Hindi Server</span></Button>
+              <a href={`https://vidsrc.me/download/movie?tmdb=${tmdbId}`} target="_blank" rel="noreferrer" className="h-14 bg-gradient-to-br from-green-600 to-emerald-700 hover:scale-[1.02] transition-all border-none rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg no-underline text-white"><div className="flex items-center gap-2"><Globe className="w-4 h-4" /><span className="font-bold text-sm">Direct Download</span></div><span className="text-[9px] opacity-70 uppercase font-black">Fast Browser Download</span></a>
+              <Button onClick={openFullPagePlayer} className="h-14 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-xl flex flex-col items-center justify-center gap-0 shadow-lg"><div className="flex items-center gap-2 text-white"><ExternalLink className="w-4 h-4" /><span className="font-bold text-sm">Full Page Stream</span></div><span className="text-[9px] opacity-50 uppercase font-black text-white">Ad-Free Mode</span></Button>
             </div>
-            {torrentData?.title && <p className="text-[10px] text-gray-500 text-center animate-fade-in">Selected Source: {torrentData.title.split('\n')[0]}</p>}
+            {torrentData?.title && <p className="text-[10px] text-gray-500 text-center animate-fade-in">Found: {torrentData.title.split('\n')[0]}</p>}
           </div>
 
           <div className="mt-8 flex flex-col md:flex-row gap-6 items-start justify-between bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
             <div className="flex-1 space-y-4">
               <div className="flex items-center gap-3"><Globe className="w-5 h-5 text-purple-400" /><h2 className="text-lg font-bold">Select Player Server</h2></div>
               <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={selectedServer === 'server1' ? 'bg-purple-600' : 'border-white/10'}><Server className="w-4 h-4 mr-2" /> Server 1 (Multi-Audio)</Button>
+                <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={selectedServer === 'server2' ? 'bg-purple-600' : 'border-white/10'}><Server className="w-4 h-4 mr-2" /> Server 2 (VidLink)</Button>
+                <Button onClick={() => setSelectedServer('server3')} variant={selectedServer === 'server3' ? 'default' : 'outline'} className={selectedServer === 'server3' ? 'bg-purple-600' : 'border-white/10'}><Server className="w-4 h-4 mr-2" /> Server 3 (Backup)</Button>
                 <Button onClick={() => setSelectedServer('torrent')} variant={selectedServer === 'torrent' ? 'default' : 'outline'} className={selectedServer === 'torrent' ? 'bg-orange-600' : 'border-white/10'}><Download className="w-4 h-4 mr-2" /> Torrent Stream</Button>
-                <Button onClick={() => setSelectedServer('hindi')} variant={selectedServer === 'hindi' ? 'default' : 'outline'} className={selectedServer === 'hindi' ? 'bg-orange-500' : 'border-white/10'}><Globe className="w-4 h-4 mr-2" /> Server: Hindi</Button>
-                <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={selectedServer === 'server2' ? 'bg-purple-600' : 'border-white/10'}><Server className="w-4 h-4 mr-2" /> Server: VidLink</Button>
-                <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={selectedServer === 'server1' ? 'bg-purple-600' : 'border-white/10'}><Server className="w-4 h-4 mr-2" /> Server: Vidsrc</Button>
               </div>
+              <p className="text-[10px] text-gray-500 italic">Tip: Server 1 (Vidsrc.cc) is currently the best for Hollywood movies with Hindi audio selector.</p>
             </div>
             {isTV && (
               <div className="w-full md:w-auto space-y-4">
