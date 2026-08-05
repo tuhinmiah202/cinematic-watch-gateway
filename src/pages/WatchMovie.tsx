@@ -167,10 +167,11 @@ const WatchMovie = () => {
             <iframe
               src={getEmbedUrl()}
               className="w-full h-full"
-              allowFullScreen
               frameBorder="0"
               scrolling="no"
               title="Player"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock"
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             ></iframe>
 
             {/* Disclaimer overlay for first load */}
