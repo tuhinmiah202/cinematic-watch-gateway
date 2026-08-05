@@ -66,7 +66,7 @@ const WatchMovie = () => {
     ? supabaseContent.content_type === 'series'
     : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
 
-  const tmdbId = movie?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
+  const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
   // Fetch External IDs if we don't have IMDB ID yet
