@@ -88,16 +88,16 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: SmashyStream (Good Hindi support)
-    // Server 2: Vidsrc.cc (Alternative Hindi)
+    // Server 1: Vidsrc.to (Excellent Hindi coverage & Stable)
+    // Server 2: SmashyStream (Alternative Hindi/Multi)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+          return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server2':
-          return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
@@ -106,9 +106,9 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
+          return `https://vidsrc.to/embed/movie/${tmdbId}`;
         case 'server2':
-          return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
+          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
@@ -215,7 +215,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (Smashy) and Server 2 (Vidsrc.cc) often provide Hindi/Multi-audio options. Use the player settings icon to change language if available.
+                Tip: Server 1 (Vidsrc.to) and Server 2 (Smashy) usually provide Hindi dubbed options. In the player, click the 'Audio' or 'CC' icon to manually switch to Hindi if it starts in English.
               </p>
             </div>
 
