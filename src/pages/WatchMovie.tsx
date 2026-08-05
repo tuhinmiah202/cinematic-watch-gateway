@@ -66,7 +66,7 @@ const WatchMovie = () => {
     ? supabaseContent.content_type === 'series'
     : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
 
-  const tmdbId = movie?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
+  const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
   // Fetch External IDs if we don't have IMDB ID yet
@@ -84,6 +84,29 @@ const WatchMovie = () => {
   });
 
   const finalImdbId = imdbId || externalIds?.imdb_id;
+
+  // Related content ("More Like This")
+  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
+
+  const { data: relatedContent } = useQuery({
+    queryKey: ['watch-related-content', tmdbId, primaryGenreId, isTV],
+    queryFn: async () => {
+      const genreId = Number(primaryGenreId);
+      if (!genreId || isNaN(genreId)) return [];
+      try {
+        const response = isTV
+          ? await tmdbService.getTVShowsByGenre(genreId, 1)
+          : await tmdbService.getMoviesByGenre(genreId, 1);
+        return (response?.results || [])
+          .filter((item: any) => item.id != tmdbId)
+          .slice(0, 12);
+      } catch (error) {
+        console.error('Error fetching related content:', error);
+        return [];
+      }
+    },
+    enabled: !!primaryGenreId && !!tmdbId,
+  });
 
   // Torrentio API Integration
   useEffect(() => {
@@ -183,7 +206,7 @@ const WatchMovie = () => {
     );
   }
 
-  const title = movie.title || movie.name;
+  const title = (movie as any).title || (movie as any).name;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
