@@ -85,6 +85,29 @@ const WatchMovie = () => {
 
   const finalImdbId = imdbId || externalIds?.imdb_id;
 
+  // Related content ("More Like This")
+  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? null;
+
+  const { data: relatedContent } = useQuery({
+    queryKey: ['watch-related-content', tmdbId, primaryGenreId, isTV],
+    queryFn: async () => {
+      const genreId = Number(primaryGenreId);
+      if (!genreId || isNaN(genreId)) return [];
+      try {
+        const response = isTV
+          ? await tmdbService.getTVShowsByGenre(genreId, 1)
+          : await tmdbService.getMoviesByGenre(genreId, 1);
+        return (response?.results || [])
+          .filter((item: any) => item.id != tmdbId)
+          .slice(0, 12);
+      } catch (error) {
+        console.error('Error fetching related content:', error);
+        return [];
+      }
+    },
+    enabled: !!primaryGenreId && !!tmdbId,
+  });
+
   // Torrentio API Integration
   useEffect(() => {
     const fetchTorrent = async () => {
