@@ -206,7 +206,7 @@ const WatchMovie = () => {
     );
   }
 
-  const title = movie.title || movie.name;
+  const title = (movie as any).title || (movie as any).name;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
