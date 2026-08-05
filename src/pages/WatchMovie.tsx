@@ -195,7 +195,7 @@ const WatchMovie = () => {
         case 'server1':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+          return `https://vidspark.to/embed/tv/${tmdbId}/${season}/${episode}`;
         default:
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
@@ -206,7 +206,7 @@ const WatchMovie = () => {
         case 'server1':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         case 'server2':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+          return `https://vidspark.to/embed/movie/${tmdbId}`;
         default:
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
