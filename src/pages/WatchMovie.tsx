@@ -170,7 +170,7 @@ const WatchMovie = () => {
               frameBorder="0"
               scrolling="no"
               title="Player"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock"
+              allowFullScreen
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             ></iframe>
 
