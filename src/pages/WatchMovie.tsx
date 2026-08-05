@@ -88,16 +88,16 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: AutoEmbed (Hindi Specialist - MovieLinkBD Style)
-    // Server 2: Vidsrc.pro (Alternative Multi-Language)
+    // Server 1: AutoEmbed.to (Hindi Specialist - New Domain)
+    // Server 2: Vidsrc.cc (Stable Hindi/Multi-audio)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://autoembed.to/tv/tmdb/${tmdbId}-${season}-${episode}`;
         case 'server2':
-          return `https://vidsrc.pro/embed/tv/${tmdbId}/${season}/${episode}`;
+          return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
@@ -106,9 +106,9 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://player.autoembed.cc/embed/movie/${tmdbId}`;
+          return `https://autoembed.to/movie/tmdb/${tmdbId}`;
         case 'server2':
-          return `https://vidsrc.pro/embed/movie/${tmdbId}`;
+          return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
@@ -215,7 +215,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (AutoEmbed) is specialized for Hindi Dubbed content. If audio is in English, check the player settings for a Hindi audio track.
+                Tip: Server 1 (AutoEmbed) is specialized for Hindi content. Use the player's internal settings to switch to Hindi audio if available.
               </p>
             </div>
 
