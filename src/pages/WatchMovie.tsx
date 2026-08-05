@@ -88,16 +88,16 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: SmashyStream (Alternative Hindi/Multi-audio - more stable)
-    // Server 2: Vidsrc.cc (Stable fallback with Multi-audio)
+    // Server 1: VidSrc.cc (Updated stable domain - Hollywood Hindi Dubbed)
+    // Server 2: AutoEmbed.co (Hindi Specialist - New Domain)
     // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
-        case 'server2':
           return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
+        case 'server2':
+          return `https://autoembed.co/tv/tmdb/${tmdbId}-${season}-${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
@@ -106,9 +106,9 @@ const WatchMovie = () => {
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
-        case 'server2':
           return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
+        case 'server2':
+          return `https://autoembed.co/movie/tmdb/${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
@@ -216,7 +216,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 (Smashy) and Server 2 (Vidsrc.cc) support Hindi/Multi-audio. Click the player's 'Audio' icon to switch to Hindi.
+                Tip: Server 1 (Vidsrc.cc) and Server 2 (AutoEmbed) are optimized for Hindi audio. Use the player's 'Audio' settings to select Hindi if it starts in English.
               </p>
             </div>
 
