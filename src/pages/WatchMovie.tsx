@@ -119,18 +119,19 @@ const WatchMovie = () => {
       setIsTorrentLoading(true);
       setTorrentData(null);
 
-      const providers = 'yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei';
+      const providers = 'yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrent9,horriblesubs,nyaasi,tokyotosho,sukebei,tgx,glodls,zooqle';
 
       const mirrors = [
         `https://torrentio.strem.fun`,
         `https://torrentio.fun`,
-        `https://strem.fun`
+        `https://strem.fun`,
+        `https://torrentio.run`
       ];
 
-      let foundStream = false;
+      let bestStream = null;
 
       for (const mirror of mirrors) {
-        if (foundStream) break;
+        if (bestStream) break;
 
         try {
           const type = isTV ? 'series' : 'movie';
@@ -139,34 +140,38 @@ const WatchMovie = () => {
             : `${mirror}/providers=${providers}/stream/movie/${finalImdbId}.json`;
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
 
           const response = await fetch(url, { signal: controller.signal });
           clearTimeout(timeoutId);
 
+          if (!response.ok) continue;
           const data = await response.json();
 
           if (data.streams && data.streams.length > 0) {
-            const hindiStreams = data.streams.filter((s: any) =>
-              s.title.toLowerCase().includes('hindi') ||
-              s.title.toLowerCase().includes('dual audio') ||
-              s.title.toLowerCase().includes('hindi dubbed')
-            );
+            const hindiStreams = data.streams.filter((s: any) => {
+              const title = s.title.toLowerCase();
+              return title.includes('hindi') ||
+                     title.includes('dual') ||
+                     title.includes('dubbed') ||
+                     (title.includes('audio') && title.includes('hi'));
+            });
 
-            const selectedStream = hindiStreams.length > 0 ? hindiStreams[0] : data.streams[0];
+            bestStream = hindiStreams.length > 0 ? hindiStreams[0] : data.streams[0];
 
-            if (selectedStream.infoHash) {
-               const trackers = "&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.leechers-paradise.org:6969/announce";
-               const magnet = `magnet:?xt=urn:btih:${selectedStream.infoHash}&dn=${encodeURIComponent(selectedStream.title.split('\n')[0])}${trackers}`;
-               setTorrentData({ magnet, title: selectedStream.title });
-               foundStream = true;
-            } else if (selectedStream.url && (selectedStream.url.startsWith('magnet:') || selectedStream.url.includes('infoHash'))) {
-               setTorrentData({ magnet: selectedStream.url, title: selectedStream.title });
-               foundStream = true;
+            if (bestStream) {
+               const hash = bestStream.infoHash || (bestStream.url?.match(/btih:([a-fA-F0-9]+)/)?.[1]);
+               if (hash) {
+                  const trackers = "&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://9.rarbg.com:2810/announce&tr=udp://exodus.desync.com:6969/announce";
+                  const magnet = `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(bestStream.title.split('\n')[0])}${trackers}`;
+                  setTorrentData({ magnet, title: bestStream.title });
+               } else if (bestStream.url?.startsWith('magnet:')) {
+                  setTorrentData({ magnet: bestStream.url, title: bestStream.title });
+               }
             }
           }
         } catch (error) {
-          console.warn(`Mirror ${mirror} failed or timed out`);
+          console.warn(`Torrentio mirror ${mirror} failed`);
         }
       }
 
