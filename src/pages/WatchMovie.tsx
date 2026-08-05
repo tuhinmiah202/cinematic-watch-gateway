@@ -160,6 +160,20 @@ const WatchMovie = () => {
     if (finalImdbId) fetchTorrent();
   }, [finalImdbId, isTV, season, episode]);
 
+  const handleDownloadMagnet = () => {
+    if (!torrentData?.magnet) return;
+    window.location.href = torrentData.magnet;
+  };
+
+  const handleCopyMagnet = async () => {
+    if (!torrentData?.magnet) return;
+    try {
+      await navigator.clipboard.writeText(torrentData.magnet);
+    } catch (e) {
+      console.warn('Clipboard copy failed', e);
+    }
+  };
+
   const getEmbedUrl = () => {
     if (selectedServer === 'torrent' && torrentData?.magnet) {
       // Use webtor.io - a much more reliable web-based torrent player
