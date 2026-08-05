@@ -7,14 +7,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
-import { useAdClickTrackerSingle } from '@/hooks/useAdClickTrackerSingle';
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
-  const { handleClickWithAd, hasClicked } = useAdClickTrackerSingle(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -22,7 +20,7 @@ const MovieDetail = () => {
   };
 
   const handleWatchNow = () => {
-    handleClickWithAd(() => navigate(`/download-step1/${movieId}`));
+    navigate(`/watch/${movieId}`);
   };
 
   // Try to fetch from Supabase first (for admin content)
@@ -351,12 +349,7 @@ const MovieDetail = () => {
 
             <div className="text-center md:text-left">
               <p className="text-gray-300 text-sm mb-3">👉 Available on platforms like Netflix, Disney+, etc.</p>
-              {!hasClicked && (
-                <p className="text-yellow-400 text-sm mb-2 font-semibold animate-pulse">
-                  ⚠️ Click Watch Now 1 time to proceed
-                </p>
-              )}
-              <Button 
+              <Button
                 size="lg" 
                 className="relative bg-gradient-to-r from-red-600 via-red-500 to-red-700 hover:from-red-700 hover:via-red-600 hover:to-red-800 text-white px-10 py-4 text-xl font-bold shadow-[0_0_30px_rgba(220,38,38,0.5)] hover:shadow-[0_0_40px_rgba(220,38,38,0.8)] transition-all duration-300 transform hover:scale-110 w-full md:w-auto border-2 border-red-400 hover:border-red-300 animate-pulse hover:animate-none"
                 onClick={handleWatchNow}

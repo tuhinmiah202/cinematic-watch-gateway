@@ -6,24 +6,14 @@ import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import MovieCard from '@/components/MovieCard';
-import { useAdClickTracker } from '@/hooks/useAdClickTracker';
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const movieId = id || '0';
-  const [countdown, setCountdown] = useState(3);
-  const [showWatchButton, setShowWatchButton] = useState(false);
-  const { handleClickWithAd, clickCount } = useAdClickTracker(movieId);
 
   const handleBack = () => {
     // Always use browser's natural back behavior to prevent loops
@@ -110,40 +100,22 @@ const WatchMovie = () => {
     enabled: !!movie && !isLoading,
   });
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setShowWatchButton(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-
   const handleWatchNow = () => {
-    handleClickWithAd(() => {
-      const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
-      
-      if (streamingUrl) {
-        window.open(streamingUrl, '_blank');
-      } else {
-        const title = (movie as any)?.title || (movie as any)?.name || 'movie';
-        const searchQuery = encodeURIComponent(`watch ${title} online`);
-        window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
-      }
-    });
-  };
+    const streamingUrl = (movie as any)?.streaming_links?.[0]?.url;
 
-  const getClickMessage = () => {
-    if (clickCount === 0) return "Click the button 2 times to proceed";
-    if (clickCount === 1) return "Click 1 more time";
-    return "Ready! Click to proceed";
+    if (streamingUrl) {
+      window.open(streamingUrl, '_blank');
+    } else {
+      const title = (movie as any)?.title || (movie as any)?.name || 'movie';
+      const tmdbId = (movie as any)?.tmdb_id || (movie as any)?.id;
+      
+      // Use vidsrc as a direct player fallback for TMDB content
+      const playerUrl = isTV
+        ? `https://vidsrc.me/embed/tv?tmdb=${tmdbId}`
+        : `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+
+      window.open(playerUrl, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -224,55 +196,44 @@ const WatchMovie = () => {
                 </p>
               </div>
 
-              {/* Countdown or Watch Button */}
+              {/* Embedded Player or Watch Button */}
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-purple-500/20">
-                {!showWatchButton ? (
-                  <div className="text-center">
-                    <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-                    <h2 className="text-xl lg:text-2xl font-bold text-white mb-4">Preparing your stream...</h2>
-                    <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-4">{countdown}</div>
-                    <p className="text-gray-300 text-sm lg:text-base">Please wait while we prepare the best viewing options</p>
-                  </div>
-                ) : (
                   <div className="text-center">
                     <Play className="w-12 h-12 text-green-400 mx-auto mb-4" />
                     <h2 className="text-xl lg:text-2xl font-bold text-white mb-4">Ready to Watch!</h2>
                     
                     {hasStreamingLink ? (
                       <>
-                        <p className="text-gray-300 text-xs mb-4">{getClickMessage()}</p>
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}
                             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                           >
                             <ExternalLink className="w-5 h-5 mr-2" />
-                            Download Now
+                            Stream Now
                           </Button>
                         </div>
                         <p className="text-gray-300 text-xs mt-3 px-4">
-                          You will be redirected to the download link
+                          Direct streaming available for this content
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-gray-300 text-xs mb-4">{getClickMessage()}</p>
                         <div className="w-full max-w-sm mx-auto">
                           <Button 
                             onClick={handleWatchNow}
                             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base lg:text-lg px-6 py-3 lg:py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                           >
                             <ExternalLink className="w-5 h-5 mr-2" />
-                            Download Now
+                            Stream Now
                           </Button>
                         </div>
                         <p className="text-gray-300 text-xs mt-3 px-4">
-                          Click to start your download
+                          Click to start streaming via our premium player
                         </p>
                       </>
                     )}
                   </div>
-                )}
               </div>
             </div>
           </div>

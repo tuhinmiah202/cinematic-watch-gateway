@@ -173,6 +173,54 @@ const tmdbService = {
     }
   },
 
+  async getTrending(mediaType: 'all' | 'movie' | 'tv' = 'all', timeWindow: 'day' | 'week' = 'day'): Promise<{ results: Movie[] }> {
+    try {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/trending/${mediaType}/${timeWindow}?api_key=${TMDB_API_KEY}`
+      );
+      const data = await response.json();
+      return {
+        results: data.results.map((item: any) => ({
+          ...item,
+          media_type: item.media_type || (mediaType === 'all' ? undefined : mediaType)
+        }))
+      };
+    } catch (error) {
+      console.error('Error fetching trending content:', error);
+      return { results: [] };
+    }
+  },
+
+  async getUpcomingMovies(page = 1): Promise<{ results: Movie[] }> {
+    try {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}&page=${page}`
+      );
+      const data = await response.json();
+      return {
+        results: data.results.map((movie: any) => ({ ...movie, media_type: 'movie' }))
+      };
+    } catch (error) {
+      console.error('Error fetching upcoming movies:', error);
+      return { results: [] };
+    }
+  },
+
+  async getAiringTodayTVShows(page = 1): Promise<{ results: Movie[] }> {
+    try {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/tv/airing_today?api_key=${TMDB_API_KEY}&page=${page}`
+      );
+      const data = await response.json();
+      return {
+        results: data.results.map((show: any) => ({ ...show, media_type: 'tv' }))
+      };
+    } catch (error) {
+      console.error('Error fetching airing today TV shows:', error);
+      return { results: [] };
+    }
+  },
+
   getImageUrl(path: string): string {
     return path ? `${TMDB_IMAGE_BASE_URL}${path}` : '/placeholder.svg';
   },

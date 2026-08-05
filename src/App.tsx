@@ -16,8 +16,6 @@ import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import Sitemap from "./pages/Sitemap";
-import DownloadStep1 from "./pages/DownloadStep1";
-import DownloadStep2 from "./pages/DownloadStep2";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,8 +48,6 @@ const App = () => {
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/movie/:id" element={<MovieDetail />} />
-                      <Route path="/download-step1/:id" element={<DownloadStep1 />} />
-                      <Route path="/download-step2/:id" element={<DownloadStep2 />} />
                       <Route path="/watch/:id" element={<WatchMovie />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/privacy" element={<Privacy />} />

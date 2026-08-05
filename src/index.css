@@ -3,74 +3,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent white flash on page load */
+:root {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 263.4 70% 50.4%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 263.4 70% 50.4%;
+  --radius: 0.75rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
 html, body {
-  background-color: #1a1a2e !important;
+  background-color: #0a0a0a !important;
   color: white;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 #root {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #0a0a0a;
   min-height: 100vh;
 }
 
-/* Performance optimizations for mobile */
-@media (max-width: 768px) {
-  * {
-    /* Remove all animations on mobile */
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-    transition-duration: 0s !important;
-    transition-delay: 0s !important;
-    transform: none !important;
-  }
-  
-  /* Optimize scrolling */
-  body {
-    -webkit-overflow-scrolling: touch;
-    overflow-x: hidden;
-  }
-  
-  /* Disable hover effects on mobile */
-  *:hover {
-    transform: none !important;
-    box-shadow: none !important;
-  }
-  
-  /* Remove backdrop filters on mobile for better performance */
-  .backdrop-blur-sm,
-  .backdrop-blur,
-  .backdrop-blur-md {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  
-  /* Simplify gradients on mobile */
-  .bg-gradient-to-br,
-  .bg-gradient-to-r {
-    background: #1a1a2e !important;
-  }
-  
-  /* Remove box shadows on mobile */
-  .shadow-lg,
-  .shadow-xl,
-  .shadow-2xl {
-    box-shadow: none !important;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Fast loading optimizations */
-html {
-  font-display: swap;
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
 }
 
-/* Reduce layout shift */
-img {
-  height: auto;
-  max-width: 100%;
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 10px;
 }
 
-/* Optimize scrollbars */
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+/* Typography Enhancements */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -80,92 +83,56 @@ img {
   display: none;
 }
 
-/* Improve button tap targets on mobile */
+/* Mobile Optimizations - Overriding the previous aggressive performance hacks */
 @media (max-width: 768px) {
-  button, 
-  a,
-  [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
-    touch-action: manipulation;
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
+    background: inherit !important;
   }
+
+  /* Keep some animations but keep them light */
+  .transition-all {
+    transition-duration: 200ms !important;
+  }
+
+  /* Re-enable backdrop blur where essential but lightened */
+  .backdrop-blur-md {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+}
+
+/* Fast loading optimizations */
+html {
+  font-display: swap;
 }
 
 /* Optimize text rendering */
 body {
-  text-rendering: optimizeSpeed;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove will-change to prevent unnecessary layers */
-* {
-  will-change: auto;
+/* Selection color */
+::selection {
+  background-color: #9333ea;
+  color: white;
 }
 
-/* Critical CSS for above-the-fold content */
-.container {
-  contain: layout style;
+/* Section Title decoration */
+.section-title {
+  position: relative;
+  display: inline-block;
 }
 
-/* Pagination button fixes */
-.pagination-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-/* Loading animation optimization */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* Mobile-specific optimizations */
-@media (max-width: 768px) {
-  .animate-spin {
-    animation: none;
-  }
-  
-  .loading-spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #9333ea;
-    border-radius: 50%;
-  }
-}
-
-/* Ensure proper contrast for admin elements */
-.admin-logout-button {
-  background: #ef4444 !important;
-  color: white !important;
-  border: 1px solid #dc2626 !important;
-}
-
-.admin-logout-button:hover {
-  background: #dc2626 !important;
-  color: white !important;
-}
-
-/* Notification styles */
-.notification-success {
-  background: #10b981 !important;
-  color: white !important;
-}
-
-.notification-error {
-  background: #ef4444 !important;
-  color: white !important;
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  background: #9333ea;
+  border-radius: 2px;
 }

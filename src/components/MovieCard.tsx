@@ -1,7 +1,7 @@
 
-import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { tmdbService } from '@/services/tmdbService';
-import { Star, Calendar, Tv } from 'lucide-react';
+import { Star, Calendar, Play } from 'lucide-react';
 
 interface Movie {
   id: number;
@@ -16,8 +16,6 @@ interface Movie {
   rating?: number;
   media_type?: string;
   content_type?: string;
-  genres?: { id: number; name: string }[];
-  genre_ids?: number[];
 }
 
 interface MovieCardProps {
@@ -26,136 +24,95 @@ interface MovieCardProps {
 }
 
 const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
-  // Function to determine if content is from Supabase
-  const isSupabaseContent = !!(movie as any).content_type;
-  
-  const title = isSupabaseContent ? movie.title : (movie.title || movie.name || 'Untitled');
-  const posterUrl = isSupabaseContent 
-    ? (movie as any).poster_url || '/placeholder.svg'
-    : tmdbService.getImageUrl(movie.poster_path);
-    
-  const releaseDate = isSupabaseContent 
-    ? movie.release_year 
-    : (movie.release_date || movie.first_air_date);
-  const year = isSupabaseContent 
-    ? movie.release_year 
-    : (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
-    
-  const rating = isSupabaseContent 
-    ? (movie as any).rating 
-    : movie.vote_average;
 
-  // Determine if it's a TV show
-  const isTV = isSupabaseContent 
-    ? (movie as any).content_type === 'series'
-    : movie.media_type === 'tv' || movie.name || !movie.title;
+  const title = movie.title || movie.name || 'Untitled';
+  const posterUrl = movie.poster_url || tmdbService.getImageUrl(movie.poster_path || '');
+    
+  const releaseDate = movie.release_date || movie.first_air_date;
+  const year = movie.release_year || (releaseDate ? new Date(releaseDate).getFullYear() : 'N/A');
+    
+  const rating = movie.vote_average || movie.rating || 0;
+  const isTV = movie.media_type === 'tv' || !!movie.name;
 
   if (isCompact) {
     return (
       <Link 
         to={`/movie/${movie.id}`}
-        className="group block"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          navigate(`/movie/${movie.id}`);
-        }}
+        className="group relative block aspect-[2/3] rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-105 active:scale-95 hover:z-10"
       >
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
-          <div className="relative aspect-[2/3] overflow-hidden">
-            <img
-              src={posterUrl}
-              alt={title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            {rating && rating > 0 && (
-              <div className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                <span className="text-white text-xs font-semibold">
-                  {rating.toFixed(1)}
-                </span>
-              </div>
-            )}
-            {isTV && (
-              <div className="absolute top-1 left-1 bg-purple-600/90 backdrop-blur-sm rounded-full p-0.5">
-                <Tv className="w-2.5 h-2.5 text-white" />
-              </div>
-            )}
-          </div>
-          
-          <div className="p-2">
-            <h3 className="font-semibold text-white text-xs line-clamp-2 mb-1">
-              {title}
-            </h3>
-            
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <div className="flex items-center gap-0.5">
-                <Calendar className="w-2.5 h-2.5" />
-                <span className="text-xs">{year}</span>
-              </div>
-              {isTV && (
-                <span className="text-purple-400 font-medium text-xs">TV</span>
-              )}
+        <img
+          src={posterUrl}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+            <h3 className="text-white text-xs font-bold truncate mb-1">{title}</h3>
+            <div className="flex items-center justify-between">
+                <span className="text-[10px] text-purple-400 font-bold uppercase">{isTV ? 'TV' : 'Movie'}</span>
+                <span className="text-[10px] text-gray-300">{year}</span>
             </div>
-          </div>
         </div>
+        {rating > 0 && (
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-lg px-1.5 py-0.5 flex items-center gap-1 border border-white/10">
+            <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+            <span className="text-white text-[10px] font-black">{rating.toFixed(1)}</span>
+          </div>
+        )}
       </Link>
     );
   }
 
   return (
-    <Link 
-      to={`/movie/${movie.id}`}
-      className="group block"
-      onMouseDown={(e) => {
-        e.preventDefault();
-        navigate(`/movie/${movie.id}`);
-      }}
-    >
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/50 transition-colors">
-        <div className="relative aspect-[2/3] overflow-hidden">
-          <img
-            src={posterUrl}
-            alt={title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-          {rating && rating > 0 && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-white text-xs font-semibold">
-                {rating.toFixed(1)}
-              </span>
-            </div>
-          )}
-          {isTV && (
-            <div className="absolute top-2 left-2 bg-purple-600/90 backdrop-blur-sm rounded-full p-1">
-              <Tv className="w-3 h-3 text-white" />
-            </div>
-          )}
-        </div>
+    <div className="group relative flex flex-col gap-2">
+      <Link
+        to={`/movie/${movie.id}`}
+        className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-purple-500/20 hover:-translate-y-2 group"
+      >
+        <img
+          src={posterUrl}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
+        />
         
-        <div className="p-2 md:p-3">
-          <h3 className="font-semibold text-white text-xs md:text-sm line-clamp-2 mb-1 md:mb-2">
-            {title}
-          </h3>
-          
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              <span>{year}</span>
+        {/* Overlay on hover */}
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <div className="bg-purple-600 rounded-full p-4 transform scale-50 group-hover:scale-100 transition-transform duration-300">
+                <Play className="w-8 h-8 fill-white text-white translate-x-0.5" />
             </div>
-            {isTV && (
-              <span className="text-purple-400 font-medium">Series</span>
-            )}
+        </div>
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] font-black text-white border border-white/10 uppercase tracking-tighter">
+                {isTV ? 'TV Series' : 'Movie'}
+            </span>
+        </div>
+
+        {rating > 0 && (
+          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md rounded-xl px-2 py-1 flex items-center gap-1 border border-white/10">
+            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-white text-xs font-black">{rating.toFixed(1)}</span>
           </div>
+        )}
+      </Link>
+
+      <div className="px-1 mt-1">
+        <h3 className="text-white text-sm md:text-base font-bold truncate group-hover:text-purple-400 transition-colors">
+          {title}
+        </h3>
+        <div className="flex items-center gap-2 text-[10px] md:text-xs text-gray-500 font-medium mt-0.5">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            <span>{year}</span>
+          </div>
+          <span>•</span>
+          <span className="text-gray-400">{isTV ? 'Series' : 'Feature Film'}</span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
