@@ -15,7 +15,7 @@ const WatchMovie = () => {
   const navigate = useNavigate();
   const movieId = id || '0';
 
-  const [selectedServer, setSelectedServer] = useState('server2');
+  const [selectedServer, setSelectedServer] = useState('server3');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
 
@@ -88,31 +88,31 @@ const WatchMovie = () => {
   const getEmbedUrl = () => {
     if (!tmdbId) return '';
 
-    // Server 1: SuperEmbed (Hindi Priority)
-    // Server 2: 2Embed
-    // Server 3: Vidsrc
+    // Server 1: SmashyStream (Good Hindi support)
+    // Server 2: Vidsrc.cc (Alternative Hindi)
+    // Server 3: Vidsrc.me (Reliable fallback)
 
     if (isTV) {
       switch (selectedServer) {
         case 'server1':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         case 'server2':
-          return `https://www.2embed.cc/embed/tv?tmdb=${tmdbId}&s=${season}&e=${episode}`;
+          return `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`;
         case 'server3':
           return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
         default:
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+          return `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
       }
     } else {
       switch (selectedServer) {
         case 'server1':
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+          return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
         case 'server2':
-          return `https://www.2embed.cc/embed/movie?tmdb=${tmdbId}`;
+          return `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         case 'server3':
           return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
         default:
-          return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
+          return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
       }
     }
   };
@@ -215,7 +215,7 @@ const WatchMovie = () => {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 italic">
-                Tip: Server 1 usually contains Hindi dubbed content by default. If it doesn't work, try Server 2 or 3.
+                Tip: Server 1 (Smashy) and Server 2 (Vidsrc.cc) often provide Hindi/Multi-audio options. Use the player settings icon to change language if available.
               </p>
             </div>
 
