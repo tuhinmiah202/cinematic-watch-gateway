@@ -19,7 +19,9 @@ const WatchMovie = () => {
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [torrentData, setTorrentData] = useState<{ magnet: string; title: string } | null>(null);
+  const [ytsData, setYtsData] = useState<{ magnet: string; title: string } | null>(null);
   const [isTorrentLoading, setIsTorrentLoading] = useState(false);
+  const [isYtsLoading, setIsYtsLoading] = useState(false);
 
   const handleBack = () => {
     navigate(-1);
@@ -183,6 +185,39 @@ const WatchMovie = () => {
     }
   }, [finalImdbId, isTV, season, episode]);
 
+  // YTS API Integration
+  useEffect(() => {
+    const fetchYts = async () => {
+      if (!finalImdbId || isTV) return;
+      setIsYtsLoading(true);
+      setYtsData(null);
+
+      try {
+        const response = await fetch(`https://yts.mx/api/v2/list_movies.json?query_term=${finalImdbId}`);
+        const data = await response.json();
+
+        if (data.status === 'ok' && data.data.movie_count > 0) {
+          const movie = data.data.movies[0];
+          const bestTorrent = movie.torrents.reduce((prev: any, current: any) => {
+            return (prev.size_bytes > current.size_bytes) ? prev : current;
+          });
+
+          if (bestTorrent) {
+            const trackers = "&tr=udp://open.demonii.com:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.coppersurfer.tk:6969&tr=udp://glotorrents.pw:6969/announce&tr=udp://tracker.opentrackr.org:1337/announce";
+            const magnet = `magnet:?xt=urn:btih:${bestTorrent.hash}&dn=${encodeURIComponent(movie.title)}&xl=${bestTorrent.size}${trackers}`;
+            setYtsData({ magnet, title: `${movie.title} [${bestTorrent.quality}] [YTS]` });
+          }
+        }
+      } catch (error) {
+        console.warn("YTS API error:", error);
+      } finally {
+        setIsYtsLoading(false);
+      }
+    };
+
+    fetchYts();
+  }, [finalImdbId, isTV]);
+
   const getEmbedUrl = () => {
     if (selectedServer === 'torrent' && torrentData?.magnet) {
       const encodedMagnet = encodeURIComponent(torrentData.magnet);
@@ -293,31 +328,70 @@ const WatchMovie = () => {
             </div>
           </div>
 
-          {/* Download Button Section */}
-          <div className="mt-4 flex flex-col gap-2">
-            {selectedServer === 'torrent' && torrentData?.magnet ? (
-              <a
-                href={torrentData.magnet}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3 no-underline"
-              >
-                <Download className="w-6 h-6" />
-                Download Movie via Torrent (Hindi Dubbed)
-              </a>
-            ) : (
-              <Button
-                onClick={() => window.open(`https://1337x.to/search/${encodeURIComponent(title + ' hindi dubbed')}/1/`, '_blank')}
-                className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 border border-white/10"
-              >
-                <Download className="w-6 h-6" />
-                Search & Download Torrent (External)
-              </Button>
-            )}
+          {/* Multi-Source Download Section */}
+          <div className="mt-8 space-y-6">
+            <h2 className="text-2xl font-black text-white flex items-center gap-3">
+              <Download className="w-6 h-6 text-orange-500" />
+              Download Options
+            </h2>
 
-            {torrentData?.title && (
-              <p className="text-[10px] text-gray-500 text-center px-4 line-clamp-1">
-                Active Torrent: {torrentData.title.split('\n')[0]}
-              </p>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Button 1: Torrentio (Hindi) */}
+              <div className="space-y-2">
+                <Button
+                  disabled={!torrentData?.magnet || isTorrentLoading}
+                  onClick={() => torrentData?.magnet && window.open(torrentData.magnet, '_self')}
+                  className={`w-full h-16 relative overflow-hidden group transition-all duration-300 ${
+                    torrentData?.magnet
+                      ? 'bg-gradient-to-br from-orange-600 to-red-700 hover:scale-105 shadow-[0_0_20px_rgba(234,88,12,0.3)]'
+                      : 'bg-gray-800 opacity-50 cursor-not-allowed'
+                  } border-none rounded-2xl flex flex-col items-center justify-center`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="w-5 h-5" />
+                    <span className="font-bold text-sm">Download via Torrentio</span>
+                  </div>
+                  <span className="text-[10px] opacity-80 font-black uppercase tracking-tighter text-white">Hindi Dubbed Priority</span>
+                </Button>
+                {isTorrentLoading && <p className="text-[10px] text-gray-500 text-center animate-pulse">Searching Torrentio mirrors...</p>}
+              </div>
+
+              {/* Button 2: YTS (Dual Audio/Original) */}
+              {!isTV && (
+                <div className="space-y-2">
+                  <Button
+                    disabled={!ytsData?.magnet || isYtsLoading}
+                    onClick={() => ytsData?.magnet && window.open(ytsData.magnet, '_self')}
+                    className={`w-full h-16 relative overflow-hidden group transition-all duration-300 ${
+                      ytsData?.magnet
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-700 hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.3)]'
+                        : 'bg-gray-800 opacity-50 cursor-not-allowed'
+                    } border-none rounded-2xl flex flex-col items-center justify-center`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Film className="w-5 h-5" />
+                      <span className="font-bold text-sm">Download via YTS</span>
+                    </div>
+                    <span className="text-[10px] opacity-80 font-black uppercase tracking-tighter text-white">Dual Audio / High Quality</span>
+                  </Button>
+                  {isYtsLoading && <p className="text-[10px] text-gray-500 text-center animate-pulse">Checking YTS database...</p>}
+                </div>
+              )}
+
+              {/* Button 3: Direct Download (VidSrc) */}
+              <div className="space-y-2">
+                <Button
+                  onClick={() => window.open(`https://vidsrc.to/download/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`, '_blank')}
+                  className="w-full h-16 bg-gradient-to-br from-green-600 to-emerald-700 hover:scale-105 shadow-[0_0_20px_rgba(22,163,74,0.3)] border-none rounded-2xl flex flex-col items-center justify-center transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    <span className="font-bold text-sm">Direct Download</span>
+                  </div>
+                  <span className="text-[10px] opacity-80 font-black uppercase tracking-tighter text-white">Multi-Audio / Fast</span>
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Controls & Server Switcher */}
