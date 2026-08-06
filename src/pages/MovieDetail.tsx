@@ -20,8 +20,12 @@ const MovieDetail = () => {
 
   const [selectedServer, setSelectedServer] = useState('default');
   const [railwayLinks, setRailwayLinks] = useState<string[]>([]);
+  const [mirrorLinks, setMirrorLinks] = useState<string[]>([]);
   const [telegramStream, setTelegramStream] = useState<string | null>(null);
+  const [ultraStream, setUltraStream] = useState<string | null>(null);
   const [isRailwayLoading, setIsRailwayLoading] = useState(false);
+  const [isMirrorLoading, setIsMirrorLoading] = useState(true);
+  const [countdown, setCountdown] = useState(40);
 
   const handleBack = () => {
     navigate(-1);
@@ -55,7 +59,7 @@ const MovieDetail = () => {
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
   });
 
   const movie = supabaseContent || tmdbContent;
@@ -86,8 +90,6 @@ const MovieDetail = () => {
     return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
   }, [imdbId, externalIds]);
 
-  const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
-
   // Helper: Clean movie name for better API matching
   const cleanMovieName = (name: string) => {
     return name
@@ -110,60 +112,64 @@ const MovieDetail = () => {
         const response = await fetch(`https://pythonmovie-bot1-production.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
         const data = await response.json();
         
-        // --- 1. Directly load results[0].stream_provider into iframe ---
-        const results = Array.isArray(data) ? data : (data.results || []);
+        // --- 1. Handle standard_results ---
+        const standardResults = data.standard_results || [];
+        const results = Array.isArray(standardResults) ? standardResults : (standardResults.results || []);
         
+        // Directly load results[0].stream_provider into iframe
         if (results.length > 0 && results[0].stream_provider) {
           setTelegramStream(results[0].stream_provider);
-          setSelectedServer('telegram'); // Force load into iframe immediately
+          setSelectedServer('telegram');
         } else {
-          // Fallback to original logic if stream_provider is missing
-          const resultsList = Array.isArray(data) ? data : (data.results || [data]);
-          const streamResult = resultsList.find((item: any) => item.type === "stream" && item.stream_provider);
+          // Fallback search
+          const responseText = JSON.stringify(standardResults);
+          const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
+          const allLinks = responseText.match(urlRegex) || [];
 
-          if (streamResult) {
-            setTelegramStream(streamResult.stream_provider);
+          const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
+          const movieBox = allLinks.find(url => url.includes('themoviebox'));
+
+          if (movieLinkBd) {
+            setTelegramStream(movieLinkBd);
             setSelectedServer('telegram');
-          } else {
-            // Fallback to URL search
-            const responseText = JSON.stringify(data);
-            const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-            const allLinks = responseText.match(urlRegex) || [];
-
-            const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
-            const movieBox = allLinks.find(url => url.includes('themoviebox'));
-
-            if (movieLinkBd) {
-              setTelegramStream(movieLinkBd);
-              setSelectedServer('telegram');
-            } else if (movieBox) {
-              setTelegramStream(movieBox);
-              setSelectedServer('telegram');
-            }
+          } else if (movieBox) {
+            setTelegramStream(movieBox);
+            setSelectedServer('telegram');
           }
         }
 
-        // --- 2. Handle Download Buttons (Drive/Mega/Pixeldrain Priority) ---
-        const responseText = JSON.stringify(data);
-        const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-        const allFoundLinks = responseText.match(urlRegex) || [];
+        // Standard Download Links (Prioritize Drive/Mega/Pixeldrain)
+        const responseTextStd = JSON.stringify(standardResults);
+        const urlRegexStd = /(https?:\/\/[^\s"'<>]+)/g;
+        const allFoundLinksStd = responseTextStd.match(urlRegexStd) || [];
 
-        const priorityDownloadLinks = allFoundLinks.filter(url =>
+        const priorityStd = allFoundLinksStd.filter(url =>
           url.includes('drive.google.com') ||
           url.includes('mega.nz') ||
           url.includes('pixeldrain.com')
         );
 
-        const otherDownloadLinks = allFoundLinks.filter(url =>
+        const otherStd = allFoundLinksStd.filter(url =>
           !url.includes('api.themoviedb.org') &&
           !url.includes('tmdb.org') &&
           !url.includes('railway.app') &&
           !url.includes('movielinkbd') &&
           !url.includes('themoviebox') &&
-          !priorityDownloadLinks.includes(url)
+          !priorityStd.includes(url)
         );
 
-        setRailwayLinks([...priorityDownloadLinks, ...otherDownloadLinks]);
+        setRailwayLinks([...priorityStd, ...otherStd]);
+
+        // --- 2. Handle mirror_results (Premium) ---
+        const mirrorResults = data.mirror_results || [];
+        if (mirrorResults.length > 0) {
+           setMirrorLinks(mirrorResults);
+           setIsMirrorLoading(false);
+           if (mirrorResults[0]) {
+              setUltraStream(mirrorResults[0]);
+              setSelectedServer('ultra'); // Priority 1 for streaming
+           }
+        }
 
       } catch (error) {
         console.error("Custom API Error:", error);
@@ -175,15 +181,25 @@ const MovieDetail = () => {
     if (movie) fetchCustomApiData();
   }, [movie]);
 
+  // Countdown timer for Mirror Bot
+  useEffect(() => {
+    if (countdown > 0 && isMirrorLoading) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      setIsMirrorLoading(false);
+    }
+  }, [countdown, isMirrorLoading]);
+
   const getEmbedUrl = () => {
+    if (selectedServer === 'ultra' && ultraStream) return ultraStream;
     if (selectedServer === 'telegram' && telegramStream) return telegramStream;
     
-    // Default Fallback: SuperEmbed
     const videoId = finalImdbId || tmdbId;
     return `https://multiembed.mov/directstream.php?video_id=${videoId}&tmdb=1${isTV ? '&s=1&e=1' : ''}`;
   };
 
-  // Fetch cast and related (Existing Logic)
+  // Fetch cast and related
   const { data: tmdbCast } = useQuery({
     queryKey: ['tmdb-cast-detail', tmdbId],
     queryFn: async () => {
@@ -211,6 +227,9 @@ const MovieDetail = () => {
 
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
+
+  const title = (movie as any).title || (movie as any).name;
+  const posterUrl = (movie: any) => (movie?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg');
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -253,13 +272,26 @@ const MovieDetail = () => {
                  <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     <span className="text-[10px] text-white uppercase font-black tracking-widest">
-                       {selectedServer === 'telegram' ? 'Smart Link Active' : 'Global Server Active'}
+                       {selectedServer === 'ultra' ? 'Ultra Premium Stream' : selectedServer === 'telegram' ? 'Smart Link Active' : 'Global Server Active'}
                     </span>
                  </div>
               </div>
             </div>
 
             <div className="flex flex-wrap justify-center gap-4">
+                {(ultraStream || isMirrorLoading) && (
+                   <Button
+                    disabled={isMirrorLoading}
+                    onClick={() => setSelectedServer('ultra')}
+                    className="bg-gradient-to-r from-yellow-400 via-yellow-600 to-yellow-700 text-white rounded-full px-8 h-12 shadow-[0_0_25px_rgba(234,179,8,0.4)] transition-all transform hover:scale-105 font-black uppercase italic"
+                  >
+                    {isMirrorLoading ? (
+                      <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Generating Premium Stream... [{countdown}s]</span>
+                    ) : (
+                      <span className="flex items-center gap-2"><Play className="w-4 h-4 mr-2 fill-white" /> Ultra Streaming Server</span>
+                    )}
+                  </Button>
+                )}
                 {telegramStream && (
                   <Button
                     onClick={() => setSelectedServer('telegram')}
@@ -277,52 +309,72 @@ const MovieDetail = () => {
             </div>
           </section>
 
-          {/* 2. THREE DOWNLOAD BUTTONS SYSTEM */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
-               <Download className="w-6 h-6 text-orange-500" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+          {/* 2. DOWNLOAD CENTER SYSTEM */}
+          <section className="space-y-8">
+            <div className="flex items-center justify-between border-l-4 border-orange-500 pl-4">
+               <div className="flex items-center gap-3">
+                  <Download className="w-6 h-6 text-orange-500" />
+                  <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+               </div>
+               {isMirrorLoading && <span className="text-[10px] text-yellow-500 font-bold animate-pulse">PREMIUM MIRROR BOT ACTIVE: {countdown}s remaining</span>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* DOWNLOAD SERVER 1 */}
-              <a
-                id="download-server-1"
-                href={railwayLinks[0] || "#"}
-                target={railwayLinks[0] ? "_blank" : "_self"}
-                rel="noreferrer"
-                className={`h-24 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[0] ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-2"><Download className="w-6 h-6 text-white" /> <span className="text-lg font-black italic text-white uppercase">{railwayLinks[0] ? 'DOWNLOAD SERVER 1' : 'SERVER OFFLINE'}</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[0] ? 'High Speed Link' : 'Not Found'}</span>
-                </div>
-              </a>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              {/* DOWNLOAD SERVER 2 */}
-              <a
-                id="download-server-2"
-                href={railwayLinks[1] || "#"}
-                target={railwayLinks[1] ? "_blank" : "_self"}
-                rel="noreferrer"
-                className={`h-24 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[1] ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-2"><Globe className="w-6 h-6 text-white" /> <span className="text-lg font-black italic text-white uppercase">{railwayLinks[1] ? 'DOWNLOAD SERVER 2' : 'SERVER OFFLINE'}</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[1] ? 'Premium Mirror' : 'Not Found'}</span>
-                </div>
-              </a>
+              {/* STANDARD SERVERS */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><Globe className="w-4 h-4" /> Standard Links</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <a
+                    id="download-server-1"
+                    href={railwayLinks[0] || "#"}
+                    target={railwayLinks[0] ? "_blank" : "_self"}
+                    rel="noreferrer"
+                    className={`h-20 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 rounded-3xl shadow-xl border border-white/5 transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[0] ? 'opacity-50 grayscale' : ''}`}
+                  >
+                    <div className="flex items-center gap-2"><Download className="w-5 h-5 text-orange-500" /> <span className="text-sm font-black italic text-white uppercase">{railwayLinks[0] ? 'DOWNLOAD SERVER 1' : 'SERVER OFFLINE'}</span></div>
+                    <span className="text-[9px] text-white/50 font-bold uppercase">{railwayLinks[0] ? 'Direct High Speed' : 'Not Available'}</span>
+                  </a>
 
-              {/* SERVER 3 (BACKUP) */}
-              <Button
-                onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
-                className="h-24 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-2"><Server className="w-6 h-6 text-white" /> <span className="text-lg font-black italic">SERVER 3 (BACKUP)</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase">Safe Multi-Audio</span>
+                  <a
+                    id="download-server-2"
+                    href={railwayLinks[1] || "#"}
+                    target={railwayLinks[1] ? "_blank" : "_self"}
+                    rel="noreferrer"
+                    className={`h-20 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 rounded-3xl shadow-xl border border-white/5 transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[1] ? 'opacity-50 grayscale' : ''}`}
+                  >
+                    <div className="flex items-center gap-2"><Download className="w-5 h-5 text-blue-500" /> <span className="text-sm font-black italic text-white uppercase">{railwayLinks[1] ? 'DOWNLOAD SERVER 2' : 'SERVER OFFLINE'}</span></div>
+                    <span className="text-[9px] text-white/50 font-bold uppercase">{railwayLinks[1] ? 'Mirror Link' : 'Not Available'}</span>
+                  </a>
                 </div>
-              </Button>
+              </div>
+
+              {/* PREMIUM MIRROR SERVERS */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2"><Star className="w-4 h-4" /> Premium Mirrors (Bot Generated)</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <a
+                    href={mirrorLinks[0] || "#"}
+                    target={mirrorLinks[0] ? "_blank" : "_self"}
+                    rel="noreferrer"
+                    className={`h-20 bg-gradient-to-br from-yellow-400 via-yellow-600 to-yellow-700 rounded-3xl shadow-[0_0_30px_rgba(234,179,8,0.2)] border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${isMirrorLoading || !mirrorLinks[0] ? (countdown === 0 && !mirrorLinks[0] ? 'opacity-50 grayscale' : 'animate-pulse') : ''}`}
+                  >
+                    <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /> <span className="text-sm font-black italic text-white uppercase">{isMirrorLoading ? `GENERATING... [${countdown}s]` : (mirrorLinks[0] ? 'HIGH-SPEED SERVER 3' : 'SERVER BUSY')}</span></div>
+                    <span className="text-[9px] text-white/80 font-bold uppercase">{mirrorLinks[0] ? 'Ultra Fast Direct' : (countdown === 0 ? 'Wait for reset' : 'Mirror Bot Processing')}</span>
+                  </a>
+
+                  <a
+                    href={mirrorLinks[1] || "#"}
+                    target={mirrorLinks[1] ? "_blank" : "_self"}
+                    rel="noreferrer"
+                    className={`h-20 bg-gradient-to-br from-yellow-400 via-yellow-600 to-yellow-700 rounded-3xl shadow-[0_0_30px_rgba(234,179,8,0.2)] border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${isMirrorLoading || !mirrorLinks[1] ? (countdown === 0 && !mirrorLinks[1] ? 'opacity-50 grayscale' : 'animate-pulse') : ''}`}
+                  >
+                    <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /> <span className="text-sm font-black italic text-white uppercase">{isMirrorLoading ? `GENERATING... [${countdown}s]` : (mirrorLinks[1] ? 'HIGH-SPEED SERVER 4' : 'SERVER BUSY')}</span></div>
+                    <span className="text-[9px] text-white/80 font-bold uppercase">{mirrorLinks[1] ? 'Ultra Fast Direct' : (countdown === 0 ? 'Wait for reset' : 'Mirror Bot Processing')}</span>
+                  </a>
+                </div>
+              </div>
+
             </div>
           </section>
 
@@ -398,7 +450,5 @@ const MovieDetail = () => {
     </div>
   );
 };
-
-const posterUrl = (movie: any) => (movie?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg');
 
 export default MovieDetail;
