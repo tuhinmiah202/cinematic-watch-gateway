@@ -21,7 +21,10 @@ const WatchMovie = () => {
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [torrentData, setTorrentData] = useState<{ magnet: string; title: string; source: string } | null>(null);
+  const [railwayLinks, setRailwayLinks] = useState<string[]>([]);
+  const [telegramStream, setTelegramStream] = useState<string | null>(null);
   const [isTorrentLoading, setIsTorrentLoading] = useState(false);
+  const [isRailwayLoading, setIsRailwayLoading] = useState(false);
 
   const handleBack = () => navigate(-1);
 
