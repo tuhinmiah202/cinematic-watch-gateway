@@ -110,28 +110,36 @@ const MovieDetail = () => {
         const response = await fetch(`https://pythonmovie-bot1-production.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
         const data = await response.json();
         
-        // --- 1. Handle Smart Streaming Player (stream_provider check) ---
-        const results = Array.isArray(data) ? data : (data.results || [data]);
-        const streamResult = results.find((item: any) => item.type === "stream" && item.stream_provider);
+        // --- 1. Directly load results[0].stream_provider into iframe ---
+        const results = Array.isArray(data) ? data : (data.results || []);
         
-        if (streamResult) {
-          setTelegramStream(streamResult.stream_provider);
-          setSelectedServer('telegram');
+        if (results.length > 0 && results[0].stream_provider) {
+          setTelegramStream(results[0].stream_provider);
+          setSelectedServer('telegram'); // Force load into iframe immediately
         } else {
-          // Fallback to URL search
-          const responseText = JSON.stringify(data);
-          const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-          const allLinks = responseText.match(urlRegex) || [];
+          // Fallback to original logic if stream_provider is missing
+          const resultsList = Array.isArray(data) ? data : (data.results || [data]);
+          const streamResult = resultsList.find((item: any) => item.type === "stream" && item.stream_provider);
 
-          const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
-          const movieBox = allLinks.find(url => url.includes('themoviebox'));
+          if (streamResult) {
+            setTelegramStream(streamResult.stream_provider);
+            setSelectedServer('telegram');
+          } else {
+            // Fallback to URL search
+            const responseText = JSON.stringify(data);
+            const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
+            const allLinks = responseText.match(urlRegex) || [];
 
-          if (movieLinkBd) {
-            setTelegramStream(movieLinkBd);
-            setSelectedServer('telegram');
-          } else if (movieBox) {
-            setTelegramStream(movieBox);
-            setSelectedServer('telegram');
+            const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
+            const movieBox = allLinks.find(url => url.includes('themoviebox'));
+
+            if (movieLinkBd) {
+              setTelegramStream(movieLinkBd);
+              setSelectedServer('telegram');
+            } else if (movieBox) {
+              setTelegramStream(movieBox);
+              setSelectedServer('telegram');
+            }
           }
         }
 
