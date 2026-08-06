@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, CheckCircle2 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useToast } from "@/hooks/use-toast";
 
 const MovieDetail = () => {
@@ -270,7 +271,7 @@ const MovieDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             {/* Left: Poster and Quick Info */}
             <div className="lg:col-span-4 space-y-6">
-                <img src={posterUrl} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
+                <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
                 <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
                     <div className="flex items-center justify-between">
                         <span className="text-gray-500 text-xs font-black uppercase">Rating</span>
