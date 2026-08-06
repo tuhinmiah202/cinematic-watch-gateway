@@ -88,49 +88,70 @@ const MovieDetail = () => {
 
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
-  // 3. Railway API Integration
+  // Helper: Clean movie name for better API matching
+  const cleanMovieName = (name: string) => {
+    return name
+      .replace(/\(\d{4}\)/g, '') // Remove (2024)
+      .replace(/\[.*\]/g, '')     // Remove [Hindi]
+      .replace(/[^\w\s]/gi, '')   // Remove special characters
+      .trim();
+  };
+
+  // 3. Custom Movie API Integration (Telegram/Railway)
   useEffect(() => {
-    const fetchRailwayLinks = async () => {
-      if (!title || title === 'Untitled') return;
+    const fetchCustomApiData = async () => {
+      const movieTitle = (movie as any)?.title || (movie as any)?.name;
+      if (!movieTitle) return;
+
+      const query = cleanMovieName(movieTitle);
       setIsRailwayLoading(true);
+
       try {
-        const response = await fetch(`https://pythonmovie-bot1-production.up.railway.app/search?query=${encodeURIComponent(title)}`);
+        const response = await fetch(`https://pythonmovie-bot1-production.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
         const data = await response.json();
         
+        // Extract links from response text/results
         const responseText = JSON.stringify(data);
         const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-        const foundLinks = responseText.match(urlRegex) || [];
+        const allLinks = responseText.match(urlRegex) || [];
         
-        const downloadLinks = foundLinks.filter(url =>
+        // Prioritize Streaming Links
+        const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
+        const movieBox = allLinks.find(url => url.includes('themoviebox'));
+
+        if (movieLinkBd) {
+          setTelegramStream(movieLinkBd);
+          setSelectedServer('telegram'); // Auto-switch to highest priority
+        } else if (movieBox) {
+          setTelegramStream(movieBox);
+          setSelectedServer('telegram');
+        }
+
+        // Assign Download Links
+        const directLinks = allLinks.filter(url =>
           !url.includes('api.themoviedb.org') &&
           !url.includes('tmdb.org') &&
-          !url.includes('railway.app')
+          !url.includes('railway.app') &&
+          !url.includes('movielinkbd') &&
+          !url.includes('themoviebox')
         );
 
-        setRailwayLinks(downloadLinks);
-
-        const streamLink = downloadLinks.find(url =>
-          url.includes('drive.google') ||
-          url.includes('terabox') ||
-          url.includes('cloud') ||
-          url.includes('stream')
-        );
-        if (streamLink) setTelegramStream(streamLink);
+        setRailwayLinks(directLinks);
 
       } catch (error) {
-        console.error("Railway API Error:", error);
+        console.error("Custom API Error:", error);
       } finally {
         setIsRailwayLoading(false);
       }
     };
 
-    if (title && title !== 'Untitled') fetchRailwayLinks();
-  }, [title]);
+    if (movie) fetchCustomApiData();
+  }, [movie]);
 
   const getEmbedUrl = () => {
     if (selectedServer === 'telegram' && telegramStream) return telegramStream;
     
-    // Default: SuperEmbed
+    // Default Fallback: SuperEmbed
     const videoId = finalImdbId || tmdbId;
     return `https://multiembed.mov/directstream.php?video_id=${videoId}&tmdb=1${isTV ? '&s=1&e=1' : ''}`;
   };
@@ -179,15 +200,20 @@ const MovieDetail = () => {
         <div className="max-w-6xl mx-auto space-y-10">
 
           {/* 1. TOP PLAYER SECTION */}
-          <section className="space-y-4">
+          <section id="player-container" className="space-y-4">
             <div className="relative w-full aspect-video bg-[#050505] rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
               {isRailwayLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Initializing Premium Stream...</p>
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Scanning Smart Sources...</p>
+                </div>
+              ) : !getEmbedUrl() && !isRailwayLoading ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white font-bold">
+                   Streaming currently unavailable
                 </div>
               ) : (
                 <iframe
+                  id="movie-player"
                   src={getEmbedUrl()}
                   className="w-full h-full"
                   frameBorder="0"
@@ -200,7 +226,7 @@ const MovieDetail = () => {
                  <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     <span className="text-[10px] text-white uppercase font-black tracking-widest">
-                       {selectedServer === 'telegram' ? 'Cloud Stream Active' : 'SuperEmbed Multi-Audio'}
+                       {selectedServer === 'telegram' ? 'Smart Link Active' : 'Global Server Active'}
                     </span>
                  </div>
               </div>
@@ -212,7 +238,7 @@ const MovieDetail = () => {
                     onClick={() => setSelectedServer('telegram')}
                     className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 h-12 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all transform hover:scale-105"
                   >
-                    <Play className="w-4 h-4 mr-2 fill-white" /> Play from Telegram
+                    <Play className="w-4 h-4 mr-2 fill-white" /> {telegramStream.includes('movielinkbd') ? 'Play from MovieLinkBD' : 'Play Smart Server'}
                   </Button>
                 )}
                 <Button
@@ -232,31 +258,37 @@ const MovieDetail = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* SERVER 1 */}
-              <Button
-                onClick={() => window.open(railwayLinks[0] || `https://multiembed.mov/directstream.php?video_id=${finalImdbId || tmdbId}&tmdb=1`, '_blank')}
-                className="h-24 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
+              {/* DOWNLOAD SERVER 1 */}
+              <a
+                id="download-server-1"
+                href={railwayLinks[0] || "#"}
+                target={railwayLinks[0] ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={`h-24 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[0] ? 'opacity-50 grayscale pointer-events-none' : ''}`}
               >
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-2"><Download className="w-6 h-6 text-white" /> <span className="text-lg font-black italic">DOWNLOAD SERVER 1</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[0] ? 'High Speed Cloud' : 'Direct Link'}</span>
+                  <div className="flex items-center gap-2"><Download className="w-6 h-6 text-white" /> <span className="text-lg font-black italic text-white uppercase">{railwayLinks[0] ? 'DOWNLOAD SERVER 1' : 'SERVER OFFLINE'}</span></div>
+                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[0] ? 'High Speed Link' : 'Not Found'}</span>
                 </div>
-              </Button>
+              </a>
 
-              {/* SERVER 2 */}
-              <Button
-                onClick={() => window.open(railwayLinks[1] || `https://vidlink.pro/${isTV ? 'tv' : 'movie'}/${tmdbId}`, '_blank')}
-                className="h-24 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
+              {/* DOWNLOAD SERVER 2 */}
+              <a
+                id="download-server-2"
+                href={railwayLinks[1] || "#"}
+                target={railwayLinks[1] ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={`h-24 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1 ${!railwayLinks[1] ? 'opacity-50 grayscale pointer-events-none' : ''}`}
               >
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-2"><Globe className="w-6 h-6 text-white" /> <span className="text-lg font-black italic">DOWNLOAD SERVER 2</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[1] ? 'Premium Mirror' : 'Fast Buffer'}</span>
+                  <div className="flex items-center gap-2"><Globe className="w-6 h-6 text-white" /> <span className="text-lg font-black italic text-white uppercase">{railwayLinks[1] ? 'DOWNLOAD SERVER 2' : 'SERVER OFFLINE'}</span></div>
+                  <span className="text-[10px] text-white/70 font-bold uppercase">{railwayLinks[1] ? 'Premium Mirror' : 'Not Found'}</span>
                 </div>
-              </Button>
+              </a>
 
               {/* SERVER 3 (BACKUP) */}
               <Button
-                onClick={() => window.open(railwayLinks[2] || `https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
+                onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
                 className="h-24 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
               >
                 <div className="flex flex-col items-center">
