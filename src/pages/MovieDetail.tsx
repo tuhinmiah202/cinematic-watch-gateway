@@ -110,33 +110,52 @@ const MovieDetail = () => {
         const response = await fetch(`https://pythonmovie-bot1-production.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
         const data = await response.json();
         
-        // Extract links from response text/results
-        const responseText = JSON.stringify(data);
-        const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-        const allLinks = responseText.match(urlRegex) || [];
+        // --- 1. Handle Smart Streaming Player (stream_provider check) ---
+        const results = Array.isArray(data) ? data : (data.results || [data]);
+        const streamResult = results.find((item: any) => item.type === "stream" && item.stream_provider);
         
-        // Prioritize Streaming Links
-        const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
-        const movieBox = allLinks.find(url => url.includes('themoviebox'));
-
-        if (movieLinkBd) {
-          setTelegramStream(movieLinkBd);
-          setSelectedServer('telegram'); // Auto-switch to highest priority
-        } else if (movieBox) {
-          setTelegramStream(movieBox);
+        if (streamResult) {
+          setTelegramStream(streamResult.stream_provider);
           setSelectedServer('telegram');
+        } else {
+          // Fallback to URL search
+          const responseText = JSON.stringify(data);
+          const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
+          const allLinks = responseText.match(urlRegex) || [];
+
+          const movieLinkBd = allLinks.find(url => url.includes('movielinkbd'));
+          const movieBox = allLinks.find(url => url.includes('themoviebox'));
+
+          if (movieLinkBd) {
+            setTelegramStream(movieLinkBd);
+            setSelectedServer('telegram');
+          } else if (movieBox) {
+            setTelegramStream(movieBox);
+            setSelectedServer('telegram');
+          }
         }
 
-        // Assign Download Links
-        const directLinks = allLinks.filter(url =>
+        // --- 2. Handle Download Buttons (Drive/Mega/Pixeldrain Priority) ---
+        const responseText = JSON.stringify(data);
+        const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
+        const allFoundLinks = responseText.match(urlRegex) || [];
+
+        const priorityDownloadLinks = allFoundLinks.filter(url =>
+          url.includes('drive.google.com') ||
+          url.includes('mega.nz') ||
+          url.includes('pixeldrain.com')
+        );
+
+        const otherDownloadLinks = allFoundLinks.filter(url =>
           !url.includes('api.themoviedb.org') &&
           !url.includes('tmdb.org') &&
           !url.includes('railway.app') &&
           !url.includes('movielinkbd') &&
-          !url.includes('themoviebox')
+          !url.includes('themoviebox') &&
+          !priorityDownloadLinks.includes(url)
         );
 
-        setRailwayLinks(directLinks);
+        setRailwayLinks([...priorityDownloadLinks, ...otherDownloadLinks]);
 
       } catch (error) {
         console.error("Custom API Error:", error);
