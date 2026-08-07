@@ -26,7 +26,10 @@ const MovieDetail = () => {
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
   const [apiResults, setApiResults] = useState<ApiResult[]>([]);
   const [isApiLoading, setIsApiLoading] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+
+  // States for TV Shows
+  const [season, setSeason] = useState(1);
+  const [episode, setEpisode] = useState(1);
 
   const handleBack = () => {
     navigate(-1);
@@ -44,7 +47,7 @@ const MovieDetail = () => {
     enabled: !!movieId
   });
 
-  const tmdbQuery = useQuery({
+  const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-content-detail', movieId],
     queryFn: async () => {
       if (supabaseContent) return null;
@@ -60,11 +63,9 @@ const MovieDetail = () => {
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
   });
 
-  const tmdbContent = tmdbQuery.data;
-  const isLoadingTmdb = tmdbQuery.isLoading;
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
   const isTV = supabaseContent
@@ -95,91 +96,58 @@ const MovieDetail = () => {
 
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
-  // Helper: Clean movie name for better API matching
-  const cleanMovieName = (name: string) => {
-    return name
-      .replace(/\(\d{4}\)/g, '') // Remove (2024)
-      .replace(/\[.*\]/g, '')     // Remove [Hindi]
-      .replace(/[^\w\s]/gi, ' ')   // Replace special characters with space
-      .trim();
-  };
+  // Define High-Quality Servers based on TMDB ID
+  const primaryServers = useMemo(() => {
+    if (!tmdbId) return [];
+    const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
+    return [
+      { name: 'HDHub (Hindi)', url: `https://vidsrc.cc/v2/embed/${base}`, type: 'Hindi' },
+      { name: 'HBOX (Hindi Focus)', url: `https://hbox.vidsrc.xyz/embed/${base}`, type: 'Hindi' },
+      { name: 'HINDI (Only)', url: `https://vidsrc.in/embed/${base}`, type: 'Hindi' },
+      { name: 'SuperEmbed', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'Multi' },
+    ];
+  }, [tmdbId, isTV, season, episode]);
 
-  // 3. Robust API Integration
+  const alternativeServers = useMemo(() => {
+    if (!tmdbId) return [];
+    const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
+    return [
+      { name: 'ALICE', url: `https://vidsrc.to/embed/${base}`, type: 'Multi' },
+      { name: 'MONGO', url: `https://vidsrc.me/embed/${base}`, type: 'Multi' },
+      { name: 'NITRO', url: `https://nitro.vidsrc.xyz/embed/${base}`, type: 'Multi' },
+    ];
+  }, [tmdbId, isTV, season, episode]);
+
+  // Set default player to HDHub on load
+  useEffect(() => {
+    if (primaryServers.length > 0 && !selectedStreamUrl) {
+      setSelectedStreamUrl(primaryServers[0].url);
+    }
+  }, [primaryServers, selectedStreamUrl]);
+
+  // 3. API Integration for additional links (keeping your bot integration)
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
-
-      const query = cleanMovieName(title);
+      const cleanTitle = title.replace(/\(\d{4}\)/g, '').replace(/[^\w\s]/gi, ' ').trim();
       setIsApiLoading(true);
-      setApiError(null);
-
       try {
-        const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('API Error');
+        const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
         const data = await response.json();
-
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
-
-        // Requirement: Automatically set src of <iframe> to the VERY FIRST link returned
-        if (results.length > 0 && results[0].links && results[0].links.length > 0) {
-          setSelectedStreamUrl(results[0].links[0]);
-        } else {
-          // Default Fallback
-          const videoId = finalImdbId || tmdbId;
-          setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
-        }
-
       } catch (error) {
         console.error("API Error:", error);
-        setApiError('Server currently busy, please try another movie.');
-        // Fallback
-        const videoId = finalImdbId || tmdbId;
-        setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
       } finally {
-        setIsApiLoading(true); // Artificial delay to ensure user sees "Searching"
-        setTimeout(() => setIsApiLoading(false), 800);
+        setIsApiLoading(false);
       }
     };
-
     if (movie) fetchApiData();
-  }, [movie, title, finalImdbId, tmdbId, isTV]);
-
-  // Derived sections from API results with specific sorting
-  const streamServers = useMemo(() => {
-    const rawServers = apiResults.filter(r =>
-      r.links && r.links.length > 0 && (
-        r.text.toUpperCase().includes('WATCH') ||
-        r.text.toUpperCase().includes('PLAYER') ||
-        r.text.toUpperCase().includes('STREAM') ||
-        r.text.toUpperCase().includes('SERVER')
-      )
-    );
-
-    // Sort to ensure HINDI / MULTI (PRO) is first
-    return [...rawServers].sort((a, b) => {
-      const aText = a.text.toUpperCase();
-      const bText = b.text.toUpperCase();
-      const target = "HINDI / MULTI (PRO)";
-
-      if (aText.includes(target)) return -1;
-      if (bText.includes(target)) return 1;
-      return 0;
-    });
-  }, [apiResults]);
+  }, [movie, title]);
 
   const downloadLinks = apiResults.filter(r =>
-    r.links && r.links.length > 0 && (
-      r.text.toUpperCase().includes('PREMIUM') ||
-      r.text.toUpperCase().includes('DIRECT') ||
-      r.text.toUpperCase().includes('MEGA') ||
-      r.text.toUpperCase().includes('DRIVE') ||
-      r.text.toUpperCase().includes('PIXEL')
-    )
+    r.links && r.links.length > 0 && r.text.toUpperCase().includes('PREMIUM')
   );
-
-  // Highlighting Logic
-  const highlightKeywords = ['HINDI', 'MULTI-AUDIO', 'ALICE', 'MONGO', 'MULTI-LANG'];
 
   // Fetch cast and related
   const { data: tmdbCast } = useQuery({
@@ -210,7 +178,7 @@ const MovieDetail = () => {
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
 
-  const posterUrl = (movie: any) => (movie?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg');
+  const moviePosterUrl = (movie: any) => (movie?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg');
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -226,19 +194,9 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-6xl mx-auto space-y-10">
 
-          {/* 1. VIDEO PLAYER SECTION */}
-          <section id="player-container" className="space-y-6">
+          {/* 1. PRIMARY VIDEO PLAYER */}
+          <section className="space-y-6">
             <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
-              {isApiLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
-                  <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching servers...</p>
-                </div>
-              ) : apiError && apiResults.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white font-bold px-6 text-center">
-                   {apiError}
-                </div>
-              ) : (
                 <iframe
                   id="movie-player"
                   src={selectedStreamUrl || ''}
@@ -247,59 +205,83 @@ const MovieDetail = () => {
                   allowFullScreen
                   allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 ></iframe>
-              )}
+                <div className="absolute top-6 left-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-[10px] text-white uppercase font-black tracking-widest">Server Active</span>
+                    </div>
+                </div>
             </div>
 
-            {/* SERVER GRID */}
-            <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
+            {/* HINDI AUDIO NOTE */}
+            <div className="p-4 bg-orange-600/10 border border-orange-600/20 rounded-2xl flex items-center gap-3">
+                <Info className="w-5 h-5 text-orange-500 shrink-0" />
+                <p className="text-xs text-orange-200">
+                    <span className="font-bold">Pro Tip:</span> Click the <b>Gear (Settings)</b> icon inside the player to change audio to <b>Hindi</b>.
+                </p>
+            </div>
+
+            {/* SERVER SELECTION GRID */}
+            <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-2">
                     <Server className="w-6 h-6 text-purple-500" />
                     <h2 className="text-lg font-black uppercase tracking-tighter text-purple-200">Select Streaming Server</h2>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {/* Default Link - Always first if not overridden by API */}
-                    <Button
-                        onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`)}
-                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                            selectedStreamUrl?.includes('vidsrc.to')
-                            ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
-                            : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
-                        }`}
-                    >
-                        SERVER: STABLE
-                    </Button>
+                <div className="space-y-6">
+                    {/* Primary Hindi/Multi Servers */}
+                    <div className="space-y-3">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Hindi & Multi-Audio (Recommended)</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {primaryServers.map((server, idx) => (
+                                <Button
+                                    key={`primary-${idx}`}
+                                    onClick={() => setSelectedStreamUrl(server.url)}
+                                    className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                                        selectedStreamUrl === server.url
+                                        ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
+                                        : "bg-white/5 border-white/5 hover:border-orange-500/50 text-gray-400 hover:text-white"
+                                    }`}
+                                >
+                                    {server.name}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
 
-                    {/* Bot Dynamic Buttons */}
-                    {streamServers.map((server, idx) => {
-                        const rawName = server.source || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim() || `SERVER ${idx + 1}`;
-                        const displayName = rawName.toUpperCase();
-
-                        const isHindiMulti = displayName.includes('HINDI') || displayName.includes('MULTI');
-                        const isHighlighted = highlightKeywords.some(kw =>
-                            displayName.includes(kw) || server.text.toUpperCase().includes(kw)
-                        );
-                        const isSelected = selectedStreamUrl === server.links[0];
-
-                        return (
-                            <Button
-                                key={idx}
-                                onClick={() => {
-                                    setSelectedStreamUrl(server.links[0]);
-                                    toast({ title: `Switching to ${displayName}`, description: "Loading video stream..." });
-                                }}
-                                className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                                    isSelected
-                                    ? (isHindiMulti || isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white")
-                                    : (isHindiMulti || isHighlighted
-                                        ? "border-orange-500/50 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
-                                        : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white")
-                                }`}
-                            >
-                                {displayName}
-                            </Button>
-                        );
-                    })}
+                    {/* Alternative Multi-Lang Servers */}
+                    <div className="space-y-3">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Alternative Servers</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {alternativeServers.map((server, idx) => (
+                                <Button
+                                    key={`alt-${idx}`}
+                                    onClick={() => setSelectedStreamUrl(server.url)}
+                                    className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                                        selectedStreamUrl === server.url
+                                        ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
+                                        : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
+                                    }`}
+                                >
+                                    {server.name}
+                                </Button>
+                            ))}
+                            {/* Bot Servers from API */}
+                            {apiResults.slice(0, 5).map((server, idx) => (
+                                <Button
+                                    key={`bot-${idx}`}
+                                    onClick={() => setSelectedStreamUrl(server.links[0])}
+                                    className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                                        selectedStreamUrl === server.links[0]
+                                        ? "bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] text-white"
+                                        : "bg-white/5 border-white/5 hover:border-blue-500/50 text-gray-400 hover:text-white"
+                                    }`}
+                                >
+                                    {server.text.replace(/\[.*\]/gi, '').split('-')[0].trim() || `BOT SERVER ${idx+1}`}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
           </section>
@@ -308,7 +290,7 @@ const MovieDetail = () => {
           <section className="space-y-6">
             <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                <Download className="w-6 h-6 text-orange-500" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">High-Speed Download Links</h2>
+               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
             </div>
 
             {isApiLoading ? (
@@ -328,27 +310,24 @@ const MovieDetail = () => {
                       className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3 text-white"
                     >
                       <Download className="w-5 h-5" />
-                      <span className="font-bold text-xs truncate uppercase tracking-tight">
-                        {link.text.replace(/\[PREMIUM\]|\[DIRECT\]/gi, '').trim() || 'Direct Download'}
+                      <span className="font-bold text-xs truncate uppercase tracking-tight text-center">
+                        {link.text.replace(/\[PREMIUM\]/gi, '').trim() || 'High Speed Download'}
                       </span>
                     </a>
                   ))}
                 </div>
             ) : (
                 <div className="p-10 bg-white/5 rounded-[2rem] border border-white/5 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-3">
-                         <AlertCircle className="w-8 h-8 opacity-50" />
-                         <p className="font-bold">Premium download links currently unavailable.</p>
-                         <p className="text-xs">Try switching to SERVER: STABLE above for instant play.</p>
-                    </div>
+                    <p className="font-bold">Premium download links searching...</p>
+                    <p className="text-xs">Switch servers above for instant streaming in Hindi.</p>
                 </div>
             )}
           </section>
 
-          {/* 3. STORY & CAST */}
+          {/* 3. STORY & INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
-                <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
+                <img src={moviePosterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
                 <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
                     <div className="flex items-center justify-between">
                         <span className="text-gray-500 text-xs font-black uppercase">Rating</span>
@@ -380,17 +359,6 @@ const MovieDetail = () => {
                                 <p className="text-[10px] text-gray-500 truncate">{actor.character}</p>
                             </div>
                         ))}
-                    </div>
-                </div>
-
-                <div className="p-6 bg-purple-600/10 border border-purple-600/20 rounded-3xl flex items-start gap-4">
-                    <Info className="w-6 h-6 text-purple-500 shrink-0" />
-                    <div className="text-xs space-y-2">
-                        <p className="text-purple-200 font-bold uppercase tracking-wider text-[10px]">Multi-Audio Information:</p>
-                        <p className="text-purple-200/80 leading-relaxed">
-                            These players support <b>Hindi</b> and <b>English</b> tracks. To switch language:
-                            <br />Click the <b>Gear (Settings)</b> icon inside the video player &rarr; <b>Audio</b> &rarr; <b>Hindi</b>.
-                        </p>
                     </div>
                 </div>
             </div>
