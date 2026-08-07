@@ -145,15 +145,28 @@ const MovieDetail = () => {
     if (movie) fetchApiData();
   }, [movie, title, finalImdbId, tmdbId, isTV]);
 
-  // CATEGORIES FOR UI
-  const streamServers = apiResults.filter(r =>
-    r.links && r.links.length > 0 && (
-      r.text.toUpperCase().includes('WATCH') ||
-      r.text.toUpperCase().includes('PLAYER') ||
-      r.text.toUpperCase().includes('STREAM') ||
-      r.text.toUpperCase().includes('SERVER')
-    )
-  );
+  // Derived sections from API results with specific sorting
+  const streamServers = useMemo(() => {
+    const rawServers = apiResults.filter(r =>
+      r.links && r.links.length > 0 && (
+        r.text.toUpperCase().includes('WATCH') ||
+        r.text.toUpperCase().includes('PLAYER') ||
+        r.text.toUpperCase().includes('STREAM') ||
+        r.text.toUpperCase().includes('SERVER')
+      )
+    );
+
+    // Sort to ensure HINDI / MULTI (PRO) is first
+    return [...rawServers].sort((a, b) => {
+      const aText = a.text.toUpperCase();
+      const bText = b.text.toUpperCase();
+      const target = "HINDI / MULTI (PRO)";
+
+      if (aText.includes(target)) return -1;
+      if (bText.includes(target)) return 1;
+      return 0;
+    });
+  }, [apiResults]);
 
   const downloadLinks = apiResults.filter(r =>
     r.links && r.links.length > 0 && (
@@ -238,14 +251,14 @@ const MovieDetail = () => {
             </div>
 
             {/* SERVER GRID */}
-            <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
+            <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-2">
                     <Server className="w-6 h-6 text-purple-500" />
                     <h2 className="text-lg font-black uppercase tracking-tighter text-purple-200">Select Streaming Server</h2>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {/* Default Link - Always first */}
+                    {/* Default Link - Always first if not overridden by API */}
                     <Button
                         onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`)}
                         className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
@@ -262,6 +275,7 @@ const MovieDetail = () => {
                         const rawName = server.source || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim() || `SERVER ${idx + 1}`;
                         const displayName = rawName.toUpperCase();
 
+                        const isHindiMulti = displayName.includes('HINDI') || displayName.includes('MULTI');
                         const isHighlighted = highlightKeywords.some(kw =>
                             displayName.includes(kw) || server.text.toUpperCase().includes(kw)
                         );
@@ -276,8 +290,8 @@ const MovieDetail = () => {
                                 }}
                                 className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
                                     isSelected
-                                    ? (isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white")
-                                    : (isHighlighted
+                                    ? (isHindiMulti || isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white")
+                                    : (isHindiMulti || isHighlighted
                                         ? "border-orange-500/50 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
                                         : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white")
                                 }`}
