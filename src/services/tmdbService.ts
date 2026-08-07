@@ -38,6 +38,13 @@ export interface Genre {
   name: string;
 }
 
+export interface CastMember {
+  id: number;
+  name: string;
+  character?: string;
+  profile_path?: string | null;
+}
+
 const tmdbService = {
   async getPopularMovies(page = 1): Promise<{ results: Movie[]; total_pages: number }> {
     const response = await fetch(
@@ -97,6 +104,15 @@ const tmdbService = {
     );
     const data = await response.json();
     return { ...data, media_type: 'tv' };
+  },
+
+  async getCredits(contentId: number, contentType: 'movie' | 'tv'): Promise<{ cast: CastMember[] }> {
+    const response = await fetch(
+      `${TMDB_BASE_URL}/${contentType}/${contentId}/credits?api_key=${TMDB_API_KEY}`
+    );
+    if (!response.ok) throw new Error('Failed to fetch cast credits');
+    const data = await response.json();
+    return { cast: Array.isArray(data.cast) ? data.cast : [] };
   },
 
   async getMovieRecommendations(movieId: number): Promise<{ results: Movie[] }> {

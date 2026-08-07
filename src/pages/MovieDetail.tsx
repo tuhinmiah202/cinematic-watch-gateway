@@ -101,6 +101,16 @@ const MovieDetail = () => {
     enabled: !!tmdbId && !!primaryGenreId
   });
 
+  const { data: tmdbCast = [] } = useQuery({
+    queryKey: ['detail-cast', tmdbId, isTV],
+    queryFn: async () => {
+      if (!tmdbId) return [];
+      const response = await tmdbService.getCredits(Number(tmdbId), isTV ? 'tv' : 'movie');
+      return response.cast;
+    },
+    enabled: !!tmdbId
+  });
+
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
 
