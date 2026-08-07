@@ -223,32 +223,49 @@ const MovieDetail = () => {
               )}
             </div>
 
-            {/* SERVER SELECTOR */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div className="flex items-center gap-2">
+            {/* SERVER SELECTOR GRID */}
+            <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
+                <div className="flex items-center gap-2 mb-2">
                     <Server className="w-5 h-5 text-purple-400" />
-                    <span className="font-bold text-sm uppercase tracking-wider">Select Streaming Server</span>
+                    <span className="font-bold text-sm uppercase tracking-wider text-purple-200">Select Streaming Server</span>
                 </div>
-                <Select
-                  onValueChange={(value) => setSelectedStreamUrl(value)}
-                  value={selectedStreamUrl || ''}
-                >
-                  <SelectTrigger className="w-full md:w-[300px] bg-black/40 border-white/10 text-white rounded-xl">
-                    <SelectValue placeholder="Choose a server" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    {/* Primary Dynamic Servers */}
-                    {streamServers.map((server, idx) => (
-                        <SelectItem key={`bot-${idx}`} value={server.links[0]}>
-                            {server.text.replace(/\[WATCH NOW\]|\[DIRECT PLAYER\]|\[CINEVERSE\]|\[DIRECT STREAM\]/gi, '').trim() || `Server ${idx + 1}`}
-                        </SelectItem>
-                    ))}
-                    {/* Stable Fallback */}
-                    <SelectItem value={`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`}>
-                        Stable Server (Multi-Audio)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {/* Default Stable Server */}
+                    <Button
+                        onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`)}
+                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                            selectedStreamUrl === `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`
+                            ? "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white"
+                            : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
+                        }`}
+                    >
+                        SERVER: STABLE
+                    </Button>
+
+                    {/* Bot Servers */}
+                    {streamServers.map((server, idx) => {
+                        const serverText = server.text.replace(/\[WATCH NOW\]|\[DIRECT PLAYER\]|\[CINEVERSE\]|\[DIRECT STREAM\]/gi, '').trim() || `SERVER ${idx + 1}`;
+                        const isHighlighted = serverText.toUpperCase().includes('HINDI') || serverText.toUpperCase().includes('MULTI-LANG');
+                        const isSelected = selectedStreamUrl === server.links[0];
+
+                        return (
+                            <Button
+                                key={idx}
+                                onClick={() => setSelectedStreamUrl(server.links[0])}
+                                className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                                    isSelected
+                                    ? (isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_15px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white")
+                                    : (isHighlighted
+                                        ? "border-orange-500/50 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
+                                        : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white")
+                                }`}
+                            >
+                                {serverText}
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
           </section>
 
