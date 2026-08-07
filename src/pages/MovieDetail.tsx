@@ -5,7 +5,7 @@ import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { reviewService } from '@/services/reviewService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, CheckCircle2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -15,13 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface ApiResult {
   text: string;
   links: string[];
+  source?: string;
 }
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
   const movieId = id || '0';
 
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
@@ -61,7 +61,7 @@ const MovieDetail = () => {
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
   });
 
   const movie = supabaseContent || tmdbContent;
@@ -103,7 +103,7 @@ const MovieDetail = () => {
       .trim();
   };
 
-  // 3. New Custom Movie API Integration
+  // 3. Updated API Integration - Smart Player Priority
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
@@ -114,32 +114,31 @@ const MovieDetail = () => {
 
       try {
         const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Failed to fetch servers');
+        if (!response.ok) throw new Error('API Connection Issue');
         const data = await response.json();
 
-        const results: ApiResult[] = Array.isArray(data) ? data : (data.results || []);
+        const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-        // Auto-load first [WATCH NOW] or [CINEVERSE] link
-        const firstStream = results.find(r =>
+        // Filter and Priority Logic
+        const priorityStreams = results.filter(r =>
           r.text.toUpperCase().includes('[WATCH NOW]') ||
-          r.text.toUpperCase().includes('[CINEVERSE]')
+          r.text.toUpperCase().includes('[DIRECT PLAYER]')
         );
 
-        if (firstStream && firstStream.links.length > 0) {
-          setSelectedStreamUrl(firstStream.links[0]);
+        if (priorityStreams.length > 0 && priorityStreams[0].links?.length > 0) {
+          setSelectedStreamUrl(priorityStreams[0].links[0]);
         } else {
-          // If no specific tag found, fallback to SuperEmbed default
+          // If no API streams, fallback to stable Vidsrc.to (replacing broken vidsrc.xyz)
           const videoId = finalImdbId || tmdbId;
-          setSelectedStreamUrl(`https://multiembed.mov/directstream.php?video_id=${videoId}&tmdb=1${isTV ? '&s=1&e=1' : ''}`);
+          setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
         }
 
       } catch (error) {
         console.error("API Error:", error);
-        setApiError('Server currently busy, please try another movie.');
-        // Fallback to SuperEmbed on error
+        // Robust fallback on failure
         const videoId = finalImdbId || tmdbId;
-        setSelectedStreamUrl(`https://multiembed.mov/directstream.php?video_id=${videoId}&tmdb=1${isTV ? '&s=1&e=1' : ''}`);
+        setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
       } finally {
         setIsApiLoading(false);
       }
@@ -148,15 +147,15 @@ const MovieDetail = () => {
     if (movie) fetchApiData();
   }, [movie, title, finalImdbId, tmdbId, isTV]);
 
-  // Derived sections from API results
+  // Categories for UI
   const streamServers = apiResults.filter(r =>
     r.text.toUpperCase().includes('[WATCH NOW]') ||
-    r.text.toUpperCase().includes('[CINEVERSE]') ||
-    r.text.toUpperCase().includes('[DIRECT STREAM]')
+    r.text.toUpperCase().includes('[DIRECT PLAYER]')
   );
 
   const downloadLinks = apiResults.filter(r =>
-    r.text.toUpperCase().startsWith('[PREMIUM]')
+    !r.text.toUpperCase().includes('[WATCH NOW]') &&
+    !r.text.toUpperCase().includes('[DIRECT PLAYER]')
   );
 
   // Fetch cast and related
@@ -204,17 +203,13 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-6xl mx-auto space-y-8">
 
-          {/* 1. VIDEO PLAYER (TOP SECTION) */}
+          {/* 1. SMART VIDEO PLAYER SECTION */}
           <section id="player-container" className="space-y-4">
             <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
               {isApiLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching servers...</p>
-                </div>
-              ) : apiError && apiResults.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white font-bold px-6 text-center">
-                   {apiError}
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching Smart Links...</p>
                 </div>
               ) : (
                 <iframe
@@ -242,24 +237,26 @@ const MovieDetail = () => {
                     <SelectValue placeholder="Choose a server" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    <SelectItem value={`https://multiembed.mov/directstream.php?video_id=${finalImdbId || tmdbId}&tmdb=1${isTV ? '&s=1&e=1' : ''}`}>
-                        Global Server (Multi-Audio)
-                    </SelectItem>
+                    {/* Primary Dynamic Servers */}
                     {streamServers.map((server, idx) => (
-                        <SelectItem key={idx} value={server.links[0]}>
-                            {server.text.replace(/\[WATCH NOW\]|\[CINEVERSE\]|\[DIRECT STREAM\]/gi, '').trim() || `Server ${idx + 1}`}
+                        <SelectItem key={`bot-${idx}`} value={server.links[0]}>
+                            {server.text.replace(/\[WATCH NOW\]|\[DIRECT PLAYER\]|\[CINEVERSE\]|\[DIRECT STREAM\]/gi, '').trim() || `Server ${idx + 1}`}
                         </SelectItem>
                     ))}
+                    {/* Stable Fallback */}
+                    <SelectItem value={`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`}>
+                        Stable Server (Multi-Audio)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
             </div>
           </section>
 
-          {/* 2. HIGH-SPEED DOWNLOAD LINKS (GRID SECTION) */}
+          {/* 2. DOWNLOAD CENTER */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                <Download className="w-6 h-6 text-orange-500" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">High-Speed Download Links</h2>
+               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
             </div>
 
             {isApiLoading ? (
@@ -279,15 +276,20 @@ const MovieDetail = () => {
                       className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3"
                     >
                       <Download className="w-5 h-5 text-white" />
-                      <span className="font-bold text-sm text-white truncate">
-                        {link.text.replace(/\[PREMIUM\]/gi, '').trim() || 'Direct Download'}
+                      <span className="font-bold text-sm text-white truncate text-center uppercase tracking-tight">
+                        {link.text.replace(/\[PREMIUM\]|\[DIRECT\]|\[FAST DOWNLOAD\]/gi, '').trim() || 'Direct Download'}
                       </span>
                     </a>
                   ))}
                 </div>
             ) : (
                 <div className="p-8 bg-white/5 rounded-3xl border border-white/5 text-center text-gray-500">
-                    {!isApiLoading && "Premium download links currently unavailable for this title."}
+                    {!isApiLoading && (
+                      <div className="flex flex-col items-center gap-3">
+                         <AlertCircle className="w-8 h-8 opacity-50" />
+                         <p>Direct download links currently searching... try switching servers above for instant play.</p>
+                      </div>
+                    )}
                 </div>
             )}
           </section>
@@ -332,9 +334,13 @@ const MovieDetail = () => {
 
                 <div className="p-6 bg-purple-600/10 border border-purple-600/20 rounded-3xl flex items-start gap-4">
                     <Info className="w-6 h-6 text-purple-500 shrink-0" />
-                    <p className="text-xs text-purple-200 leading-relaxed">
-                        <b>Note:</b> If the video defaults to English, click the Settings (Gear) icon inside the player &rarr; Audio &rarr; Hindi to switch language.
-                    </p>
+                    <div className="text-xs space-y-2">
+                        <p className="text-purple-200 font-bold uppercase tracking-wider">Multi-Audio Information:</p>
+                        <p className="text-purple-200/80 leading-relaxed">
+                            These players support <b>Hindi</b> and <b>English</b> tracks. To switch language:
+                            <br />Click the <b>Gear (Settings)</b> icon inside the video player &rarr; <b>Audio</b> &rarr; <b>Hindi</b>.
+                        </p>
+                    </div>
                 </div>
             </div>
           </div>
