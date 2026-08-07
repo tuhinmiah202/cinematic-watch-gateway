@@ -10,7 +10,6 @@ import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ApiResult {
   text: string;
@@ -61,7 +60,7 @@ const MovieDetail = () => {
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
   });
 
   const movie = supabaseContent || tmdbContent;
@@ -103,7 +102,7 @@ const MovieDetail = () => {
       .trim();
   };
 
-  // 3. Updated API Integration - Smart Player Priority
+  // 3. Robust API Integration
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
@@ -114,49 +113,58 @@ const MovieDetail = () => {
 
       try {
         const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('API Connection Issue');
+        if (!response.ok) throw new Error('API Error');
         const data = await response.json();
 
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-        // Filter and Priority Logic
-        const priorityStreams = results.filter(r =>
-          r.text.toUpperCase().includes('[WATCH NOW]') ||
-          r.text.toUpperCase().includes('[DIRECT PLAYER]')
-        );
-
-        if (priorityStreams.length > 0 && priorityStreams[0].links?.length > 0) {
-          setSelectedStreamUrl(priorityStreams[0].links[0]);
+        // Requirement: Automatically set src of <iframe> to the VERY FIRST link returned
+        if (results.length > 0 && results[0].links && results[0].links.length > 0) {
+          setSelectedStreamUrl(results[0].links[0]);
         } else {
-          // If no API streams, fallback to stable Vidsrc.to (replacing broken vidsrc.xyz)
+          // Default Fallback
           const videoId = finalImdbId || tmdbId;
           setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
         }
 
       } catch (error) {
         console.error("API Error:", error);
-        // Robust fallback on failure
+        setApiError('Server currently busy, please try another movie.');
+        // Fallback
         const videoId = finalImdbId || tmdbId;
         setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${videoId}`);
       } finally {
-        setIsApiLoading(false);
+        setIsApiLoading(true); // Artificial delay to ensure user sees "Searching"
+        setTimeout(() => setIsApiLoading(false), 800);
       }
     };
 
     if (movie) fetchApiData();
   }, [movie, title, finalImdbId, tmdbId, isTV]);
 
-  // Categories for UI
+  // CATEGORIES FOR UI
   const streamServers = apiResults.filter(r =>
-    r.text.toUpperCase().includes('[WATCH NOW]') ||
-    r.text.toUpperCase().includes('[DIRECT PLAYER]')
+    r.links && r.links.length > 0 && (
+      r.text.toUpperCase().includes('WATCH') ||
+      r.text.toUpperCase().includes('PLAYER') ||
+      r.text.toUpperCase().includes('STREAM') ||
+      r.text.toUpperCase().includes('SERVER')
+    )
   );
 
   const downloadLinks = apiResults.filter(r =>
-    !r.text.toUpperCase().includes('[WATCH NOW]') &&
-    !r.text.toUpperCase().includes('[DIRECT PLAYER]')
+    r.links && r.links.length > 0 && (
+      r.text.toUpperCase().includes('PREMIUM') ||
+      r.text.toUpperCase().includes('DIRECT') ||
+      r.text.toUpperCase().includes('MEGA') ||
+      r.text.toUpperCase().includes('DRIVE') ||
+      r.text.toUpperCase().includes('PIXEL')
+    )
   );
+
+  // Highlighting Logic
+  const highlightKeywords = ['HINDI', 'MULTI-AUDIO', 'ALICE', 'MONGO', 'MULTI-LANG'];
 
   // Fetch cast and related
   const { data: tmdbCast } = useQuery({
@@ -201,15 +209,19 @@ const MovieDetail = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-10">
 
-          {/* 1. SMART VIDEO PLAYER SECTION */}
-          <section id="player-container" className="space-y-4">
-            <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+          {/* 1. VIDEO PLAYER SECTION */}
+          <section id="player-container" className="space-y-6">
+            <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
               {isApiLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching Smart Links...</p>
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching servers...</p>
+                </div>
+              ) : apiError && apiResults.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white font-bold px-6 text-center">
+                   {apiError}
                 </div>
               ) : (
                 <iframe
@@ -223,45 +235,52 @@ const MovieDetail = () => {
               )}
             </div>
 
-            {/* SERVER SELECTOR GRID */}
+            {/* SERVER GRID */}
             <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                    <Server className="w-5 h-5 text-purple-400" />
-                    <span className="font-bold text-sm uppercase tracking-wider text-purple-200">Select Streaming Server</span>
+                <div className="flex items-center gap-3 mb-2">
+                    <Server className="w-6 h-6 text-purple-500" />
+                    <h2 className="text-lg font-black uppercase tracking-tighter text-purple-200">Select Streaming Server</h2>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {/* Default Stable Server */}
+                    {/* Default Link - Always first */}
                     <Button
                         onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`)}
                         className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                            selectedStreamUrl === `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`
-                            ? "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white"
+                            selectedStreamUrl?.includes('vidsrc.to')
+                            ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
                             : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
                         }`}
                     >
                         SERVER: STABLE
                     </Button>
 
-                    {/* Bot Servers */}
+                    {/* Bot Dynamic Buttons */}
                     {streamServers.map((server, idx) => {
-                        const serverText = server.text.replace(/\[WATCH NOW\]|\[DIRECT PLAYER\]|\[CINEVERSE\]|\[DIRECT STREAM\]/gi, '').trim() || `SERVER ${idx + 1}`;
-                        const isHighlighted = serverText.toUpperCase().includes('HINDI') || serverText.toUpperCase().includes('MULTI-LANG');
+                        const rawName = server.source || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim() || `SERVER ${idx + 1}`;
+                        const displayName = rawName.toUpperCase();
+
+                        const isHighlighted = highlightKeywords.some(kw =>
+                            displayName.includes(kw) || server.text.toUpperCase().includes(kw)
+                        );
                         const isSelected = selectedStreamUrl === server.links[0];
 
                         return (
                             <Button
                                 key={idx}
-                                onClick={() => setSelectedStreamUrl(server.links[0])}
+                                onClick={() => {
+                                    setSelectedStreamUrl(server.links[0]);
+                                    toast({ title: `Switching to ${displayName}`, description: "Loading video stream..." });
+                                }}
                                 className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
                                     isSelected
-                                    ? (isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_15px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_15px_rgba(147,51,234,0.4)] text-white")
+                                    ? (isHighlighted ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white" : "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white")
                                     : (isHighlighted
                                         ? "border-orange-500/50 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
                                         : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white")
                                 }`}
                             >
-                                {serverText}
+                                {displayName}
                             </Button>
                         );
                     })}
@@ -273,7 +292,7 @@ const MovieDetail = () => {
           <section className="space-y-6">
             <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                <Download className="w-6 h-6 text-orange-500" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+               <h2 className="text-2xl font-black uppercase tracking-tighter">High-Speed Download Links</h2>
             </div>
 
             {isApiLoading ? (
@@ -290,28 +309,27 @@ const MovieDetail = () => {
                       href={link.links[0]}
                       target="_blank"
                       rel="noreferrer"
-                      className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3"
+                      className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3 text-white"
                     >
-                      <Download className="w-5 h-5 text-white" />
-                      <span className="font-bold text-sm text-white truncate text-center uppercase tracking-tight">
-                        {link.text.replace(/\[PREMIUM\]|\[DIRECT\]|\[FAST DOWNLOAD\]/gi, '').trim() || 'Direct Download'}
+                      <Download className="w-5 h-5" />
+                      <span className="font-bold text-xs truncate uppercase tracking-tight">
+                        {link.text.replace(/\[PREMIUM\]|\[DIRECT\]/gi, '').trim() || 'Direct Download'}
                       </span>
                     </a>
                   ))}
                 </div>
             ) : (
-                <div className="p-8 bg-white/5 rounded-3xl border border-white/5 text-center text-gray-500">
-                    {!isApiLoading && (
-                      <div className="flex flex-col items-center gap-3">
+                <div className="p-10 bg-white/5 rounded-[2rem] border border-white/5 text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
                          <AlertCircle className="w-8 h-8 opacity-50" />
-                         <p>Direct download links currently searching... try switching servers above for instant play.</p>
-                      </div>
-                    )}
+                         <p className="font-bold">Premium download links currently unavailable.</p>
+                         <p className="text-xs">Try switching to SERVER: STABLE above for instant play.</p>
+                    </div>
                 </div>
             )}
           </section>
 
-          {/* 3. STORY & INFO */}
+          {/* 3. STORY & CAST */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
@@ -352,7 +370,7 @@ const MovieDetail = () => {
                 <div className="p-6 bg-purple-600/10 border border-purple-600/20 rounded-3xl flex items-start gap-4">
                     <Info className="w-6 h-6 text-purple-500 shrink-0" />
                     <div className="text-xs space-y-2">
-                        <p className="text-purple-200 font-bold uppercase tracking-wider">Multi-Audio Information:</p>
+                        <p className="text-purple-200 font-bold uppercase tracking-wider text-[10px]">Multi-Audio Information:</p>
                         <p className="text-purple-200/80 leading-relaxed">
                             These players support <b>Hindi</b> and <b>English</b> tracks. To switch language:
                             <br />Click the <b>Gear (Settings)</b> icon inside the video player &rarr; <b>Audio</b> &rarr; <b>Hindi</b>.
