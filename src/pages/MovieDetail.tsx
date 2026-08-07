@@ -44,7 +44,7 @@ const MovieDetail = () => {
     enabled: !!movieId
   });
 
-  const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
+  const tmdbQuery = useQuery({
     queryKey: ['tmdb-content-detail', movieId],
     queryFn: async () => {
       if (supabaseContent) return null;
@@ -63,6 +63,8 @@ const MovieDetail = () => {
     enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
+  const tmdbContent = tmdbQuery.data;
+  const isLoadingTmdb = tmdbQuery.isLoading;
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
   const isTV = supabaseContent
