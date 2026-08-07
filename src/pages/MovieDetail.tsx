@@ -60,7 +60,7 @@ const MovieDetail = () => {
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
+    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
   });
 
   const movie = supabaseContent || tmdbContent;
