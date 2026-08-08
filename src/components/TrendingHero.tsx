@@ -82,7 +82,10 @@ const TrendingHero = ({ items, isLoading }: TrendingHeroProps) => {
             <Button
               size="lg"
               className="bg-white text-black hover:bg-gray-200 px-8 py-6 text-lg font-bold rounded-xl flex items-center gap-2 transition-transform hover:scale-105"
-              onClick={() => navigate(`/watch/${currentItem.id}`)}
+              onClick={() => {
+                const type = currentItem.media_type === 'tv' ? 'tv' : 'movie';
+                navigate(`/movie/${currentItem.id}?type=${type}`);
+              }}
             >
               <Play className="fill-black w-5 h-5" />
               Watch Now
@@ -91,7 +94,10 @@ const TrendingHero = ({ items, isLoading }: TrendingHeroProps) => {
               size="lg"
               variant="outline"
               className="bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 px-8 py-6 text-lg font-bold rounded-xl flex items-center gap-2 transition-transform hover:scale-105"
-              onClick={() => navigate(`/movie/${currentItem.id}`)}
+              onClick={() => {
+                const type = currentItem.media_type === 'tv' ? 'tv' : 'movie';
+                navigate(`/movie/${currentItem.id}?type=${type}`);
+              }}
             >
               <Info className="w-5 h-5" />
               More Info

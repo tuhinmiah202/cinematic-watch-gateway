@@ -42,23 +42,31 @@ const MovieDetail = () => {
 
   // 2. Fetch from TMDB if not in Supabase, checking both Movie and TV
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
-    queryKey: ['tmdb-content-detail', movieId],
+    queryKey: ['tmdb-content-detail', movieId, searchParams.get('type')],
     queryFn: async () => {
       if (supabaseContent) return null;
       const numericId = parseInt(movieId);
       if (isNaN(numericId)) return null;
 
-      try {
-        // Try fetching as a movie first
-        const movieDetails = await tmdbService.getMovieDetails(numericId);
-        if (movieDetails && movieDetails.title) return movieDetails;
-        throw new Error('Not a movie');
-      } catch (e) {
+      const type = searchParams.get('type');
+
+      if (type === 'tv') {
+        return await tmdbService.getTVShowDetails(numericId);
+      } else if (type === 'movie') {
+        return await tmdbService.getMovieDetails(numericId);
+      } else {
         try {
-          // If not a movie, try fetching as a TV show
-          return await tmdbService.getTVShowDetails(numericId);
-        } catch (tvError) {
-          throw new Error('Content not found');
+          // Try fetching as a movie first
+          const movieDetails = await tmdbService.getMovieDetails(numericId);
+          if (movieDetails && movieDetails.title) return movieDetails;
+          throw new Error('Not a movie');
+        } catch (e) {
+          try {
+            // If not a movie, try fetching as a TV show
+            return await tmdbService.getTVShowDetails(numericId);
+          } catch (tvError) {
+            throw new Error('Content not found');
+          }
         }
       }
     },
@@ -71,9 +79,11 @@ const MovieDetail = () => {
   // Correctly identify if it's a TV show
   const isTV = useMemo(() => {
     if (supabaseContent) return supabaseContent.content_type === 'series';
+    const type = searchParams.get('type');
+    if (type) return type === 'tv';
     if (tmdbContent) return !!('name' in tmdbContent || 'first_air_date' in tmdbContent);
     return false;
-  }, [supabaseContent, tmdbContent]);
+  }, [supabaseContent, tmdbContent, searchParams]);
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
 

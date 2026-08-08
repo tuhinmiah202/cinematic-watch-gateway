@@ -34,11 +34,12 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
     
   const rating = movie.vote_average || movie.rating || 0;
   const isTV = movie.media_type === 'tv' || !!movie.name;
+  const detailPath = `/movie/${movie.id}?type=${isTV ? 'tv' : 'movie'}`;
 
   if (isCompact) {
     return (
       <Link 
-        to={`/movie/${movie.id}`}
+        to={detailPath}
         className="group relative block aspect-[2/3] rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-105 active:scale-95 hover:z-10"
       >
         <img
@@ -67,7 +68,7 @@ const MovieCard = ({ movie, isCompact = false }: MovieCardProps) => {
   return (
     <div className="group relative flex flex-col gap-2">
       <Link
-        to={`/movie/${movie.id}`}
+        to={detailPath}
         className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-purple-500/20 hover:-translate-y-2 group"
       >
         <img
