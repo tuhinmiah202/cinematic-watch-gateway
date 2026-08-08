@@ -226,7 +226,8 @@ const MovieDetail = () => {
               ) : (
                 <iframe
                   id="movie-player"
-                  src={selectedStreamUrl || `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${tmdbId}`}
+                  key={playerSrc}
+                  src={playerSrc}
                   className="w-full h-full"
                   frameBorder="0"
                   allowFullScreen
@@ -235,7 +236,64 @@ const MovieDetail = () => {
               )}
             </div>
 
-            {/* SERVER SELECTION GRID (Requirement: server-list container) */}
+            {/* AUDIO LANGUAGE SWITCH */}
+            <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 space-y-4">
+              <div className="flex items-center gap-3">
+                <Languages className="w-6 h-6 text-red-600" />
+                <div>
+                  <h2 className="text-lg font-black uppercase tracking-tighter text-white">Audio Language</h2>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                    Hindi select korle server hindi audio niye load hobe
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={() => {
+                    setAudioLang('hi');
+                    if (adminHindiUrl) {
+                      setSelectedStreamUrl(adminHindiUrl);
+                      setActiveProvider('admin');
+                    } else if (activeProvider === 'api') {
+                      setActiveProvider('vidsrc');
+                      setSelectedStreamUrl(null);
+                    }
+                  }}
+                  className={`rounded-2xl px-6 py-5 text-xs font-black uppercase border-2 ${
+                    audioLang === 'hi'
+                      ? 'bg-red-600 border-red-500 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  हिंदी / Hindi
+                </Button>
+                <Button
+                  onClick={() => {
+                    setAudioLang('en');
+                    if (activeProvider === 'admin' || activeProvider === 'api') {
+                      setActiveProvider('vidsrc');
+                      setSelectedStreamUrl(null);
+                    }
+                  }}
+                  className={`rounded-2xl px-6 py-5 text-xs font-black uppercase border-2 ${
+                    audioLang === 'en'
+                      ? 'bg-red-600 border-red-500 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  English
+                </Button>
+              </div>
+
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                {adminHindiUrl
+                  ? 'Verified Hindi source available for this title.'
+                  : 'Tip: player er vitor Settings (gear) → Audio → Hindi theke o audio track change kora jay.'}
+              </p>
+            </div>
+
+            {/* SERVER SELECTION GRID */}
             <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
                     <Server className="w-6 h-6 text-red-600" />
@@ -246,17 +304,41 @@ const MovieDetail = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {/* Default Link */}
-                    <Button
-                        onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${tmdbId}`)}
+                    {adminHindiUrl && (
+                      <Button
+                        onClick={() => {
+                          setSelectedStreamUrl(adminHindiUrl);
+                          setActiveProvider('admin');
+                          setAudioLang('hi');
+                        }}
                         className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                            !selectedStreamUrl || selectedStreamUrl.includes('vidsrc.to')
-                            ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
-                            : "bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white"
+                          activeProvider === 'admin'
+                            ? 'bg-green-600 border-green-500 shadow-[0_0_20px_rgba(22,163,74,0.4)] text-white'
+                            : 'bg-white/5 border-white/10 hover:border-green-500/50 text-gray-400 hover:text-white'
                         }`}
-                    >
-                        SERVER 1
-                    </Button>
+                      >
+                        Hindi Server
+                      </Button>
+                    )}
+
+                    {([
+                      { key: 'vidsrc', label: 'Server 1' },
+                      { key: 'vidsrccc', label: 'Server 2' },
+                      { key: 'vidlink', label: 'Server 3' },
+                      { key: 'vidsrcme', label: 'Server 4' }
+                    ] as const).map((s) => (
+                      <Button
+                        key={s.key}
+                        onClick={() => selectProvider(s.key)}
+                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                          activeProvider === s.key
+                            ? 'bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white'
+                            : 'bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        {s.label}
+                      </Button>
+                    ))}
 
                     {/* API Generated Buttons */}
                     {streamServers.map((server, idx) => (
@@ -264,15 +346,16 @@ const MovieDetail = () => {
                             key={idx}
                             onClick={() => {
                                 setSelectedStreamUrl(server.links[0]);
+                                setActiveProvider('api');
                                 toast({ title: "Switching Server", description: `Loading ${server.text.split(' ')[0]}...` });
                             }}
                             className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                                selectedStreamUrl === server.links[0]
+                                activeProvider === 'api' && selectedStreamUrl === server.links[0]
                                 ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
                                 : "bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white"
                             }`}
                         >
-                            {server.text.split('-')[0].trim() || `SERVER ${idx + 2}`}
+                            {server.text.split('-')[0].trim() || `SERVER ${idx + 5}`}
                         </Button>
                     ))}
                 </div>
@@ -283,10 +366,22 @@ const MovieDetail = () => {
           <section className="space-y-6">
             <div className="flex items-center gap-3 border-l-4 border-red-600 pl-4">
                <Download className="w-6 h-6 text-red-600" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">Premium Download Links</h2>
+               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Links</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {adminDownloadUrl && (
+                <a
+                  href={adminDownloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="h-20 bg-gradient-to-br from-green-600 to-emerald-800 hover:from-green-500 hover:to-emerald-700 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] no-underline flex flex-col items-center justify-center gap-1"
+                >
+                  <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Direct Download</span></div>
+                  <span className="text-[10px] text-white/70 font-bold uppercase tracking-widest">Verified Link</span>
+                </a>
+              )}
+
               {downloadLinks.map((link, idx) => (
                 <a
                   key={idx}
@@ -300,19 +395,15 @@ const MovieDetail = () => {
                 </a>
               ))}
 
-              {/* Fallback button if no API links found */}
-              {downloadLinks.length === 0 && !isApiLoading && (
-                <Button
-                    onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
-                    className="h-20 bg-white/5 border border-white/10 rounded-3xl hover:bg-white/10"
-                >
-                    <div className="flex flex-col items-center">
-                        <span className="text-sm font-black uppercase">Standard Download</span>
-                        <span className="text-[10px] text-gray-500 font-bold">Multi-Audio / HD</span>
-                    </div>
-                </Button>
+              {/* No links available */}
+              {!adminDownloadUrl && downloadLinks.length === 0 && !isApiLoading && (
+                <div className="h-20 bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center justify-center text-center px-4">
+                  <span className="text-sm font-black uppercase text-gray-400">No download link yet</span>
+                  <span className="text-[10px] text-gray-500 font-bold">Admin shongjukto korle ekhane dekhabe</span>
+                </div>
               )}
             </div>
+
           </section>
 
           {/* 3. STORY & INFO */}
