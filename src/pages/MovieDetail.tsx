@@ -88,6 +88,17 @@ const MovieDetail = () => {
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
 
+  // Admin-provided Hindi stream / download links for this title
+  const { data: override } = useQuery({
+    queryKey: ['content-override', tmdbId, isTV],
+    queryFn: () => overrideService.getOverride(tmdbId, isTV ? 'tv' : 'movie'),
+    enabled: !!tmdbId
+  });
+
+  const adminHindiUrl = override?.hindi_stream_url || null;
+  const adminDownloadUrl = override?.download_url || null;
+
+
   // 2. Fetch API Data on Load
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
