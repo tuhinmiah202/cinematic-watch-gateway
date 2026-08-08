@@ -14,6 +14,8 @@ import { contentService, ContentItem } from '@/services/contentService';
 import { tmdbService } from '@/services/tmdbService';
 import { useToast } from '@/hooks/use-toast';
 import EditContentDialog from '@/components/admin/EditContentDialog';
+import StreamOverridesPanel from '@/components/admin/StreamOverridesPanel';
+
 
 const AdminManage = () => {
   const navigate = useNavigate();
