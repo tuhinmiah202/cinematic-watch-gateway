@@ -77,20 +77,26 @@ const MovieDetail = () => {
   }, [supabaseContent, tmdbContent, searchParams]);
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
+  const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
   // 2. Verified Active Servers (Hindi & Multi)
   const servers = useMemo(() => {
     if (!tmdbId) return [];
 
+    // Server URLs optimized for Hindi discovery
+    const moviePath = `movie/${tmdbId}`;
+    const tvPath = `tv/${tmdbId}/${season}/${episode}`;
+    const path = isTV ? tvPath : moviePath;
+
     return [
-      { id: 1, name: 'HINDI: SERVER 1', url: `https://vidsrc.cc/v2/embed/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`, type: 'hindi' },
-      { id: 2, name: 'HINDI: SERVER 2', url: `https://vidsrc.in/embed/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`, type: 'hindi' },
-      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'multi' },
-      { id: 4, name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`, type: 'global' },
+      { id: 1, name: 'HINDI: SERVER 1', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
+      { id: 2, name: 'HINDI: SERVER 2', url: `https://vidsrc.cc/v2/embed/${path}`, type: 'hindi' },
+      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : tmdbId}`, type: 'multi' },
+      { id: 4, name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, type: 'global' },
       { id: 5, name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'global' },
-      { id: 6, name: 'SERVER: SUPER', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
+      { id: 6, name: 'SERVER: SUPER', url: `https://multiembed.mov/directstream.php?video_id=${imdbId || tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
     ];
-  }, [tmdbId, isTV, season, episode]);
+  }, [tmdbId, isTV, season, episode, imdbId]);
 
   useEffect(() => {
     if (servers.length > 0) {
@@ -113,11 +119,12 @@ const MovieDetail = () => {
     enabled: !!tmdbId && !!primaryGenreId
   });
 
-  const getDownloadUrl = () => {
-    if (isTV) {
-      return `https://vidsrc.me/download/tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}`;
+  // Fixed Download Gateways
+  const getDownloadUrl = (serverNum: number) => {
+    if (serverNum === 1) {
+       return `https://vidsrc.to/download/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`;
     }
-    return `https://vidsrc.me/download/movie?tmdb=${tmdbId}`;
+    return `https://vidsrc.me/download/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`;
   };
 
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
@@ -193,8 +200,8 @@ const MovieDetail = () => {
                 <div className="flex items-center gap-3 mb-4">
                     <Server className="w-6 h-6 text-orange-500" />
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Server</h2>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-orange-400">Server 1 & 2 are Recommended for Hindi</p>
+                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select High-Speed Server</h2>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-orange-400">Try SERVER 1 or 2 for Hollywood Hindi Dubbed</p>
                     </div>
                 </div>
 
@@ -222,28 +229,28 @@ const MovieDetail = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
-                        onClick={() => window.open(getDownloadUrl(), '_blank')}
+                        onClick={() => window.open(getDownloadUrl(1), '_blank')}
                         className="h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
                     >
                         <div className="flex flex-col items-center text-center px-4">
                             <div className="flex items-center gap-2">
                                 <Download className="w-5 h-5 text-white" />
-                                <span className="text-sm font-black italic text-white uppercase">Download Link 1</span>
+                                <span className="text-sm font-black italic text-white uppercase">Download: Server 1</span>
                             </div>
-                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multi-Audio (Hindi+English) / 1080p</span>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multi-Audio / 1080p High Speed</span>
                         </div>
                     </Button>
 
                     <Button
-                        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(title + ' hindi dubbed download dual audio')}`, '_blank')}
-                        className="h-20 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
+                        onClick={() => window.open(getDownloadUrl(2), '_blank')}
+                        className="h-20 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
                     >
                         <div className="flex flex-col items-center text-center px-4">
                             <div className="flex items-center gap-2">
                                 <Globe className="w-5 h-5 text-white" />
-                                <span className="text-sm font-black italic text-white uppercase">Direct Search Link</span>
+                                <span className="text-sm font-black italic text-white uppercase">Download: Server 2</span>
                             </div>
-                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Find Direct Download Mirrors</span>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multiple Resolutions / Mirror</span>
                         </div>
                     </Button>
                 </div>
@@ -275,11 +282,11 @@ const MovieDetail = () => {
                 <div className="p-6 bg-orange-600/10 border border-orange-600/20 rounded-3xl flex items-start gap-4">
                     <Info className="w-6 h-6 text-orange-500 shrink-0" />
                     <div className="text-xs space-y-2">
-                        <p className="text-orange-200 font-bold uppercase tracking-wider">Language & Download Help:</p>
+                        <p className="text-orange-200 font-bold uppercase tracking-wider">Help & Audio Guide:</p>
                         <p className="text-orange-200/80 leading-relaxed">
-                            ১. হলিউড মুভির জন্য <b>SERVER 1</b> এবং <b>SERVER 2</b> সবচেয়ে ভালো কারণ এগুলোতে হিন্দি অডিও থাকে।
-                            <br />২. যদি ইংলিশে শুরু হয়, প্লেয়ারের <b>Settings (Gear icon)</b> এ গিয়ে <b>Audio</b> অপশন থেকে <b>Hindi</b> সিলেক্ট করুন।
-                            <br />৩. ডাউনলোডের জন্য <b>Download Link 1</b> এ ক্লিক করার পর মিরর লিস্ট থেকে যেকোনো একটি সার্ভার সিলেক্ট করলে ডাউনলোড শুরু হবে।
+                            ১. হলিউড মুভির হিন্দি ভার্সনের জন্য <b>HINDI: SERVER 1</b> অথবা <b>HINDI: SERVER 2</b> ট্রাই করুন।
+                            <br />২. যদি ভিডিও ইংরেজিতে শুরু হয়, প্লেয়ারের নিচের <b>Settings (গিয়ার আইকন)</b> এ ক্লিক করে <b>Audio</b> থেকে <b>Hindi</b> সিলেক্ট করুন।
+                            <br />৩. ডাউনলোডের জন্য সার্ভার ১ এবং ২ দুটোই আপডেট করা হয়েছে। একটি কাজ না করলে অন্যটি ট্রাই করুন।
                         </p>
                     </div>
                 </div>
@@ -287,7 +294,7 @@ const MovieDetail = () => {
           </div>
 
           <div className="pt-20">
-            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> More Like This</h2>
+            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> Handpicked For You</h2>
             <div className="relative mt-8">
                 <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full">
                   <CarouselContent className="-ml-6">
