@@ -204,7 +204,19 @@ const AdminManage = () => {
             >
               Existing Content
             </TabsTrigger>
+            <TabsTrigger
+              value="links"
+              className="text-white data-[state=active]:bg-purple-600"
+              onClick={() => setActiveTab('links')}
+            >
+              Hindi & Download Links
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="links">
+            <StreamOverridesPanel />
+          </TabsContent>
+
 
           <TabsContent value="add">
             <Card className="bg-gray-800/50 border-gray-700">
