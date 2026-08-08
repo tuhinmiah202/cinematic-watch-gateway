@@ -24,9 +24,12 @@ const MovieDetail = () => {
   const movieId = id || '0';
 
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
+  const [audioLang, setAudioLang] = useState<'hi' | 'en'>('hi');
+  const [activeProvider, setActiveProvider] = useState<'admin' | 'vidsrc' | 'vidsrccc' | 'vidlink' | 'vidsrcme' | 'api'>('vidsrc');
   const [apiResults, setApiResults] = useState<ApiResult[]>([]);
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
 
   const handleBack = () => {
     navigate(-1);
