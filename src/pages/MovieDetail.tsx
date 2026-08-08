@@ -17,6 +17,7 @@ const MovieDetail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const movieId = id || '0';
 
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
@@ -27,7 +28,7 @@ const MovieDetail = () => {
     navigate(-1);
   };
 
-  // 1. Fetch content from Supabase first
+  // 1. Fetch content from Supabase or TMDB
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-detail', movieId],
     queryFn: async () => {
@@ -39,9 +40,6 @@ const MovieDetail = () => {
     enabled: !!movieId
   });
 
-  const isSupabaseContent = !!supabaseContent;
-
-  // 2. Fetch from TMDB if not in Supabase, checking both Movie and TV
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-content-detail', movieId, searchParams.get('type')],
     queryFn: async () => {
@@ -57,17 +55,11 @@ const MovieDetail = () => {
         return await tmdbService.getMovieDetails(numericId);
       } else {
         try {
-          // Try fetching as a movie first
           const movieDetails = await tmdbService.getMovieDetails(numericId);
           if (movieDetails && movieDetails.title) return movieDetails;
           throw new Error('Not a movie');
         } catch (e) {
-          try {
-            // If not a movie, try fetching as a TV show
-            return await tmdbService.getTVShowDetails(numericId);
-          } catch (tvError) {
-            throw new Error('Content not found');
-          }
+          return await tmdbService.getTVShowDetails(numericId);
         }
       }
     },
@@ -77,7 +69,6 @@ const MovieDetail = () => {
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
 
-  // Correctly identify if it's a TV show
   const isTV = useMemo(() => {
     if (supabaseContent) return supabaseContent.content_type === 'series';
     const type = searchParams.get('type');
@@ -88,29 +79,25 @@ const MovieDetail = () => {
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
 
-  // 3. Verified Active Servers (Hindi & Multi)
+  // 2. Optimized Servers for Hindi & Dual Audio
   const servers = useMemo(() => {
     if (!tmdbId) return [];
-
-    // Server URLs with Season/Episode logic
     const moviePath = `movie/${tmdbId}`;
     const tvPath = `tv/${tmdbId}/${season}/${episode}`;
     const path = isTV ? tvPath : moviePath;
 
     return [
-      { id: 1, name: 'HINDI: VIP', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
-      { id: 2, name: 'HINDI: AUTO', url: `https://autoembed.co/${isTV ? 'tv' : 'movie'}/tmdb/${tmdbId}${isTV ? `?s=${season}&e=${episode}` : ''}`, type: 'hindi' },
-      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'multi' },
-      { id: 4, name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'global' },
-      { id: 5, name: 'SERVER: SMASHY', url: `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}${isTV ? `&season=${season}&episode=${episode}` : ''}`, type: 'alt' },
-      { id: 6, name: 'SERVER: SUPER', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
+      { id: 1, name: 'HINDI: HDHUB', url: `https://vidsrc.cc/v2/embed/${path}`, type: 'hindi' },
+      { id: 2, name: 'HINDI: VIP', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
+      { id: 3, name: 'HINDI: AUTO', url: `https://autoembed.co/${isTV ? 'tv' : 'movie'}/tmdb/${tmdbId}${isTV ? `?s=${season}&e=${episode}` : ''}`, type: 'hindi' },
+      { id: 4, name: 'MULTI: SUPER', url: `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
+      { id: 5, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'multi' },
+      { id: 6, name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, type: 'global' },
     ];
   }, [tmdbId, isTV, season, episode]);
 
-  // Handle server/episode change
   useEffect(() => {
     if (servers.length > 0) {
-      // Find currently selected server index or default to 0
       const currentIdx = servers.findIndex(s => s.url === selectedStreamUrl);
       const newUrl = currentIdx !== -1 ? servers[currentIdx].url : servers[0].url;
       setSelectedStreamUrl(newUrl);
@@ -130,16 +117,6 @@ const MovieDetail = () => {
     enabled: !!tmdbId && !!primaryGenreId
   });
 
-  const { data: tmdbCast = [] } = useQuery({
-    queryKey: ['detail-cast', tmdbId, isTV],
-    queryFn: async () => {
-      if (!tmdbId) return [];
-      const response = await tmdbService.getCredits(Number(tmdbId), isTV ? 'tv' : 'movie');
-      return response.cast;
-    },
-    enabled: !!tmdbId
-  });
-
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
 
@@ -148,6 +125,7 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
       <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -157,7 +135,7 @@ const MovieDetail = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-10">
 
           {/* 1. PLAYER & SELECTORS */}
           <section className="space-y-6">
@@ -207,7 +185,6 @@ const MovieDetail = () => {
                             </Select>
                         </div>
                     </div>
-                    <p className="text-[11px] text-gray-400 font-medium italic">Selecting a new episode will automatically refresh the player.</p>
                 </div>
             )}
 
@@ -216,7 +193,7 @@ const MovieDetail = () => {
                 <div className="flex items-center gap-3 mb-4">
                     <Server className="w-6 h-6 text-orange-500" />
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Choose Server</h2>
+                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Streaming Server</h2>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Try Server 1 or 2 for Direct Hindi Audio</p>
                     </div>
                 </div>
@@ -237,9 +214,57 @@ const MovieDetail = () => {
                     ))}
                 </div>
             </div>
+
+            {/* DOWNLOAD CENTER */}
+            <section className="space-y-6">
+                <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
+                    <Download className="w-6 h-6 text-orange-500" />
+                    <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button
+                        onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
+                        className="h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
+                    >
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2">
+                                <Download className="w-5 h-5 text-white" />
+                                <span className="text-sm font-black italic text-white uppercase">Direct Download</span>
+                            </div>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">High-Speed / Multi-Audio</span>
+                        </div>
+                    </Button>
+
+                    <Button
+                        onClick={() => window.open(`https://www.2embed.cc/download/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, '_blank')}
+                        className="h-20 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
+                    >
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-white" />
+                                <span className="text-sm font-black italic text-white uppercase">Mirror Server</span>
+                            </div>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Dual Audio / HD</span>
+                        </div>
+                    </Button>
+
+                    <Button
+                        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(title + ' hindi dubbed download torrent')}`, '_blank')}
+                        className="h-20 bg-gradient-to-br from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
+                    >
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-white" />
+                                <span className="text-sm font-black italic text-white uppercase">Torrent Search</span>
+                            </div>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">1080p Hindi Dubbed</span>
+                        </div>
+                    </Button>
+                </div>
+            </section>
           </section>
 
-          {/* 2. STORY & INFO */}
+          {/* 3. STORY & INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
@@ -261,19 +286,23 @@ const MovieDetail = () => {
                     <p className="text-gray-400 leading-relaxed text-lg font-light">{(movie as any).overview}</p>
                 </div>
 
-                <div className="p-6 bg-purple-600/10 border border-purple-500/20 rounded-3xl flex items-start gap-4">
-                    <Info className="w-6 h-6 text-purple-500 shrink-0" />
-                    <p className="text-xs text-purple-200 leading-relaxed uppercase font-bold tracking-wider">
-                        Note: For TV Series, use the selector above to change Seasons and Episodes.
-                        Hindi Audio is usually found in Server 1 & 2.
-                    </p>
+                <div className="p-6 bg-orange-600/10 border border-orange-600/20 rounded-3xl flex items-start gap-4">
+                    <Info className="w-6 h-6 text-orange-500 shrink-0" />
+                    <div className="text-xs space-y-2">
+                        <p className="text-orange-200 font-bold uppercase tracking-wider">How to get Hindi Audio:</p>
+                        <p className="text-orange-200/80 leading-relaxed">
+                            ১. প্রথমে <b>HINDI: HDHUB</b> অথবা <b>HINDI: VIP</b> সার্ভার ট্রাই করুন।
+                            <br />২. যদি ইংলিশ চালু হয়, প্লেয়ারের নিচের <b>Settings (Gear icon)</b> এ ক্লিক করে <b>Audio</b> থেকে <b>Hindi</b> সিলেক্ট করুন।
+                            <br />৩. ডাউনলোডের ক্ষেত্রে <b>Direct Download</b> বাটন ব্যবহার করুন।
+                        </p>
+                    </div>
                 </div>
             </div>
           </div>
 
-          {/* 3. RELATED CONTENT */}
+          {/* 4. RELATED CONTENT */}
           <div className="pt-20">
-            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> More Like This</h2>
+            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> Handpicked For You</h2>
             <div className="relative mt-8">
                 <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full">
                   <CarouselContent className="-ml-6">
