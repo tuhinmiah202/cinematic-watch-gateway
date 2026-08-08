@@ -4,12 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { reviewService } from '@/services/reviewService';
+import { overrideService, buildEmbedUrl } from '@/services/overrideService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, List, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, List, AlertCircle, Languages } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useToast } from "@/hooks/use-toast";
+
 
 interface ApiResult {
   text: string;
