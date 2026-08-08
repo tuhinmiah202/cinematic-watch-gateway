@@ -14,6 +14,8 @@ import { contentService, ContentItem } from '@/services/contentService';
 import { tmdbService } from '@/services/tmdbService';
 import { useToast } from '@/hooks/use-toast';
 import EditContentDialog from '@/components/admin/EditContentDialog';
+import StreamOverridesPanel from '@/components/admin/StreamOverridesPanel';
+
 
 const AdminManage = () => {
   const navigate = useNavigate();
@@ -204,7 +206,19 @@ const AdminManage = () => {
             >
               Existing Content
             </TabsTrigger>
+            <TabsTrigger
+              value="links"
+              className="text-white data-[state=active]:bg-purple-600"
+              onClick={() => setActiveTab('links')}
+            >
+              Hindi & Download Links
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="links">
+            <StreamOverridesPanel />
+          </TabsContent>
+
 
           <TabsContent value="add">
             <Card className="bg-gray-800/50 border-gray-700">
