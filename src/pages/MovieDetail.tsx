@@ -119,9 +119,10 @@ const MovieDetail = () => {
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-        // Requirement: Default Player sets src to first link in results array
-        if (results.length > 0 && results[0].links && results[0].links.length > 0) {
+        // Default player falls back to the first API link (admin Hindi link wins)
+        if (!adminHindiUrl && results.length > 0 && results[0].links && results[0].links.length > 0) {
           setSelectedStreamUrl(results[0].links[0]);
+          setActiveProvider('api');
         }
       } catch (error) {
         console.error("API Error:", error);
@@ -132,7 +133,31 @@ const MovieDetail = () => {
     };
 
     if (movie) fetchApiData();
-  }, [movie, title]);
+  }, [movie, title, adminHindiUrl]);
+
+  // Admin Hindi link takes priority as the default source
+  useEffect(() => {
+    if (adminHindiUrl) {
+      setSelectedStreamUrl(adminHindiUrl);
+      setActiveProvider('admin');
+      setAudioLang('hi');
+    }
+  }, [adminHindiUrl]);
+
+  // Auto-provider URL for the currently selected language
+  const providerUrl = useMemo(() => {
+    if (!tmdbId) return '';
+    if (activeProvider === 'admin' || activeProvider === 'api') return selectedStreamUrl || '';
+    return buildEmbedUrl(activeProvider, tmdbId, isTV, audioLang);
+  }, [activeProvider, tmdbId, isTV, audioLang, selectedStreamUrl]);
+
+  const playerSrc = providerUrl || selectedStreamUrl || (tmdbId ? buildEmbedUrl('vidsrc', tmdbId, isTV, audioLang) : '');
+
+  const selectProvider = (provider: 'vidsrc' | 'vidsrccc' | 'vidlink' | 'vidsrcme') => {
+    setActiveProvider(provider);
+    setSelectedStreamUrl(null);
+  };
+
 
   // Derived sections from API results
   const streamServers = apiResults.filter(r =>
