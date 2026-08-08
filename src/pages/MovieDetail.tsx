@@ -5,11 +5,12 @@ import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { reviewService } from '@/services/reviewService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MovieDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +26,7 @@ const MovieDetail = () => {
     navigate(-1);
   };
 
-  // 1. Fetch content from Supabase or TMDB
+  // 1. Fetch content from Supabase first
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-detail', movieId],
     queryFn: async () => {
@@ -37,60 +38,77 @@ const MovieDetail = () => {
     enabled: !!movieId
   });
 
+  const isSupabaseContent = !!supabaseContent;
+
+  // 2. Fetch from TMDB if not in Supabase, checking both Movie and TV
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
     queryKey: ['tmdb-content-detail', movieId],
     queryFn: async () => {
       if (supabaseContent) return null;
       const numericId = parseInt(movieId);
       if (isNaN(numericId)) return null;
+
       try {
-        return await tmdbService.getMovieDetails(numericId);
-      } catch (movieError) {
+        // Try fetching as a movie first
+        const movieDetails = await tmdbService.getMovieDetails(numericId);
+        if (movieDetails && movieDetails.title) return movieDetails;
+        throw new Error('Not a movie');
+      } catch (e) {
         try {
+          // If not a movie, try fetching as a TV show
           return await tmdbService.getTVShowDetails(numericId);
         } catch (tvError) {
           throw new Error('Content not found');
         }
       }
     },
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+    enabled: !!movieId && !supabaseContent
   });
 
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
-  const isTV = supabaseContent
-    ? supabaseContent.content_type === 'series'
-    : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
+
+  // Correctly identify if it's a TV show
+  const isTV = useMemo(() => {
+    if (supabaseContent) return supabaseContent.content_type === 'series';
+    if (tmdbContent) return !!('name' in tmdbContent || 'first_air_date' in tmdbContent);
+    return false;
+  }, [supabaseContent, tmdbContent]);
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
 
-  // 2. Verified Active Servers (Hindi & Multi)
+  // 3. Verified Active Servers (Hindi & Multi)
   const servers = useMemo(() => {
     if (!tmdbId) return [];
+
+    // Server URLs with Season/Episode logic
     const moviePath = `movie/${tmdbId}`;
     const tvPath = `tv/${tmdbId}/${season}/${episode}`;
     const path = isTV ? tvPath : moviePath;
 
     return [
-      { id: 1, name: 'SERVER: HINDI (VIP)', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
-      { id: 2, name: 'SERVER: HD (MULTI)', url: `https://vidsrc.to/embed/${path}`, type: 'multi' },
-      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? tmdbId : tmdbId}`, type: 'multi' },
-      { id: 4, name: 'SERVER: Vidsrc.me', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'global' },
-      { id: 5, name: 'SERVER: Smashy', url: `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}${isTV ? `&season=${season}&episode=${episode}` : ''}`, type: 'alt' },
-      { id: 6, name: 'SERVER: SuperEmbed', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
+      { id: 1, name: 'HINDI: VIP', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
+      { id: 2, name: 'HINDI: AUTO', url: `https://autoembed.co/${isTV ? 'tv' : 'movie'}/tmdb/${tmdbId}${isTV ? `?s=${season}&e=${episode}` : ''}`, type: 'hindi' },
+      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'multi' },
+      { id: 4, name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'global' },
+      { id: 5, name: 'SERVER: SMASHY', url: `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}${isTV ? `&season=${season}&episode=${episode}` : ''}`, type: 'alt' },
+      { id: 6, name: 'SERVER: SUPER', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
     ];
   }, [tmdbId, isTV, season, episode]);
 
-  // Set default server
+  // Handle server/episode change
   useEffect(() => {
-    if (servers.length > 0 && !selectedStreamUrl) {
-      setSelectedStreamUrl(servers[0].url);
+    if (servers.length > 0) {
+      // Find currently selected server index or default to 0
+      const currentIdx = servers.findIndex(s => s.url === selectedStreamUrl);
+      const newUrl = currentIdx !== -1 ? servers[currentIdx].url : servers[0].url;
+      setSelectedStreamUrl(newUrl);
     }
-  }, [servers, selectedStreamUrl]);
+  }, [servers]);
 
   const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? (movie as any)?.genre_ids?.[0] ?? null;
   const { data: relatedContent = [] } = useQuery({
-    queryKey: ['detail-related', tmdbId, primaryGenreId],
+    queryKey: ['detail-related', tmdbId, primaryGenreId, isTV],
     queryFn: async () => {
       if (!tmdbId || !primaryGenreId) return [];
       const response = isTV
@@ -119,7 +137,6 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
       <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -129,13 +146,13 @@ const MovieDetail = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-10">
+        <div className="max-w-6xl mx-auto space-y-8">
 
-          {/* 1. VIDEO PLAYER SECTION */}
+          {/* 1. PLAYER & SELECTORS */}
           <section className="space-y-6">
-            <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
+            <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
                 <iframe
-                  key={selectedStreamUrl} // THIS FORCES THE FRAME TO REFRESH ON CHANGE
+                  key={`${selectedStreamUrl}-${season}-${episode}`}
                   src={selectedStreamUrl || ''}
                   className="w-full h-full"
                   frameBorder="0"
@@ -144,13 +161,52 @@ const MovieDetail = () => {
                 ></iframe>
             </div>
 
+            {/* SEASON/EPISODE SELECTOR (ONLY FOR TV) */}
+            {isTV && (
+                <div className="bg-white/5 p-6 rounded-3xl border border-white/10 flex flex-col md:flex-row items-center gap-6">
+                    <div className="flex items-center gap-3 shrink-0">
+                        <List className="w-6 h-6 text-blue-400" />
+                        <span className="font-bold uppercase tracking-tighter">Episode Selector</span>
+                    </div>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <div className="flex-1 md:w-32">
+                            <label className="text-[10px] text-gray-500 uppercase font-black mb-1 block ml-1">Season</label>
+                            <Select value={season.toString()} onValueChange={(v) => { setSeason(parseInt(v)); setEpisode(1); }}>
+                                <SelectTrigger className="w-full bg-black/40 border-white/10 text-white rounded-xl h-12">
+                                    <SelectValue placeholder="S1" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-white/10 text-white">
+                                    {[...Array(20)].map((_, i) => (
+                                        <SelectItem key={i+1} value={(i+1).toString()}>Season {i+1}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex-1 md:w-32">
+                            <label className="text-[10px] text-gray-500 uppercase font-black mb-1 block ml-1">Episode</label>
+                            <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}>
+                                <SelectTrigger className="w-full bg-black/40 border-white/10 text-white rounded-xl h-12">
+                                    <SelectValue placeholder="E1" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-white/10 text-white">
+                                    {[...Array(50)].map((_, i) => (
+                                        <SelectItem key={i+1} value={(i+1).toString()}>Episode {i+1}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 font-medium italic">Selecting a new episode will automatically refresh the player.</p>
+                </div>
+            )}
+
             {/* SERVER SELECTION GRID */}
             <div className="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
-                <div className="flex flex-col md:flex-row items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4">
                     <Server className="w-6 h-6 text-orange-500" />
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Fast Server</h2>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Click a server below to change the video player</p>
+                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Choose Server</h2>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Try Server 1 or 2 for Direct Hindi Audio</p>
                     </div>
                 </div>
 
@@ -170,18 +226,6 @@ const MovieDetail = () => {
                     ))}
                 </div>
             </div>
-
-            {/* HINDI AUDIO GUIDE */}
-            <div className="p-6 bg-gradient-to-r from-orange-600/20 to-transparent border border-orange-600/30 rounded-[2rem] flex items-center gap-4">
-                <Info className="w-8 h-8 text-orange-500 shrink-0" />
-                <div>
-                    <h3 className="text-sm font-black uppercase text-white">How to get Hindi Audio?</h3>
-                    <p className="text-xs text-orange-200/80 leading-relaxed">
-                        If the movie starts in English, click the <b>Settings (Gear icon)</b> inside the player &rarr; <b>Audio</b> &rarr; <b>Hindi</b>.
-                        Try <b>SERVER: HINDI (VIP)</b> or <b>SERVER: 2EMBED</b> for best results.
-                    </p>
-                </div>
-            </div>
           </section>
 
           {/* 2. STORY & INFO */}
@@ -190,11 +234,11 @@ const MovieDetail = () => {
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
                 <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">TMDB Rating</span>
+                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Rating</span>
                         <div className="flex items-center gap-1"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /><span className="font-bold">{(movie as any).vote_average?.toFixed(1)}</span></div>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Release Year</span>
+                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Year</span>
                         <span className="font-bold">{(movie as any).release_date?.split('-')[0] || (movie as any).first_air_date?.split('-')[0] || 'N/A'}</span>
                     </div>
                 </div>
@@ -202,20 +246,16 @@ const MovieDetail = () => {
 
             <div className="lg:col-span-8 space-y-8">
                 <div className="space-y-4">
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Storyline</h2>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">The Storyline</h2>
                     <p className="text-gray-400 leading-relaxed text-lg font-light">{(movie as any).overview}</p>
                 </div>
 
-                <div className="space-y-6">
-                    <h2 className="text-xl font-bold flex items-center gap-2 text-purple-400 font-black uppercase"><User className="w-5 h-5" /> Top Cast</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {tmdbCast?.slice(0, 4).map((actor: any) => (
-                            <div key={actor.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center transition-all hover:bg-white/10">
-                                <h4 className="text-xs font-bold truncate">{actor.name}</h4>
-                                <p className="text-[9px] text-gray-500 truncate uppercase tracking-widest">{actor.character}</p>
-                            </div>
-                        ))}
-                    </div>
+                <div className="p-6 bg-purple-600/10 border border-purple-500/20 rounded-3xl flex items-start gap-4">
+                    <Info className="w-6 h-6 text-purple-500 shrink-0" />
+                    <p className="text-xs text-purple-200 leading-relaxed uppercase font-bold tracking-wider">
+                        Note: For TV Series, use the selector above to change Seasons and Episodes.
+                        Hindi Audio is usually found in Server 1 & 2.
+                    </p>
                 </div>
             </div>
           </div>
