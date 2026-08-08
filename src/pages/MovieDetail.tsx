@@ -77,32 +77,27 @@ const MovieDetail = () => {
   }, [supabaseContent, tmdbContent, searchParams]);
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
-  const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
-  // 2. Verified Active Servers (Hindi & Multi)
+  // 2. Premium Multi-Source Servers (Matching screenscape.me style)
   const servers = useMemo(() => {
     if (!tmdbId) return [];
-
-    // Server URLs optimized for Hindi discovery
     const moviePath = `movie/${tmdbId}`;
     const tvPath = `tv/${tmdbId}/${season}/${episode}`;
     const path = isTV ? tvPath : moviePath;
 
     return [
-      { id: 1, name: 'HINDI: SERVER 1', url: `https://vidsrc.in/embed/${path}`, type: 'hindi' },
-      { id: 2, name: 'HINDI: SERVER 2', url: `https://vidsrc.cc/v2/embed/${path}`, type: 'hindi' },
-      { id: 3, name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : tmdbId}`, type: 'multi' },
-      { id: 4, name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, type: 'global' },
-      { id: 5, name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, type: 'global' },
-      { id: 6, name: 'SERVER: SUPER', url: `https://multiembed.mov/directstream.php?video_id=${imdbId || tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, type: 'bot' },
+      { id: 1, name: 'HINDI (VIP)', tag: 'Hindi', url: `https://vidsrc.in/embed/${path}`, color: 'bg-orange-600' },
+      { id: 2, name: 'ALICE', tag: 'Multi-Lang', url: `https://vidsrc.to/embed/${path}`, color: 'bg-purple-600' },
+      { id: 3, name: 'NITRO', tag: 'Hindi', url: `https://nitro.vidsrc.xyz/embed/${path}`, color: 'bg-red-600' },
+      { id: 4, name: 'HBOX', tag: 'Multi-Lang', url: `https://hbox.vidsrc.xyz/embed/${path}`, color: 'bg-blue-600' },
+      { id: 5, name: 'MONGO', tag: 'Multi-Lang', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, color: 'bg-green-600' },
+      { id: 6, name: 'SEALX', tag: 'Auto-Detect', url: `https://multiembed.mov/directbot.php?video_id=${tmdbId}&tmdb=1${isTV ? `&s=${season}&e=${episode}` : ''}`, color: 'bg-yellow-600' },
     ];
-  }, [tmdbId, isTV, season, episode, imdbId]);
+  }, [tmdbId, isTV, season, episode]);
 
   useEffect(() => {
-    if (servers.length > 0) {
-      const currentIdx = servers.findIndex(s => s.url === selectedStreamUrl);
-      const newUrl = currentIdx !== -1 ? servers[currentIdx].url : servers[0].url;
-      setSelectedStreamUrl(newUrl);
+    if (servers.length > 0 && !selectedStreamUrl) {
+      setSelectedStreamUrl(servers[0].url);
     }
   }, [servers]);
 
@@ -119,14 +114,6 @@ const MovieDetail = () => {
     enabled: !!tmdbId && !!primaryGenreId
   });
 
-  // Fixed Download Gateways
-  const getDownloadUrl = (serverNum: number) => {
-    if (serverNum === 1) {
-       return `https://vidsrc.to/download/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`;
-    }
-    return `https://vidsrc.me/download/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`;
-  };
-
   if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
   if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">Return Home</Button></div></div>;
 
@@ -135,6 +122,7 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
       <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -150,7 +138,7 @@ const MovieDetail = () => {
           <section className="space-y-6">
             <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
                 <iframe
-                  key={`${selectedStreamUrl}-${season}-${episode}`}
+                  key={selectedStreamUrl}
                   src={selectedStreamUrl || ''}
                   className="w-full h-full"
                   frameBorder="0"
@@ -159,136 +147,102 @@ const MovieDetail = () => {
                 ></iframe>
             </div>
 
+            {/* SEASON/EPISODE SELECTOR */}
             {isTV && (
                 <div className="bg-white/5 p-6 rounded-3xl border border-white/10 flex flex-col md:flex-row items-center gap-6">
                     <div className="flex items-center gap-3 shrink-0">
                         <List className="w-6 h-6 text-blue-400" />
-                        <span className="font-bold uppercase tracking-tighter">Episode Selector</span>
+                        <span className="font-bold uppercase tracking-tighter">Episodes</span>
                     </div>
-                    <div className="flex gap-4 w-full md:w-auto">
-                        <div className="flex-1 md:w-32">
-                            <label className="text-[10px] text-gray-500 uppercase font-black mb-1 block ml-1">Season</label>
-                            <Select value={season.toString()} onValueChange={(v) => { setSeason(parseInt(v)); setEpisode(1); }}>
-                                <SelectTrigger className="w-full bg-black/40 border-white/10 text-white rounded-xl h-12">
-                                    <SelectValue placeholder="S1" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-white/10 text-white">
-                                    {[...Array(20)].map((_, i) => (
-                                        <SelectItem key={i+1} value={(i+1).toString()}>Season {i+1}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex-1 md:w-32">
-                            <label className="text-[10px] text-gray-500 uppercase font-black mb-1 block ml-1">Episode</label>
-                            <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}>
-                                <SelectTrigger className="w-full bg-black/40 border-white/10 text-white rounded-xl h-12">
-                                    <SelectValue placeholder="E1" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-white/10 text-white">
-                                    {[...Array(50)].map((_, i) => (
-                                        <SelectItem key={i+1} value={(i+1).toString()}>Episode {i+1}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="flex gap-4">
+                        <Select value={season.toString()} onValueChange={(v) => { setSeason(parseInt(v)); setEpisode(1); }}>
+                            <SelectTrigger className="w-32 bg-black/40 border-white/10 text-white rounded-xl"><SelectValue placeholder="Season" /></SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-white/10 text-white">
+                                {[...Array(20)].map((_, i) => <SelectItem key={i+1} value={(i+1).toString()}>S {i+1}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={episode.toString()} onValueChange={(v) => setEpisode(parseInt(v))}>
+                            <SelectTrigger className="w-32 bg-black/40 border-white/10 text-white rounded-xl"><SelectValue placeholder="Episode" /></SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-white/10 text-white">
+                                {[...Array(50)].map((_, i) => <SelectItem key={i+1} value={(i+1).toString()}>E {i+1}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             )}
 
+            {/* SERVER SELECTION GRID (screenscape style) */}
             <div className="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-4">
                     <Server className="w-6 h-6 text-orange-500" />
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select High-Speed Server</h2>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-orange-400">Try SERVER 1 or 2 for Hollywood Hindi Dubbed</p>
+                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Streaming Server</h2>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Switch servers if video doesn't play or needs Hindi audio</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {servers.map((server) => (
                         <Button
                             key={server.id}
                             onClick={() => setSelectedStreamUrl(server.url)}
-                            className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                            className={`h-auto py-4 px-4 rounded-2xl transition-all border-2 flex flex-col gap-1 ${
                                 selectedStreamUrl === server.url
-                                ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
-                                : "bg-white/5 border-white/10 hover:border-orange-500/50 text-gray-400 hover:text-white"
+                                ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                : "bg-white/5 border-white/5 hover:border-orange-500/50 text-gray-400 hover:text-white"
                             }`}
                         >
-                            {server.name}
+                            <span className="text-[10px] font-black uppercase tracking-tighter">{server.name}</span>
+                            <span className={`text-[8px] font-bold px-1.5 rounded-full uppercase ${selectedStreamUrl === server.url ? 'bg-black/10 text-black' : 'bg-orange-500/20 text-orange-500'}`}>[{server.tag}]</span>
                         </Button>
                     ))}
                 </div>
             </div>
 
+            {/* DOWNLOAD CENTER */}
             <section className="space-y-6">
                 <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                     <Download className="w-6 h-6 text-orange-500" />
-                    <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter">Download Movie</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
-                        onClick={() => window.open(getDownloadUrl(1), '_blank')}
-                        className="h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group"
+                        onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
+                        className="h-20 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
                     >
-                        <div className="flex flex-col items-center text-center px-4">
-                            <div className="flex items-center gap-2">
-                                <Download className="w-5 h-5 text-white" />
-                                <span className="text-sm font-black italic text-white uppercase">Download: Server 1</span>
-                            </div>
-                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multi-Audio / 1080p High Speed</span>
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Direct High-Speed Download</span></div>
+                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multi-Audio (Hindi+English) / 1080p</span>
                         </div>
                     </Button>
-
                     <Button
-                        onClick={() => window.open(getDownloadUrl(2), '_blank')}
-                        className="h-20 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03]"
+                        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(title + ' hindi dubbed download torrent')}`, '_blank')}
+                        className="h-20 bg-white/5 hover:bg-white/10 rounded-3xl shadow-xl border border-white/10 transition-all hover:scale-[1.03]"
                     >
-                        <div className="flex flex-col items-center text-center px-4">
-                            <div className="flex items-center gap-2">
-                                <Globe className="w-5 h-5 text-white" />
-                                <span className="text-sm font-black italic text-white uppercase">Download: Server 2</span>
-                            </div>
-                            <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">Multiple Resolutions / Mirror</span>
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2"><Globe className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Search Hindi Torrent</span></div>
+                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Alternative Link Discovery</span>
                         </div>
                     </Button>
                 </div>
             </section>
           </section>
 
-          {/* 2. STORY & INFO */}
+          {/* STORY & INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
-                <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Rating</span>
-                        <div className="flex items-center gap-1"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /><span className="font-bold">{(movie as any).vote_average?.toFixed(1)}</span></div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Year</span>
-                        <span className="font-bold">{(movie as any).release_date?.split('-')[0] || (movie as any).first_air_date?.split('-')[0] || 'N/A'}</span>
-                    </div>
-                </div>
             </div>
-
             <div className="lg:col-span-8 space-y-8">
                 <div className="space-y-4">
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">The Storyline</h2>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Storyline</h2>
                     <p className="text-gray-400 leading-relaxed text-lg font-light">{(movie as any).overview}</p>
                 </div>
-
                 <div className="p-6 bg-orange-600/10 border border-orange-600/20 rounded-3xl flex items-start gap-4">
                     <Info className="w-6 h-6 text-orange-500 shrink-0" />
-                    <div className="text-xs space-y-2">
-                        <p className="text-orange-200 font-bold uppercase tracking-wider">Help & Audio Guide:</p>
-                        <p className="text-orange-200/80 leading-relaxed">
-                            ১. হলিউড মুভির হিন্দি ভার্সনের জন্য <b>HINDI: SERVER 1</b> অথবা <b>HINDI: SERVER 2</b> ট্রাই করুন।
-                            <br />২. যদি ভিডিও ইংরেজিতে শুরু হয়, প্লেয়ারের নিচের <b>Settings (গিয়ার আইকন)</b> এ ক্লিক করে <b>Audio</b> থেকে <b>Hindi</b> সিলেক্ট করুন।
-                            <br />৩. ডাউনলোডের জন্য সার্ভার ১ এবং ২ দুটোই আপডেট করা হয়েছে। একটি কাজ না করলে অন্যটি ট্রাই করুন।
-                        </p>
-                    </div>
+                    <p className="text-xs text-orange-200 leading-relaxed">
+                        <b>Hindi Audio Guide:</b> Server <b>HINDI (VIP)</b> and <b>NITRO</b> are best for Hindi. If audio is English, click the <b>Settings (Gear icon)</b> inside the player and change <b>Audio</b> to <b>Hindi</b>.
+                    </p>
                 </div>
             </div>
           </div>
