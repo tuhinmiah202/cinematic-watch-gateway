@@ -99,16 +99,19 @@ const MovieDetail = () => {
   const staticServers = useMemo(() => {
     if (!tmdbId) return [];
     const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
+    const idParam = finalImdbId || tmdbId;
+
     return [
       { name: 'HDHub', url: `https://vidsrc.cc/v2/embed/${base}`, tag: 'Hindi' },
       { name: 'HBOX', url: `https://hbox.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
       { name: 'HINDI', url: `https://vidsrc.in/embed/${base}`, tag: 'Hindi Only' },
-      { name: '2Embed', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Multi' },
+      { name: 'HNEmbed', url: `https://hnembed.cc/embed/${isTV ? `tv/${idParam}/${season}/${episode}` : `movie/${idParam}`}`, tag: 'New' },
+      { name: '2Embed', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
       { name: 'ALICE', url: `https://vidsrc.to/embed/${base}`, tag: 'Multi' },
       { name: 'MONGO', url: `https://vidsrc.me/embed/${base}`, tag: 'Multi' },
       { name: 'NITRO', url: `https://nitro.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
     ];
-  }, [tmdbId, isTV, season, episode]);
+  }, [tmdbId, isTV, season, episode, finalImdbId]);
 
   useEffect(() => {
     const fetchApiData = async () => {
