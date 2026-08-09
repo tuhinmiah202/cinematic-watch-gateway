@@ -65,6 +65,19 @@ const MovieDetail = () => {
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
+  // Related content ("More Like This")
+  const { data: relatedData } = useQuery({
+    queryKey: ['related-content', tmdbId, isTV],
+    queryFn: async () => {
+      if (!tmdbId) return { results: [] };
+      return isTV
+        ? await tmdbService.getTVShowRecommendations(tmdbId)
+        : await tmdbService.getMovieRecommendations(tmdbId);
+    },
+    enabled: !!tmdbId,
+  });
+  const relatedContent = (relatedData?.results || []).slice(0, 12);
+
   // 2. Verified High-Speed Servers (Optimized for Hindi)
   const servers = useMemo(() => {
     if (!tmdbId) return [];
