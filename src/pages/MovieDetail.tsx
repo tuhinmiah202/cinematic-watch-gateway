@@ -4,18 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { reviewService } from '@/services/reviewService';
-import { overrideService, buildEmbedUrl } from '@/services/overrideService';
 import { Button } from '@/components/ui/button';
-<<<<<<< HEAD
 import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
-=======
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, List, AlertCircle, Languages } from 'lucide-react';
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useToast } from "@/hooks/use-toast";
-
 
 interface ApiResult {
   text: string;
@@ -31,12 +25,9 @@ const MovieDetail = () => {
   const movieId = id || '0';
 
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
-  const [audioLang, setAudioLang] = useState<'hi' | 'en'>('hi');
-  const [activeProvider, setActiveProvider] = useState<'admin' | 'vidsrc' | 'vidsrccc' | 'vidlink' | 'vidsrcme' | 'api'>('vidsrc');
   const [apiResults, setApiResults] = useState<ApiResult[]>([]);
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
 
   const handleBack = () => {
     navigate(-1);
@@ -101,21 +92,6 @@ const MovieDetail = () => {
     return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
   }, [imdbId, externalIds]);
 
-<<<<<<< HEAD
-=======
-  // Admin-provided Hindi stream / download links for this title
-  const { data: override } = useQuery({
-    queryKey: ['content-override', tmdbId, isTV],
-    queryFn: () => overrideService.getOverride(tmdbId, isTV ? 'tv' : 'movie'),
-    enabled: !!tmdbId
-  });
-
-  const adminHindiUrl = override?.hindi_stream_url || null;
-  const adminDownloadUrl = override?.download_url || null;
-
-
-  // 2. Fetch API Data on Load
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
   // Helper: Clean movie name for better API matching
@@ -143,15 +119,9 @@ const MovieDetail = () => {
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-<<<<<<< HEAD
         // Requirement: Default Player sets src to first link in API results
         if (results.length > 0 && results[0].links && results[0].links.length > 0) {
-=======
-        // Default player falls back to the first API link (admin Hindi link wins)
-        if (!adminHindiUrl && results.length > 0 && results[0].links && results[0].links.length > 0) {
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
           setSelectedStreamUrl(results[0].links[0]);
-          setActiveProvider('api');
         }
       } catch (error) {
         console.error("API Error:", error);
@@ -162,31 +132,7 @@ const MovieDetail = () => {
     };
 
     if (movie) fetchApiData();
-  }, [movie, title, adminHindiUrl]);
-
-  // Admin Hindi link takes priority as the default source
-  useEffect(() => {
-    if (adminHindiUrl) {
-      setSelectedStreamUrl(adminHindiUrl);
-      setActiveProvider('admin');
-      setAudioLang('hi');
-    }
-  }, [adminHindiUrl]);
-
-  // Auto-provider URL for the currently selected language
-  const providerUrl = useMemo(() => {
-    if (!tmdbId) return '';
-    if (activeProvider === 'admin' || activeProvider === 'api') return selectedStreamUrl || '';
-    return buildEmbedUrl(activeProvider, tmdbId, isTV, audioLang);
-  }, [activeProvider, tmdbId, isTV, audioLang, selectedStreamUrl]);
-
-  const playerSrc = providerUrl || selectedStreamUrl || (tmdbId ? buildEmbedUrl('vidsrc', tmdbId, isTV, audioLang) : '');
-
-  const selectProvider = (provider: 'vidsrc' | 'vidsrccc' | 'vidlink' | 'vidsrcme') => {
-    setActiveProvider(provider);
-    setSelectedStreamUrl(null);
-  };
-
+  }, [movie, title]);
 
   // CATEGORIES FOR UI
   const streamServers = apiResults.filter(r =>
@@ -208,7 +154,7 @@ const MovieDetail = () => {
     )
   );
 
-  // Fetch cast and related (Existing Logic)
+  // Fetch cast and related
   const { data: tmdbCast } = useQuery({
     queryKey: ['tmdb-cast-detail', tmdbId],
     queryFn: async () => {
@@ -268,12 +214,7 @@ const MovieDetail = () => {
               ) : (
                 <iframe
                   id="movie-player"
-<<<<<<< HEAD
                   src={selectedStreamUrl || `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`}
-=======
-                  key={playerSrc}
-                  src={playerSrc}
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
                   className="w-full h-full"
                   frameBorder="0"
                   allowFullScreen
@@ -282,7 +223,6 @@ const MovieDetail = () => {
               )}
             </div>
 
-<<<<<<< HEAD
             {/* SERVER GRID */}
             <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-2">
@@ -325,130 +265,6 @@ const MovieDetail = () => {
                             </Button>
                         );
                     })}
-=======
-            {/* AUDIO LANGUAGE SWITCH */}
-            <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 space-y-4">
-              <div className="flex items-center gap-3">
-                <Languages className="w-6 h-6 text-red-600" />
-                <div>
-                  <h2 className="text-lg font-black uppercase tracking-tighter text-white">Audio Language</h2>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                    Hindi select korle server hindi audio niye load hobe
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => {
-                    setAudioLang('hi');
-                    if (adminHindiUrl) {
-                      setSelectedStreamUrl(adminHindiUrl);
-                      setActiveProvider('admin');
-                    } else if (activeProvider === 'api') {
-                      setActiveProvider('vidsrc');
-                      setSelectedStreamUrl(null);
-                    }
-                  }}
-                  className={`rounded-2xl px-6 py-5 text-xs font-black uppercase border-2 ${
-                    audioLang === 'hi'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  हिंदी / Hindi
-                </Button>
-                <Button
-                  onClick={() => {
-                    setAudioLang('en');
-                    if (activeProvider === 'admin' || activeProvider === 'api') {
-                      setActiveProvider('vidsrc');
-                      setSelectedStreamUrl(null);
-                    }
-                  }}
-                  className={`rounded-2xl px-6 py-5 text-xs font-black uppercase border-2 ${
-                    audioLang === 'en'
-                      ? 'bg-red-600 border-red-500 text-white'
-                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  English
-                </Button>
-              </div>
-
-              <p className="text-[11px] text-gray-500 leading-relaxed">
-                {adminHindiUrl
-                  ? 'Verified Hindi source available for this title.'
-                  : 'Tip: player er vitor Settings (gear) → Audio → Hindi theke o audio track change kora jay.'}
-              </p>
-            </div>
-
-            {/* SERVER SELECTION GRID */}
-            <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                    <Server className="w-6 h-6 text-red-600" />
-                    <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Server</h2>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Switch to high-speed servers if player fails</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {adminHindiUrl && (
-                      <Button
-                        onClick={() => {
-                          setSelectedStreamUrl(adminHindiUrl);
-                          setActiveProvider('admin');
-                          setAudioLang('hi');
-                        }}
-                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                          activeProvider === 'admin'
-                            ? 'bg-green-600 border-green-500 shadow-[0_0_20px_rgba(22,163,74,0.4)] text-white'
-                            : 'bg-white/5 border-white/10 hover:border-green-500/50 text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        Hindi Server
-                      </Button>
-                    )}
-
-                    {([
-                      { key: 'vidsrc', label: 'Server 1' },
-                      { key: 'vidsrccc', label: 'Server 2' },
-                      { key: 'vidlink', label: 'Server 3' },
-                      { key: 'vidsrcme', label: 'Server 4' }
-                    ] as const).map((s) => (
-                      <Button
-                        key={s.key}
-                        onClick={() => selectProvider(s.key)}
-                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                          activeProvider === s.key
-                            ? 'bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white'
-                            : 'bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        {s.label}
-                      </Button>
-                    ))}
-
-                    {/* API Generated Buttons */}
-                    {streamServers.map((server, idx) => (
-                        <Button
-                            key={idx}
-                            onClick={() => {
-                                setSelectedStreamUrl(server.links[0]);
-                                setActiveProvider('api');
-                                toast({ title: "Switching Server", description: `Loading ${server.text.split(' ')[0]}...` });
-                            }}
-                            className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                                activeProvider === 'api' && selectedStreamUrl === server.links[0]
-                                ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
-                                : "bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white"
-                            }`}
-                        >
-                            {server.text.split('-')[0].trim() || `SERVER ${idx + 5}`}
-                        </Button>
-                    ))}
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
                 </div>
             </div>
 
@@ -463,7 +279,6 @@ const MovieDetail = () => {
 
           {/* 2. DOWNLOAD CENTER */}
           <section className="space-y-6">
-<<<<<<< HEAD
             <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                <Download className="w-6 h-6 text-orange-500" />
                <h2 className="text-2xl font-black uppercase tracking-tighter">Premium Download Links</h2>
@@ -501,48 +316,6 @@ const MovieDetail = () => {
                     </div>
                 </div>
             )}
-=======
-            <div className="flex items-center gap-3 border-l-4 border-red-600 pl-4">
-               <Download className="w-6 h-6 text-red-600" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">Download Links</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {adminDownloadUrl && (
-                <a
-                  href={adminDownloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="h-20 bg-gradient-to-br from-green-600 to-emerald-800 hover:from-green-500 hover:to-emerald-700 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] no-underline flex flex-col items-center justify-center gap-1"
-                >
-                  <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Direct Download</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase tracking-widest">Verified Link</span>
-                </a>
-              )}
-
-              {downloadLinks.map((link, idx) => (
-                <a
-                  key={idx}
-                  href={link.links[0]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="h-20 bg-gradient-to-br from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1"
-                >
-                  <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Download Link {idx + 1}</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase tracking-widest">{link.text.split('-')[0].trim()}</span>
-                </a>
-              ))}
-
-              {/* No links available */}
-              {!adminDownloadUrl && downloadLinks.length === 0 && !isApiLoading && (
-                <div className="h-20 bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center justify-center text-center px-4">
-                  <span className="text-sm font-black uppercase text-gray-400">No download link yet</span>
-                  <span className="text-[10px] text-gray-500 font-bold">Admin shongjukto korle ekhane dekhabe</span>
-                </div>
-              )}
-            </div>
-
->>>>>>> 734c4da2bb9f32af06fd6af0cf267e0bc2000003
           </section>
 
           {/* 3. STORY & INFO */}
