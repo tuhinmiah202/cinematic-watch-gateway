@@ -190,6 +190,42 @@ export type Database = {
           },
         ]
       }
+      content_overrides: {
+        Row: {
+          created_at: string
+          download_url: string | null
+          hindi_stream_url: string | null
+          id: string
+          media_type: string
+          notes: string | null
+          title: string | null
+          tmdb_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          download_url?: string | null
+          hindi_stream_url?: string | null
+          id?: string
+          media_type?: string
+          notes?: string | null
+          title?: string | null
+          tmdb_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          download_url?: string | null
+          hindi_stream_url?: string | null
+          id?: string
+          media_type?: string
+          notes?: string | null
+          title?: string | null
+          tmdb_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       episodes: {
         Row: {
           air_date: string | null
