@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { tmdbService, Movie } from '@/services/tmdbService';
+import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
-import { reviewService } from '@/services/reviewService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -28,7 +27,6 @@ const MovieDetail = () => {
   const [apiResults, setApiResults] = useState<ApiResult[]>([]);
   const [isApiLoading, setIsApiLoading] = useState(false);
 
-  // State for TV Series
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
 
@@ -36,7 +34,6 @@ const MovieDetail = () => {
     navigate(-1);
   };
 
-  // 1. Fetch content from Supabase or TMDB
   const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
     queryKey: ['supabase-content-detail', movieId],
     queryFn: async () => {
@@ -67,11 +64,7 @@ const MovieDetail = () => {
         return await tmdbService.getTVShowDetails(numericId);
       }
     },
-<<<<<<< HEAD
     enabled: !!movieId && !supabaseContent
-=======
-    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
->>>>>>> ff86c841179ac70f0fd4c1647154086af9f81fc5
   });
 
   const movie = supabaseContent || tmdbContent;
@@ -83,7 +76,6 @@ const MovieDetail = () => {
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
-  // 2. Fetch External IDs for IMDB ID
   const { data: externalIds } = useQuery({
     queryKey: ['tmdb-external-ids-detail', tmdbId, isTV],
     queryFn: async () => {
@@ -104,7 +96,6 @@ const MovieDetail = () => {
 
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
-  // 3. Define Direct High-Quality Servers (Hardcoded for stability)
   const staticServers = useMemo(() => {
     if (!tmdbId) return [];
     const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
@@ -112,25 +103,24 @@ const MovieDetail = () => {
       { name: 'HDHub', url: `https://vidsrc.cc/v2/embed/${base}`, tag: 'Hindi' },
       { name: 'HBOX', url: `https://hbox.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
       { name: 'HINDI', url: `https://vidsrc.in/embed/${base}`, tag: 'Hindi Only' },
+      { name: '2Embed', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Multi' },
       { name: 'ALICE', url: `https://vidsrc.to/embed/${base}`, tag: 'Multi' },
       { name: 'MONGO', url: `https://vidsrc.me/embed/${base}`, tag: 'Multi' },
       { name: 'NITRO', url: `https://nitro.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
     ];
   }, [tmdbId, isTV, season, episode]);
 
-  // 4. API Integration for Bot Servers
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
       const cleanTitle = title.replace(/\(\d{4}\)/g, '').replace(/[^\w\s]/gi, ' ').trim();
       setIsApiLoading(true);
       try {
-        const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
+        const response = await fetch(`https://web-production-69ea9.app.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
         const data = await response.json();
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-        // Set default to HDHub or first API link if needed
         if (!selectedStreamUrl) {
           if (results.length > 0 && results[0].links?.length > 0) {
             setSelectedStreamUrl(results[0].links[0]);
@@ -163,7 +153,6 @@ const MovieDetail = () => {
 
   const highlightKeywords = ['HINDI', 'MULTI-AUDIO', 'ALICE', 'MONGO', 'MULTI-LANG'];
 
-  // Fetch cast and related
   const { data: tmdbCast } = useQuery({
     queryKey: ['tmdb-cast-detail', tmdbId],
     queryFn: async () => {
@@ -196,7 +185,6 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
       <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -208,7 +196,6 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-6xl mx-auto space-y-10">
 
-          {/* 1. PLAYER SECTION */}
           <section className="space-y-6">
             <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
               {isApiLoading && apiResults.length === 0 ? (
@@ -228,7 +215,6 @@ const MovieDetail = () => {
               )}
             </div>
 
-            {/* SERVER GRID */}
             <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3 mb-2">
                     <Server className="w-6 h-6 text-purple-500" />
@@ -236,7 +222,6 @@ const MovieDetail = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {/* Combined Static and API Servers */}
                     {staticServers.map((server, idx) => (
                         <Button
                             key={`static-${idx}`}
@@ -252,7 +237,7 @@ const MovieDetail = () => {
                     ))}
 
                     {streamServersFromApi.map((server, idx) => {
-                        const displayName = server.source?.toUpperCase() || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim().toUpperCase() || `SERVER ${idx + 7}`;
+                        const displayName = server.source?.toUpperCase() || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim().toUpperCase() || `SERVER ${idx + 8}`;
                         const isSelected = selectedStreamUrl === server.links[0];
                         const isHighlighted = highlightKeywords.some(kw => displayName.includes(kw));
 
@@ -283,7 +268,6 @@ const MovieDetail = () => {
             </div>
           </section>
 
-          {/* 2. DOWNLOAD CENTER */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
                <Download className="w-6 h-6 text-orange-500" />
@@ -313,7 +297,6 @@ const MovieDetail = () => {
             )}
           </section>
 
-          {/* 3. STORY & CAST */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
