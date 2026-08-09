@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
