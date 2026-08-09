@@ -67,7 +67,11 @@ const MovieDetail = () => {
         return await tmdbService.getTVShowDetails(numericId);
       }
     },
+<<<<<<< HEAD
     enabled: !!movieId && !supabaseContent
+=======
+    enabled: !!movieId && !supabaseContent && !isLoadingSupabase
+>>>>>>> ff86c841179ac70f0fd4c1647154086af9f81fc5
   });
 
   const movie = supabaseContent || tmdbContent;
