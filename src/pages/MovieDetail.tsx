@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Play, User, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Globe, Server, Info, Maximize, AlertCircle, Zap } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -26,6 +26,7 @@ const MovieDetail = () => {
   const [selectedStreamUrl, setSelectedStreamUrl] = useState<string | null>(null);
   const [apiResults, setApiResults] = useState<ApiResult[]>([]);
   const [isApiLoading, setIsApiLoading] = useState(false);
+  const [isTorrentLoading, setIsTorrentLoading] = useState(false);
 
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -99,19 +100,15 @@ const MovieDetail = () => {
   const staticServers = useMemo(() => {
     if (!tmdbId) return [];
     const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
-    const idParam = finalImdbId || tmdbId;
-
     return [
       { name: 'HDHub', url: `https://vidsrc.cc/v2/embed/${base}`, tag: 'Hindi' },
       { name: 'HBOX', url: `https://hbox.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
       { name: 'HINDI', url: `https://vidsrc.in/embed/${base}`, tag: 'Hindi Only' },
-      { name: 'HNEmbed', url: `https://hnembed.cc/embed/${isTV ? `tv/${idParam}/${season}/${episode}` : `movie/${idParam}`}`, tag: 'New' },
-      { name: '2Embed', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
       { name: 'ALICE', url: `https://vidsrc.to/embed/${base}`, tag: 'Multi' },
       { name: 'MONGO', url: `https://vidsrc.me/embed/${base}`, tag: 'Multi' },
       { name: 'NITRO', url: `https://nitro.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
     ];
-  }, [tmdbId, isTV, season, episode, finalImdbId]);
+  }, [tmdbId, isTV, season, episode]);
 
   useEffect(() => {
     const fetchApiData = async () => {
@@ -141,6 +138,45 @@ const MovieDetail = () => {
 
     if (movie) fetchApiData();
   }, [movie, title, staticServers]);
+
+  const handleTorrentServer = async () => {
+    if (!finalImdbId) {
+      toast({ title: "IMDb ID not found", description: "Try other servers.", variant: "destructive" });
+      return;
+    }
+
+    setIsTorrentLoading(true);
+    try {
+      const response = await fetch(`https://torrentio.strem.fun/stream/${isTV ? 'series' : 'movie'}/${finalImdbId}${isTV ? `:${season}:${episode}` : ''}.json`);
+      const data = await response.json();
+
+      if (!data.streams || data.streams.length === 0) {
+        throw new Error("No torrent streams found");
+      }
+
+      // Filter for Hindi/Dual and Sort by Seeders
+      let filtered = data.streams.filter((s: any) => /hindi|dual|hin/i.test(s.title));
+      let targetList = filtered.length > 0 ? filtered : data.streams;
+
+      targetList.sort((a: any, b: any) => {
+        const seedA = parseInt(a.title.match(/👤\s*(\d+)/)?.[1] || 0);
+        const seedB = parseInt(b.title.match(/👤\s*(\d+)/)?.[1] || 0);
+        return seedB - seedA;
+      });
+
+      const bestStream = targetList[0];
+      const magnetLink = `magnet:?xt=urn:btih:${bestStream.infoHash}`;
+      const encodedMagnet = encodeURIComponent(magnetLink);
+
+      const webtorUrl = `https://webtor.io/show?magnet=${encodedMagnet}&theme=dark&color=e50914`;
+      setSelectedStreamUrl(webtorUrl);
+      toast({ title: "Torrent Stream Active", description: "Loading high-speed P2P Hindi server..." });
+    } catch (error) {
+      toast({ title: "Torrent Server Offline", description: "Please try SERVER 1 or SERVER 2.", variant: "destructive" });
+    } finally {
+      setIsTorrentLoading(false);
+    }
+  };
 
   const streamServersFromApi = apiResults.filter(r =>
     r.links && r.links.length > 0 && (
@@ -201,10 +237,12 @@ const MovieDetail = () => {
 
           <section className="space-y-6">
             <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
-              {isApiLoading && apiResults.length === 0 ? (
+              {(isTorrentLoading || (isApiLoading && apiResults.length === 0)) ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching Smart Links...</p>
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">
+                    {isTorrentLoading ? "Finding High-Seed Hindi Servers..." : "Searching Smart Links..."}
+                  </p>
                 </div>
               ) : (
                 <iframe
@@ -225,6 +263,18 @@ const MovieDetail = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {/* Torrent VIP Server */}
+                    <Button
+                        onClick={handleTorrentServer}
+                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                            selectedStreamUrl?.includes('webtor.io')
+                            ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
+                            : "border-orange-500/30 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
+                        }`}
+                    >
+                        <Zap className="w-3 h-3 mr-1 fill-current" /> HINDI: TORRENT (VIP)
+                    </Button>
+
                     {staticServers.map((server, idx) => (
                         <Button
                             key={`static-${idx}`}
@@ -287,7 +337,7 @@ const MovieDetail = () => {
                       className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3 text-white"
                     >
                       <Download className="w-5 h-5" />
-                      <span className="font-bold text-xs truncate uppercase tracking-tight">
+                      <span className="font-bold text-xs truncate uppercase tracking-tight text-center">
                         {link.text.replace(/\[PREMIUM\]/gi, '').trim() || 'Direct Download'}
                       </span>
                     </a>
