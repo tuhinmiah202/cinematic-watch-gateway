@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { tmdbService, Movie } from '@/services/tmdbService';
+import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe, Box } from 'lucide-react';
@@ -63,54 +63,26 @@ const MovieDetail = () => {
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
-<<<<<<< HEAD
-  // 2. Fetch from Custom Movie API on load (Requirement)
-=======
-  // Related content ("More Like This")
-  const { data: relatedData } = useQuery({
-    queryKey: ['related-content', tmdbId, isTV],
+  // Fetch External IDs
+  const { data: externalIds } = useQuery({
+    queryKey: ['tmdb-external-ids-detail', tmdbId, isTV],
     queryFn: async () => {
-      if (!tmdbId) return { results: [] };
-      return isTV
-        ? await tmdbService.getTVShowRecommendations(tmdbId)
-        : await tmdbService.getMovieRecommendations(tmdbId);
+      if (!tmdbId) return null;
+      const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${tmdbId}/external_ids?api_key=566149bf98e53cc39a4c04bfe01c03fc`;
+      const res = await fetch(url);
+      return res.json();
     },
-    enabled: !!tmdbId,
+    enabled: !!tmdbId
   });
-  const relatedContent = (relatedData?.results || []).slice(0, 12);
 
-  // 2. Verified High-Speed Servers (Optimized for Hindi)
-  const servers = useMemo(() => {
-    if (!tmdbId) return [];
+  const finalImdbId = useMemo(() => {
+    const rawId = (movie as any)?.imdb_id || externalIds?.imdb_id;
+    if (!rawId) return null;
+    const idStr = rawId.toString();
+    return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
+  }, [movie, externalIds]);
 
-    const moviePath = `movie/${tmdbId}`;
-    const tvPath = `tv/${tmdbId}/${season}/${episode}`;
-    const path = isTV ? tvPath : moviePath;
-
-    return [
-      { id: 'hdhub', name: 'SERVER: HINDI (VIP)', url: `https://vidsrc.cc/v2/embed/${path}`, tag: 'Dual-Audio' },
-      { id: 'hindi-vip', name: 'SERVER: HINDI (2)', url: `https://vidsrc.in/embed/${path}`, tag: 'Hindi' },
-      { id: '2embed', name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
-      { id: 'hnembed', name: 'SERVER: HNEMBED', url: `https://hnembed.cc/embed/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`, tag: 'New' },
-      { id: 'vidsrc-to', name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, tag: 'Fast' },
-      { id: 'vidsrc-me', name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Global' },
-    ];
-  }, [tmdbId, isTV, season, episode]);
-
-  useEffect(() => {
-    if (servers.length > 0) {
-      if (!selectedStreamUrl) {
-        setSelectedStreamUrl(servers[0].url);
-      } else {
-        // Find if current server is still in the list and update its URL (for season/episode changes)
-        const currentServer = servers.find(s => s.id === servers.find(sv => sv.url === selectedStreamUrl)?.id);
-        if (currentServer) setSelectedStreamUrl(currentServer.url);
-      }
-    }
-  }, [servers]);
-
-  // 3. Bot/Telegram API Results
->>>>>>> caa81aaf6d98ff23b018e5ccf360080eefe493a1
+  // 2. Fetch from Custom Movie API on load
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
@@ -122,7 +94,6 @@ const MovieDetail = () => {
         const results = Array.isArray(data.results) ? data.results : [];
         setApiResults(results);
 
-        // Auto-Load Default Player: set src to first link in API results
         if (results.length > 0 && results[0].links && results[0].links.length > 0) {
           setSelectedStreamUrl(results[0].links[0]);
         }
@@ -135,27 +106,54 @@ const MovieDetail = () => {
     if (movie) fetchApiData();
   }, [movie, title]);
 
-  // 3. Static Servers
+  // 3. Static High-Speed Servers
   const servers = useMemo(() => {
     if (!tmdbId) return [];
+    const idParam = finalImdbId || tmdbId;
     const moviePath = `movie/${tmdbId}`;
     const tvPath = `tv/${tmdbId}/${season}/${episode}`;
     const path = isTV ? tvPath : moviePath;
 
     return [
-      { id: 'hdhub', name: 'HINDI: HDHUB', url: `https://vidsrc.cc/v2/embed/${path}`, tag: 'Dual-Audio' },
-      { id: 'hindi-vip', name: 'HINDI: VIP (Best)', url: `https://vidsrc.in/embed/${path}`, tag: 'Hindi' },
+      { id: 'hdhub', name: 'SERVER: HINDI (VIP)', url: `https://vidsrc.cc/v2/embed/${path}`, tag: 'Dual-Audio' },
+      { id: 'hindi-vip', name: 'SERVER: HINDI (2)', url: `https://vidsrc.in/embed/${path}`, tag: 'Hindi' },
       { id: '2embed', name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
+      { id: 'hnembed', name: 'SERVER: HNEMBED', url: `https://hnembed.cc/embed/${isTV ? `tv/${idParam}/${season}/${episode}` : `movie/${idParam}`}`, tag: 'New' },
       { id: 'vidsrc-to', name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, tag: 'Fast' },
     ];
-  }, [tmdbId, isTV, season, episode]);
+  }, [tmdbId, isTV, season, episode, finalImdbId]);
 
-  // Set default if API fails or hasn't loaded yet
   useEffect(() => {
     if (!selectedStreamUrl && servers.length > 0) {
       setSelectedStreamUrl(servers[0].url);
     }
   }, [servers, selectedStreamUrl]);
+
+  // Fetch cast and related
+  const { data: tmdbCast } = useQuery({
+    queryKey: ['tmdb-cast-detail', tmdbId],
+    queryFn: async () => {
+      if (!tmdbId) return [];
+      const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${tmdbId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.cast?.slice(0, 8) || [];
+    },
+    enabled: !!tmdbId
+  });
+
+  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? (movie as any)?.genre_ids?.[0] ?? null;
+  const { data: relatedContent = [] } = useQuery({
+    queryKey: ['detail-related', tmdbId, primaryGenreId],
+    queryFn: async () => {
+      if (!tmdbId || !primaryGenreId) return [];
+      const response = isTV
+        ? await tmdbService.getTVShowsByGenre(Number(primaryGenreId), 1)
+        : await tmdbService.getMoviesByGenre(Number(primaryGenreId), 1);
+      return (response.results || []).filter((item: any) => item.id !== tmdbId).slice(0, 10);
+    },
+    enabled: !!tmdbId && !!primaryGenreId
+  });
 
   const getDownloadUrl = () => {
     if (isTV) return `https://vidsrc.me/download/tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}`;
@@ -167,7 +165,6 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
-      {/* Navbar */}
       <div className="bg-black/90 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="hover:bg-white/10"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
@@ -242,7 +239,6 @@ const MovieDetail = () => {
                 </div>
 
                 <div id="server-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {/* MOVIEBOX BUTTON (Requirement) */}
                     <Button
                         onClick={() => {
                           if (apiResults.length > 0) setSelectedStreamUrl(apiResults[0].links[0]);
@@ -274,7 +270,6 @@ const MovieDetail = () => {
                         </Button>
                     ))}
 
-                    {/* Bot Dynamic Servers */}
                     {apiResults.slice(1, 4).map((bot, idx) => (
                         <Button
                             key={`bot-${idx}`}
@@ -302,7 +297,7 @@ const MovieDetail = () => {
                 <div className="flex items-center gap-3 px-6 py-4 bg-orange-600/10 border border-orange-600/20 rounded-3xl">
                     <Info className="w-5 h-5 text-orange-500" />
                     <p className="text-[11px] text-orange-200 font-medium">
-                        <b>Hindi Audio:</b> Select <b>MOVIEBOX</b> or <b>HINDI (VIP)</b>. Check Gear settings for Audio.
+                        <b>Hindi Audio:</b> Select <b>MOVIEBOX</b> or <b>SERVER: HINDI (VIP)</b>. Check Gear settings for Audio.
                     </p>
                 </div>
             </div>
@@ -334,6 +329,54 @@ const MovieDetail = () => {
                 </Button>
             </div>
           </section>
+
+          {/* STORY & INFO */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pt-10 border-t border-white/5">
+            <div className="md:col-span-4">
+                <img src={`https://image.tmdb.org/t/p/w500${(movie as any).poster_path}`} className="w-full rounded-[2.5rem] shadow-2xl border border-white/5" alt="" />
+            </div>
+            <div className="md:col-span-8 space-y-8">
+                <div className="space-y-4">
+                    <h2 className="text-4xl font-black uppercase italic tracking-tighter">Storyline</h2>
+                    <p className="text-zinc-500 text-lg leading-relaxed">{(movie as any).overview}</p>
+                </div>
+                <div className="flex items-center gap-6">
+                    <div className="flex flex-col"><span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Rating</span><span className="text-xl font-bold text-yellow-500">★ {(movie as any).vote_average?.toFixed(1)}</span></div>
+                    <div className="flex flex-col"><span className="text-[10px] text-zinc-600 uppercase font-black tracking-widest">Release</span><span className="text-xl font-bold">{(movie as any).release_date?.split('-')[0] || (movie as any).first_air_date?.split('-')[0]}</span></div>
+                </div>
+
+                <div className="space-y-6">
+                    <h2 className="text-xl font-bold flex items-center gap-2 text-white font-black uppercase"><User className="w-5 h-5 text-red-600" /> Top Cast</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {tmdbCast?.slice(0, 4).map((actor: any) => (
+                            <div key={actor.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center transition-all hover:bg-white/10">
+                                <h4 className="text-xs font-bold truncate">{actor.name}</h4>
+                                <p className="text-[10px] text-gray-500 truncate uppercase tracking-widest">{actor.character}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          </div>
+
+          {/* RELATED CONTENT */}
+          <div className="pt-20">
+            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic text-red-600"><span className="w-2 h-8 bg-red-600 rounded-full"></span> Handpicked For You</h2>
+            <div className="relative mt-8">
+                <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full">
+                  <CarouselContent className="-ml-6">
+                    {relatedContent.map((item, index) => (
+                      <CarouselItem key={`${item.id}-${index}`} className="pl-6 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                        <MovieCard movie={item} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-red-600 transition-all p-3" />
+                  <CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-red-600 transition-all p-3" />
+                </Carousel>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
