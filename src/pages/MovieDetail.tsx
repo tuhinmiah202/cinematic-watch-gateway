@@ -63,7 +63,54 @@ const MovieDetail = () => {
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
+<<<<<<< HEAD
   // 2. Fetch from Custom Movie API on load (Requirement)
+=======
+  // Related content ("More Like This")
+  const { data: relatedData } = useQuery({
+    queryKey: ['related-content', tmdbId, isTV],
+    queryFn: async () => {
+      if (!tmdbId) return { results: [] };
+      return isTV
+        ? await tmdbService.getTVShowRecommendations(tmdbId)
+        : await tmdbService.getMovieRecommendations(tmdbId);
+    },
+    enabled: !!tmdbId,
+  });
+  const relatedContent = (relatedData?.results || []).slice(0, 12);
+
+  // 2. Verified High-Speed Servers (Optimized for Hindi)
+  const servers = useMemo(() => {
+    if (!tmdbId) return [];
+
+    const moviePath = `movie/${tmdbId}`;
+    const tvPath = `tv/${tmdbId}/${season}/${episode}`;
+    const path = isTV ? tvPath : moviePath;
+
+    return [
+      { id: 'hdhub', name: 'SERVER: HINDI (VIP)', url: `https://vidsrc.cc/v2/embed/${path}`, tag: 'Dual-Audio' },
+      { id: 'hindi-vip', name: 'SERVER: HINDI (2)', url: `https://vidsrc.in/embed/${path}`, tag: 'Hindi' },
+      { id: '2embed', name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
+      { id: 'hnembed', name: 'SERVER: HNEMBED', url: `https://hnembed.cc/embed/${isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`}`, tag: 'New' },
+      { id: 'vidsrc-to', name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, tag: 'Fast' },
+      { id: 'vidsrc-me', name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Global' },
+    ];
+  }, [tmdbId, isTV, season, episode]);
+
+  useEffect(() => {
+    if (servers.length > 0) {
+      if (!selectedStreamUrl) {
+        setSelectedStreamUrl(servers[0].url);
+      } else {
+        // Find if current server is still in the list and update its URL (for season/episode changes)
+        const currentServer = servers.find(s => s.id === servers.find(sv => sv.url === selectedStreamUrl)?.id);
+        if (currentServer) setSelectedStreamUrl(currentServer.url);
+      }
+    }
+  }, [servers]);
+
+  // 3. Bot/Telegram API Results
+>>>>>>> caa81aaf6d98ff23b018e5ccf360080eefe493a1
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
