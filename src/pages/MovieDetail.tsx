@@ -5,7 +5,7 @@ import { tmdbService, Movie } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { reviewService } from '@/services/reviewService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, List, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, Clock, Play, User, Tv, Download, Globe, Server, Info, Maximize, AlertCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ApiResult {
   text: string;
   links: string[];
+  source?: string;
 }
 
 const MovieDetail = () => {
@@ -45,71 +46,86 @@ const MovieDetail = () => {
   });
 
   const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
-    queryKey: ['tmdb-content-detail', movieId, searchParams.get('type')],
+    queryKey: ['tmdb-content-detail', movieId],
     queryFn: async () => {
       if (supabaseContent) return null;
       const numericId = parseInt(movieId);
       if (isNaN(numericId)) return null;
-
-      const type = searchParams.get('type');
-
-      if (type === 'tv') {
-        return await tmdbService.getTVShowDetails(numericId);
-      } else if (type === 'movie') {
+      try {
         return await tmdbService.getMovieDetails(numericId);
-      } else {
+      } catch (movieError) {
         try {
-          const movieDetails = await tmdbService.getMovieDetails(numericId);
-          if (movieDetails && movieDetails.title) return movieDetails;
-          throw new Error('Not a movie');
-        } catch (e) {
           return await tmdbService.getTVShowDetails(numericId);
+        } catch (tvError) {
+          throw new Error('Content not found');
         }
       }
     },
-    enabled: !!movieId && !supabaseContent
+    enabled: !!movieId && !supabaseContent && !isLoadingTmdb
   });
 
   const movie = supabaseContent || tmdbContent;
   const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
-
-  const isTV = useMemo(() => {
-    if (supabaseContent) return supabaseContent.content_type === 'series';
-    const type = searchParams.get('type');
-    if (type) return type === 'tv';
-    if (tmdbContent) return !!('name' in tmdbContent || 'first_air_date' in tmdbContent);
-    return false;
-  }, [supabaseContent, tmdbContent, searchParams]);
+  const isTV = supabaseContent
+    ? supabaseContent.content_type === 'series'
+    : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
 
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
+  const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
-  // 2. Fetch API Data on Load
+  // 2. Fetch External IDs for IMDB ID
+  const { data: externalIds } = useQuery({
+    queryKey: ['tmdb-external-ids-detail', tmdbId, isTV],
+    queryFn: async () => {
+      if (!tmdbId) return null;
+      const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${tmdbId}/external_ids?api_key=566149bf98e53cc39a4c04bfe01c03fc`;
+      const res = await fetch(url);
+      return res.json();
+    },
+    enabled: !!tmdbId && !imdbId
+  });
+
+  const finalImdbId = useMemo(() => {
+    const rawId = imdbId || externalIds?.imdb_id;
+    if (!rawId) return null;
+    const idStr = rawId.toString();
+    return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
+  }, [imdbId, externalIds]);
+
   const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
+  // Helper: Clean movie name for better API matching
+  const cleanMovieName = (name: string) => {
+    return name
+      .replace(/\(\d{4}\)/g, '') // Remove (2024)
+      .replace(/\[.*\]/g, '')     // Remove [Hindi]
+      .replace(/[^\w\s]/gi, ' ')   // Replace special characters with space
+      .trim();
+  };
+
+  // 3. API Integration for Servers
   useEffect(() => {
     const fetchApiData = async () => {
       if (!title || title === 'Untitled') return;
 
-      // Clean movie name: remove year in brackets and special chars
-      const cleanTitle = title.replace(/\(\d{4}\)/g, '').replace(/[^\w\s]/gi, ' ').trim();
-
+      const query = cleanMovieName(title);
       setIsApiLoading(true);
       setApiError(null);
 
       try {
-        const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
+        const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(query)}`);
         const data = await response.json();
 
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
         setApiResults(results);
 
-        // Requirement: Default Player sets src to first link in results array
+        // Requirement: Default Player sets src to first link in API results
         if (results.length > 0 && results[0].links && results[0].links.length > 0) {
           setSelectedStreamUrl(results[0].links[0]);
         }
       } catch (error) {
         console.error("API Error:", error);
-        setApiError('Failed to fetch servers. Please try again later.');
+        setApiError('Server currently busy, please try another movie.');
       } finally {
         setIsApiLoading(false);
       }
@@ -118,18 +134,27 @@ const MovieDetail = () => {
     if (movie) fetchApiData();
   }, [movie, title]);
 
-  // Derived sections from API results
+  // CATEGORIES FOR UI
   const streamServers = apiResults.filter(r =>
-    !r.text.toLowerCase().includes('details') &&
-    !r.text.toLowerCase().includes('download')
+    r.links && r.links.length > 0 && (
+      r.text.toUpperCase().includes('WATCH') ||
+      r.text.toUpperCase().includes('PLAYER') ||
+      r.text.toUpperCase().includes('STREAM') ||
+      r.text.toUpperCase().includes('SERVER')
+    )
   );
 
   const downloadLinks = apiResults.filter(r =>
-    r.text.toLowerCase().includes('details') ||
-    r.text.toLowerCase().includes('download')
+    r.links && r.links.length > 0 && (
+      r.text.toUpperCase().includes('PREMIUM') ||
+      r.text.toUpperCase().includes('DIRECT') ||
+      r.text.toUpperCase().includes('MEGA') ||
+      r.text.toUpperCase().includes('DRIVE') ||
+      r.text.toUpperCase().includes('PIXEL')
+    )
   );
 
-  // Fetch cast and related
+  // Fetch cast and related (Existing Logic)
   const { data: tmdbCast } = useQuery({
     queryKey: ['tmdb-cast-detail', tmdbId],
     queryFn: async () => {
@@ -144,7 +169,7 @@ const MovieDetail = () => {
 
   const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? (movie as any)?.genre_ids?.[0] ?? null;
   const { data: relatedContent = [] } = useQuery({
-    queryKey: ['detail-related', tmdbId, primaryGenreId, isTV],
+    queryKey: ['detail-related', tmdbId, primaryGenreId],
     queryFn: async () => {
       if (!tmdbId || !primaryGenreId) return [];
       const response = isTV
@@ -175,17 +200,21 @@ const MovieDetail = () => {
         <div className="max-w-6xl mx-auto space-y-10">
 
           {/* 1. VIDEO PLAYER SECTION */}
-          <section className="space-y-6">
-            <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+          <section id="player-container" className="space-y-6">
+            <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
               {isApiLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Loading premium servers...</p>
+                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Searching servers...</p>
+                </div>
+              ) : apiError && apiResults.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white font-bold px-6 text-center">
+                   {apiError}
                 </div>
               ) : (
                 <iframe
                   id="movie-player"
-                  src={selectedStreamUrl || `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${tmdbId}`}
+                  src={selectedStreamUrl || `https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`}
                   className="w-full h-full"
                   frameBorder="0"
                   allowFullScreen
@@ -194,115 +223,130 @@ const MovieDetail = () => {
               )}
             </div>
 
-            {/* SERVER SELECTION GRID (Requirement: server-list container) */}
-            <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                    <Server className="w-6 h-6 text-red-600" />
-                    <div>
-                        <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select Server</h2>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Switch to high-speed servers if player fails</p>
-                    </div>
+            {/* SERVER GRID */}
+            <div className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
+                <div className="flex items-center gap-3 mb-2">
+                    <Server className="w-6 h-6 text-purple-500" />
+                    <h2 className="text-lg font-black uppercase tracking-tighter text-purple-200">Select High-Speed Server</h2>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {/* Default Link */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {/* Default Stable Link */}
                     <Button
-                        onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${tmdbId}`)}
+                        onClick={() => setSelectedStreamUrl(`https://vidsrc.to/embed/${isTV ? 'tv' : 'movie'}/${finalImdbId || tmdbId}`)}
                         className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                            !selectedStreamUrl || selectedStreamUrl.includes('vidsrc.to')
-                            ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
-                            : "bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white"
+                            selectedStreamUrl?.includes('vidsrc.to') || !selectedStreamUrl
+                            ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
+                            : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
                         }`}
                     >
-                        SERVER 1
+                        SERVER: STABLE
                     </Button>
 
-                    {/* API Generated Buttons */}
-                    {streamServers.map((server, idx) => (
-                        <Button
-                            key={idx}
-                            onClick={() => {
-                                setSelectedStreamUrl(server.links[0]);
-                                toast({ title: "Switching Server", description: `Loading ${server.text.split(' ')[0]}...` });
-                            }}
-                            className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                                selectedStreamUrl === server.links[0]
-                                ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
-                                : "bg-white/5 border-white/10 hover:border-red-500/50 text-gray-400 hover:text-white"
-                            }`}
-                        >
-                            {server.text.split('-')[0].trim() || `SERVER ${idx + 2}`}
-                        </Button>
-                    ))}
+                    {/* Bot Dynamic Buttons */}
+                    {streamServers.map((server, idx) => {
+                        const displayName = server.source?.toUpperCase() || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim().toUpperCase() || `SERVER ${idx + 2}`;
+                        const isSelected = selectedStreamUrl === server.links[0];
+
+                        return (
+                            <Button
+                                key={idx}
+                                onClick={() => {
+                                    setSelectedStreamUrl(server.links[0]);
+                                    toast({ title: `Switching to ${displayName}`, description: "Loading video stream..." });
+                                }}
+                                className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                                    isSelected
+                                    ? "bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] text-white"
+                                    : "bg-white/5 border-white/5 hover:border-purple-500/50 text-gray-400 hover:text-white"
+                                }`}
+                            >
+                                {displayName}
+                            </Button>
+                        );
+                    })}
                 </div>
+            </div>
+
+            {/* HINDI AUDIO TIP */}
+            <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-2xl flex items-center gap-3">
+                <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                <p className="text-xs text-blue-200">
+                    <span className="font-bold">Tip:</span> For Hindi audio, click the <b>Gear (Settings)</b> icon inside the player and select <b>Hindi</b>.
+                </p>
             </div>
           </section>
 
           {/* 2. DOWNLOAD CENTER */}
           <section className="space-y-6">
-            <div className="flex items-center gap-3 border-l-4 border-red-600 pl-4">
-               <Download className="w-6 h-6 text-red-600" />
+            <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
+               <Download className="w-6 h-6 text-orange-500" />
                <h2 className="text-2xl font-black uppercase tracking-tighter">Premium Download Links</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {downloadLinks.map((link, idx) => (
-                <a
-                  key={idx}
-                  href={link.links[0]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="h-20 bg-gradient-to-br from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.03] group no-underline flex flex-col items-center justify-center gap-1"
-                >
-                  <div className="flex items-center gap-2"><Download className="w-5 h-5 text-white" /><span className="text-sm font-black italic text-white uppercase">Download Link {idx + 1}</span></div>
-                  <span className="text-[10px] text-white/70 font-bold uppercase tracking-widest">{link.text.split('-')[0].trim()}</span>
-                </a>
-              ))}
-
-              {/* Fallback button if no API links found */}
-              {downloadLinks.length === 0 && !isApiLoading && (
-                <Button
-                    onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
-                    className="h-20 bg-white/5 border border-white/10 rounded-3xl hover:bg-white/10"
-                >
-                    <div className="flex flex-col items-center">
-                        <span className="text-sm font-black uppercase">Standard Download</span>
-                        <span className="text-[10px] text-gray-500 font-bold">Multi-Audio / HD</span>
+            {isApiLoading ? (
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse" />
+                  ))}
+               </div>
+            ) : downloadLinks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {downloadLinks.map((link, idx) => (
+                    <a
+                      key={idx}
+                      href={link.links[0]}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3 text-white"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span className="font-bold text-xs truncate uppercase tracking-tight text-center">
+                        {link.text.replace(/\[PREMIUM\]|\[DIRECT\]/gi, '').trim() || 'Direct Download'}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+            ) : (
+                <div className="p-10 bg-white/5 rounded-[2rem] border border-white/5 text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
+                         <AlertCircle className="w-8 h-8 opacity-50" />
+                         <p className="font-bold">Premium download links currently unavailable.</p>
+                         <p className="text-xs">Try switching to SERVER: STABLE above for instant play.</p>
                     </div>
-                </Button>
-              )}
-            </div>
+                </div>
+            )}
           </section>
 
           {/* 3. STORY & INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
             <div className="lg:col-span-4 space-y-6">
                 <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
-                <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 space-y-4">
+                <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Rating</span>
+                        <span className="text-gray-500 text-xs font-black uppercase">Rating</span>
                         <div className="flex items-center gap-1"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /><span className="font-bold">{(movie as any).vote_average?.toFixed(1)}</span></div>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Year</span>
-                        <span className="font-bold">{(movie as any).release_date?.split('-')[0] || (movie as any).first_air_date?.split('-')[0] || 'N/A'}</span>
+                        <span className="text-gray-500 text-xs font-black uppercase">Release</span>
+                        <span className="font-bold">{(movie as any).release_date || (movie as any).first_air_date || 'N/A'}</span>
                     </div>
                 </div>
             </div>
 
             <div className="lg:col-span-8 space-y-8">
                 <div className="space-y-4">
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">Storyline</h2>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Storyline</h2>
                     <p className="text-gray-400 leading-relaxed text-lg font-light">{(movie as any).overview}</p>
                 </div>
 
                 <div className="space-y-6">
-                    <h2 className="text-xl font-bold flex items-center gap-2 text-white font-black uppercase"><User className="w-5 h-5 text-red-600" /> Top Cast</h2>
+                    <h2 className="text-xl font-bold flex items-center gap-2 text-purple-400 font-black uppercase"><User className="w-5 h-5" /> Top Cast</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {tmdbCast?.slice(0, 4).map((actor: any) => (
                             <div key={actor.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center transition-all hover:bg-white/10">
                                 <h4 className="text-xs font-bold truncate">{actor.name}</h4>
-                                <p className="text-[9px] text-gray-500 truncate uppercase tracking-widest">{actor.character}</p>
+                                <p className="text-[10px] text-gray-500 truncate uppercase tracking-widest">{actor.character}</p>
                             </div>
                         ))}
                     </div>
@@ -310,8 +354,9 @@ const MovieDetail = () => {
             </div>
           </div>
 
+          {/* 4. RELATED CONTENT */}
           <div className="pt-20">
-            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic text-red-600"><span className="w-2 h-8 bg-red-600 rounded-full"></span> More Like This</h2>
+            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic"><span className="w-2 h-8 bg-purple-600 rounded-full"></span> More Like This</h2>
             <div className="relative mt-8">
                 <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full">
                   <CarouselContent className="-ml-6">
@@ -321,8 +366,8 @@ const MovieDetail = () => {
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-red-600 transition-all p-3" />
-                  <CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-red-600 transition-all p-3" />
+                  <CarouselPrevious className="left-0 -translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-all p-3" />
+                  <CarouselNext className="right-0 translate-x-1/2 bg-black/80 text-white border-white/10 hover:bg-purple-600 transition-all p-3" />
                 </Carousel>
             </div>
           </div>
