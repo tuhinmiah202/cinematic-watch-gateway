@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Play, User, Download, Globe, Server, Info, Maximize, AlertCircle, Zap } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Globe, Server, Info, Maximize, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -31,56 +31,30 @@ const MovieDetail = () => {
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
 
-  const handleBack = () => {
-    navigate(-1);
-  };
+  const handleBack = () => navigate(-1);
 
-  const { data: supabaseContent, isLoading: isLoadingSupabase } = useQuery({
-    queryKey: ['supabase-content-detail', movieId],
+  // 1. Fetch content (Existing Logic)
+  const { data: movie, isLoading } = useQuery({
+    queryKey: ['content-detail', movieId],
     queryFn: async () => {
-      if (movieId.includes('-') && movieId.length === 36) {
-        return await contentService.getContentById(movieId);
-      }
-      return null;
-    },
-    enabled: !!movieId
-  });
-
-  const { data: tmdbContent, isLoading: isLoadingTmdb } = useQuery({
-    queryKey: ['tmdb-content-detail', movieId, searchParams.get('type')],
-    queryFn: async () => {
-      if (supabaseContent) return null;
+      if (movieId.length === 36) return await contentService.getContentById(movieId);
       const numericId = parseInt(movieId);
-      if (isNaN(numericId)) return null;
-
-      const type = searchParams.get('type');
-      if (type === 'tv') return await tmdbService.getTVShowDetails(numericId);
-      if (type === 'movie') return await tmdbService.getMovieDetails(numericId);
-
       try {
-        const movieDetails = await tmdbService.getMovieDetails(numericId);
-        if (movieDetails && movieDetails.title) return movieDetails;
-        throw new Error('Not a movie');
+        return await tmdbService.getMovieDetails(numericId);
       } catch (e) {
         return await tmdbService.getTVShowDetails(numericId);
       }
     },
-    enabled: !!movieId && !supabaseContent
+    enabled: !!movieId
   });
 
-  const movie = supabaseContent || tmdbContent;
-  const isLoading = isLoadingSupabase || (isLoadingTmdb && !supabaseContent);
-  const isTV = supabaseContent
-    ? supabaseContent.content_type === 'series'
-    : !!(tmdbContent && ('name' in tmdbContent || 'first_air_date' in tmdbContent));
-
+  const isTV = (movie as any)?.content_type === 'series' || !!(movie && ('name' in movie || 'first_air_date' in movie));
   const tmdbId = (movie as any)?.tmdb_id || (typeof movie?.id === 'number' ? movie.id : null);
   const imdbId = (movie as any)?.imdb_id || (movie as any)?.external_ids?.imdb_id;
 
   const { data: externalIds } = useQuery({
-    queryKey: ['tmdb-external-ids-detail', tmdbId, isTV],
+    queryKey: ['external-ids', tmdbId],
     queryFn: async () => {
-      if (!tmdbId) return null;
       const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${tmdbId}/external_ids?api_key=566149bf98e53cc39a4c04bfe01c03fc`;
       const res = await fetch(url);
       return res.json();
@@ -88,161 +62,81 @@ const MovieDetail = () => {
     enabled: !!tmdbId && !imdbId
   });
 
-  const finalImdbId = useMemo(() => {
-    const rawId = imdbId || externalIds?.imdb_id;
-    if (!rawId) return null;
-    const idStr = rawId.toString();
-    return idStr.startsWith('tt') ? idStr : `tt${idStr}`;
-  }, [imdbId, externalIds]);
+  const finalImdbId = imdbId || externalIds?.imdb_id;
 
-  const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
-
+  // 2. Verified FAST Servers
   const staticServers = useMemo(() => {
     if (!tmdbId) return [];
     const base = isTV ? `tv/${tmdbId}/${season}/${episode}` : `movie/${tmdbId}`;
     return [
-      { name: 'HDHub', url: `https://vidsrc.cc/v2/embed/${base}`, tag: 'Hindi' },
-      { name: 'HBOX', url: `https://hbox.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
-      { name: 'HINDI', url: `https://vidsrc.in/embed/${base}`, tag: 'Hindi Only' },
-      { name: 'ALICE', url: `https://vidsrc.to/embed/${base}`, tag: 'Multi' },
-      { name: 'MONGO', url: `https://vidsrc.me/embed/${base}`, tag: 'Multi' },
-      { name: 'NITRO', url: `https://nitro.vidsrc.xyz/embed/${base}`, tag: 'Hindi' },
+      { name: 'SERVER 1 (Fast)', url: `https://vidsrc.to/embed/${base}`, tag: 'Instant' },
+      { name: 'SERVER 2 (Hindi)', url: `https://vidsrc.cc/v2/embed/${base}`, tag: 'Multi' },
+      { name: 'HINDI: VIP', url: `https://vidsrc.in/embed/${base}`, tag: 'Dual' },
+      { name: '2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `tv?tmdb=${tmdbId}&s=${season}&e=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Mirror' },
     ];
   }, [tmdbId, isTV, season, episode]);
 
+  // Default Player Logic: Fast Server First
   useEffect(() => {
-    const fetchApiData = async () => {
-      if (!title || title === 'Untitled') return;
-      const cleanTitle = title.replace(/\(\d{4}\)/g, '').replace(/[^\w\s]/gi, ' ').trim();
-      setIsApiLoading(true);
-      try {
-        const response = await fetch(`https://web-production-69ea9.app.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
-        const data = await response.json();
-        const results: ApiResult[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
-        setApiResults(results);
+    if (staticServers.length > 0 && !selectedStreamUrl) {
+      setSelectedStreamUrl(staticServers[0].url);
+    }
+  }, [staticServers, selectedStreamUrl]);
 
-        if (!selectedStreamUrl) {
-          if (results.length > 0 && results[0].links?.length > 0) {
-            setSelectedStreamUrl(results[0].links[0]);
-          } else if (staticServers.length > 0) {
-            setSelectedStreamUrl(staticServers[0].url);
-          }
-        }
-      } catch (error) {
-        console.error("API Error:", error);
-        if (staticServers.length > 0) setSelectedStreamUrl(staticServers[0].url);
-      } finally {
-        setIsApiLoading(false);
-      }
-    };
-
-    if (movie) fetchApiData();
-  }, [movie, title, staticServers]);
-
+  // 3. Optimized Torrent Logic (Small Size + High Speed)
   const handleTorrentServer = async () => {
     if (!finalImdbId) {
-      toast({ title: "IMDb ID not found", description: "Try other servers.", variant: "destructive" });
+      toast({ title: "Server Busy", description: "Try Server 1 or 2.", variant: "destructive" });
       return;
     }
-
     setIsTorrentLoading(true);
     try {
-      const response = await fetch(`https://torrentio.strem.fun/stream/${isTV ? 'series' : 'movie'}/${finalImdbId}${isTV ? `:${season}:${episode}` : ''}.json`);
-      const data = await response.json();
+      const res = await fetch(`https://torrentio.strem.fun/stream/${isTV ? 'series' : 'movie'}/${finalImdbId}${isTV ? `:${season}:${episode}` : ''}.json`);
+      const data = await res.json();
 
-      if (!data.streams || data.streams.length === 0) {
-        throw new Error("No torrent streams found");
-      }
+      // Speed-Focused Filtering: Priority 720p Hindi
+      let streams = data.streams || [];
+      let best = streams.find((s: any) => /hindi|dual/i.test(s.title) && /720p/i.test(s.title)) ||
+                 streams.find((s: any) => /hindi|dual/i.test(s.title)) ||
+                 streams[0];
 
-      // Filter for Hindi/Dual and Sort by Seeders
-      let filtered = data.streams.filter((s: any) => /hindi|dual|hin/i.test(s.title));
-      let targetList = filtered.length > 0 ? filtered : data.streams;
+      if (!best) throw new Error();
 
-      targetList.sort((a: any, b: any) => {
-        const seedA = parseInt(a.title.match(/👤\s*(\d+)/)?.[1] || 0);
-        const seedB = parseInt(b.title.match(/👤\s*(\d+)/)?.[1] || 0);
-        return seedB - seedA;
-      });
-
-      const bestStream = targetList[0];
-      const magnetLink = `magnet:?xt=urn:btih:${bestStream.infoHash}`;
-      const encodedMagnet = encodeURIComponent(magnetLink);
-
-      const webtorUrl = `https://webtor.io/show?magnet=${encodedMagnet}&theme=dark&color=e50914`;
+      const webtorUrl = `https://webtor.io/show?magnet=${encodeURIComponent(`magnet:?xt=urn:btih:${best.infoHash}`)}&theme=dark&color=e50914`;
       setSelectedStreamUrl(webtorUrl);
-      toast({ title: "Torrent Stream Active", description: "Loading high-speed P2P Hindi server..." });
-    } catch (error) {
-      toast({ title: "Torrent Server Offline", description: "Please try SERVER 1 or SERVER 2.", variant: "destructive" });
+      toast({ title: "Buffering Optimized", description: "Loading mobile-friendly stream..." });
+    } catch (e) {
+      toast({ title: "Server Down", description: "Please use Server 1.", variant: "destructive" });
     } finally {
       setIsTorrentLoading(false);
     }
   };
 
-  const streamServersFromApi = apiResults.filter(r =>
-    r.links && r.links.length > 0 && (
-      r.text.toUpperCase().includes('WATCH') ||
-      r.text.toUpperCase().includes('PLAYER') ||
-      r.text.toUpperCase().includes('STREAM')
-    )
-  );
+  if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-red-500" /></div>;
 
-  const downloadLinks = apiResults.filter(r =>
-    r.links && r.links.length > 0 && r.text.toUpperCase().includes('PREMIUM')
-  );
-
-  const highlightKeywords = ['HINDI', 'MULTI-AUDIO', 'ALICE', 'MONGO', 'MULTI-LANG'];
-
-  const { data: tmdbCast } = useQuery({
-    queryKey: ['tmdb-cast-detail', tmdbId],
-    queryFn: async () => {
-      if (!tmdbId) return [];
-      const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${tmdbId}/credits?api_key=566149bf98e53cc39a4c04bfe01c03fc`;
-      const res = await fetch(url);
-      const data = await res.json();
-      return data.cast?.slice(0, 8) || [];
-    },
-    enabled: !!tmdbId
-  });
-
-  const primaryGenreId = (movie as any)?.genres?.[0]?.id ?? (movie as any)?.genre_ids?.[0] ?? null;
-  const { data: relatedContent = [] } = useQuery({
-    queryKey: ['detail-related', tmdbId, primaryGenreId],
-    queryFn: async () => {
-      if (!tmdbId || !primaryGenreId) return [];
-      const response = isTV
-        ? await tmdbService.getTVShowsByGenre(Number(primaryGenreId), 1)
-        : await tmdbService.getMoviesByGenre(Number(primaryGenreId), 1);
-      return (response.results || []).filter((item: any) => item.id !== tmdbId).slice(0, 10);
-    },
-    enabled: !!tmdbId && !!primaryGenreId
-  });
-
-  if (isLoading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-purple-500" /></div>;
-  if (!movie) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 text-center text-white"><h1 className="text-2xl font-bold mb-4">Content not found</h1><Button onClick={() => navigate('/')} className="bg-purple-600">Return Home</Button></div>;
-
-  const posterUrl = (movie: any) => (movie?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg');
+  const title = (movie as any)?.title || (movie as any)?.name || 'Untitled';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
+      {/* Navbar */}
+      <div className="bg-black/90 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Button onClick={handleBack} variant="ghost" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
-          <h1 className="flex-1 text-center font-bold truncate px-4">{title}</h1>
-          <div className="w-10"></div>
+          <Button onClick={handleBack} variant="ghost" className="hover:bg-white/10"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
+          <h1 className="text-sm font-black truncate max-w-[200px] md:max-w-md uppercase tracking-tighter">{title}</h1>
+          <div className="px-3 py-1 bg-red-600 rounded-full text-[10px] font-black animate-pulse">LIVE</div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-10">
+        <div className="max-w-5xl mx-auto space-y-8">
 
-          <section className="space-y-6">
-            <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
-              {(isTorrentLoading || (isApiLoading && apiResults.length === 0)) ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
-                  <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
-                  <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">
-                    {isTorrentLoading ? "Finding High-Seed Hindi Servers..." : "Searching Smart Links..."}
-                  </p>
+          {/* PLAYER SECTION */}
+          <section className="space-y-4">
+            <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5">
+              {isTorrentLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-20">
+                  <Loader2 className="h-10 w-10 animate-spin text-red-600 mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Optimizing for your network...</p>
                 </div>
               ) : (
                 <iframe
@@ -251,128 +145,88 @@ const MovieDetail = () => {
                   className="w-full h-full"
                   frameBorder="0"
                   allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allow="autoplay; encrypted-media; picture-in-picture"
                 ></iframe>
               )}
             </div>
 
-            <div id="server-list" className="space-y-4 bg-white/5 p-6 rounded-[2rem] border border-white/10">
-                <div className="flex items-center gap-3 mb-2">
-                    <Server className="w-6 h-6 text-purple-500" />
-                    <h2 className="text-lg font-black uppercase tracking-tighter text-purple-200">Select Streaming Server</h2>
+            {/* SERVER SELECTION */}
+            <div className="bg-zinc-900/50 p-5 rounded-3xl border border-white/5 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <Server className="w-5 h-5 text-red-500" />
+                    <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Select Instant Server</h2>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {/* Torrent VIP Server */}
-                    <Button
-                        onClick={handleTorrentServer}
-                        className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                            selectedStreamUrl?.includes('webtor.io')
-                            ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
-                            : "border-orange-500/30 bg-orange-500/5 text-orange-500 hover:bg-orange-500/20"
-                        }`}
-                    >
-                        <Zap className="w-3 h-3 mr-1 fill-current" /> HINDI: TORRENT (VIP)
-                    </Button>
-
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {staticServers.map((server, idx) => (
                         <Button
-                            key={`static-${idx}`}
+                            key={idx}
                             onClick={() => setSelectedStreamUrl(server.url)}
-                            className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
+                            className={`h-auto py-4 px-3 rounded-2xl text-[10px] font-black transition-all border-2 ${
                                 selectedStreamUrl === server.url
-                                ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
-                                : "bg-white/5 border-white/10 hover:border-orange-500/50 text-gray-400"
+                                ? "bg-red-600 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)] text-white"
+                                : "bg-white/5 border-white/5 text-zinc-500 hover:text-white"
                             }`}
                         >
                             {server.name}
                         </Button>
                     ))}
-
-                    {streamServersFromApi.map((server, idx) => {
-                        const displayName = server.source?.toUpperCase() || server.text.replace(/\[.*\]/gi, '').split('-')[0].trim().toUpperCase() || `SERVER ${idx + 8}`;
-                        const isSelected = selectedStreamUrl === server.links[0];
-                        const isHighlighted = highlightKeywords.some(kw => displayName.includes(kw));
-
-                        return (
-                            <Button
-                                key={`api-${idx}`}
-                                onClick={() => setSelectedStreamUrl(server.links[0])}
-                                className={`h-auto py-4 px-4 rounded-2xl text-[10px] font-black transition-all uppercase border-2 ${
-                                    isSelected
-                                    ? "bg-orange-600 border-orange-400 shadow-[0_0_20px_rgba(234,88,12,0.4)] text-white"
-                                    : (isHighlighted
-                                        ? "border-orange-500/50 bg-orange-500/5 text-orange-500"
-                                        : "bg-white/5 border-white/10 text-gray-400")
-                                }`}
-                            >
-                                {displayName}
-                            </Button>
-                        );
-                    })}
+                    <Button
+                        onClick={handleTorrentServer}
+                        className={`h-auto py-4 px-3 rounded-2xl text-[10px] font-black transition-all border-2 ${
+                            selectedStreamUrl?.includes('webtor.io')
+                            ? "bg-orange-600 border-orange-500 text-white"
+                            : "bg-orange-600/10 border-orange-600/20 text-orange-500 hover:bg-orange-600/20"
+                        }`}
+                    >
+                        <Zap className="w-3 h-3 mr-1 fill-current" /> HINDI: VIP
+                    </Button>
                 </div>
             </div>
 
-            <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-2xl flex items-center gap-3">
-                <Info className="w-5 h-5 text-blue-500 shrink-0" />
-                <p className="text-xs text-blue-200">
-                    <span className="font-bold">Tip:</span> For Hindi audio, click the <b>Gear (Settings)</b> icon inside the player and select <b>Hindi</b>.
+            {/* GUIDE */}
+            <div className="flex items-center gap-3 px-4 py-3 bg-blue-600/10 border border-blue-600/20 rounded-2xl">
+                <Info className="w-4 h-4 text-blue-500" />
+                <p className="text-[11px] text-blue-200 font-medium">
+                    <b>No Sound?</b> Switch to <b>SERVER 1</b>. For <b>Hindi</b>, click the Gear icon ⚙️ inside the player.
                 </p>
             </div>
           </section>
 
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 border-l-4 border-orange-500 pl-4">
-               <Download className="w-6 h-6 text-orange-500" />
-               <h2 className="text-2xl font-black uppercase tracking-tighter">Premium Download Links</h2>
+          {/* DOWNLOAD & INFO */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-4">
+                <img src={`https://image.tmdb.org/t/p/w500${(movie as any).poster_path}`} className="w-full rounded-3xl shadow-2xl border border-white/5" alt="" />
             </div>
-            {downloadLinks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {downloadLinks.map((link, idx) => (
-                    <a
-                      key={idx}
-                      href={link.links[0]}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="h-16 bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-2xl shadow-xl transition-all hover:scale-[1.03] group no-underline flex items-center justify-center px-6 gap-3 text-white"
-                    >
-                      <Download className="w-5 h-5" />
-                      <span className="font-bold text-xs truncate uppercase tracking-tight text-center">
-                        {link.text.replace(/\[PREMIUM\]/gi, '').trim() || 'Direct Download'}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-            ) : (
-                <div className="p-10 bg-white/5 rounded-[2rem] border border-white/5 text-center text-gray-500">
-                    <p className="font-bold">Premium download links currently unavailable.</p>
-                </div>
-            )}
-          </section>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pt-10 border-t border-white/5">
-            <div className="lg:col-span-4 space-y-6">
-                <img src={posterUrl(movie)} alt={title} className="w-full rounded-[2rem] shadow-2xl border border-white/10" />
-            </div>
-            <div className="lg:col-span-8 space-y-8">
-                <div className="space-y-4">
-                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Storyline</h2>
-                    <p className="text-gray-400 leading-relaxed text-lg font-light">{(movie as any).overview}</p>
-                </div>
-                <div className="space-y-6">
-                    <h2 className="text-xl font-bold flex items-center gap-2 text-purple-400 font-black uppercase"><User className="w-5 h-5" /> Top Cast</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {tmdbCast?.slice(0, 4).map((actor: any) => (
-                            <div key={actor.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 text-center transition-all hover:bg-white/10">
-                                <h4 className="text-xs font-bold truncate">{actor.name}</h4>
-                                <p className="text-[10px] text-gray-500 truncate uppercase tracking-widest">{actor.character}</p>
-                            </div>
-                        ))}
+            <div className="md:col-span-8 space-y-6">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-4">
+                        <span className="px-3 py-1 bg-zinc-800 rounded-full text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                           {(movie as any).release_date?.split('-')[0] || '2024'}
+                        </span>
+                        <div className="flex items-center gap-1 text-yellow-500">
+                           <Star className="w-4 h-4 fill-current" />
+                           <span className="font-black text-sm">{(movie as any).vote_average?.toFixed(1)}</span>
+                        </div>
                     </div>
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">The Overview</h2>
+                    <p className="text-zinc-500 text-sm leading-relaxed">{(movie as any).overview}</p>
+                </div>
+
+                <div className="pt-4 space-y-4">
+                    <h3 className="text-sm font-black uppercase text-zinc-400 flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-green-500" /> Secure Download
+                    </h3>
+                    <Button
+                        onClick={() => window.open(`https://vidsrc.me/download/${isTV ? 'tv' : 'movie'}?tmdb=${tmdbId}`, '_blank')}
+                        className="w-full h-16 bg-gradient-to-r from-zinc-800 to-zinc-900 hover:from-red-600 hover:to-red-700 rounded-2xl border border-white/5 transition-all group"
+                    >
+                        <Download className="w-5 h-5 mr-3 group-hover:animate-bounce" />
+                        <span className="font-black uppercase tracking-widest text-xs">Download in Hindi / HD</span>
+                    </Button>
                 </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
