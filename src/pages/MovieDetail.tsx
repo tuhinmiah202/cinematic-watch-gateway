@@ -161,7 +161,6 @@ const MovieDetail = () => {
                   frameBorder="0"
                   allowFullScreen
                   allow="autoplay; encrypted-media; picture-in-picture"
-                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
                 ></iframe>
             </div>
 
@@ -235,11 +234,20 @@ const MovieDetail = () => {
                 </div>
             </div>
 
-            <div className="p-4 bg-orange-600/10 border border-orange-600/20 rounded-2xl flex items-center gap-3">
-                <Info className="w-5 h-5 text-orange-500 shrink-0" />
-                <p className="text-xs text-orange-200">
-                    <b>Tip:</b> If video starts in English, click the <b>Gear (Settings)</b> icon inside player and select <b>Hindi</b>. Try <b>HINDI: VIP</b> for best results.
-                </p>
+            {/* TIPS & SECURITY */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/50 border border-white/10 rounded-3xl">
+                    <ShieldCheck className="w-5 h-5 text-green-500" />
+                    <p className="text-[11px] text-zinc-400 font-medium leading-relaxed">
+                        <b>Ad-Blocker:</b> For an ad-free experience, use <b>Brave Browser</b> or <b>uBlock Origin</b>.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3 px-6 py-4 bg-orange-600/10 border border-orange-600/20 rounded-3xl">
+                    <Info className="w-5 h-5 text-orange-500" />
+                    <p className="text-[11px] text-orange-200 font-medium leading-relaxed">
+                        <b>Hindi Audio:</b> Click the <b>Settings (Gear)</b> icon inside the player to switch to Hindi.
+                    </p>
+                </div>
             </div>
           </section>
 
