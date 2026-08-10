@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe, Box, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe, Box, ExternalLink, Zap } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -95,13 +95,10 @@ const MovieDetail = () => {
         const results: ApiResult[] = Array.isArray(data.results) ? data.results : [];
         setApiResults(results);
 
-        // Priority 1 (Embeddable): Automatically load the first link where is_embed: True into the <iframe>
-        const embeddable = results.find(r => r.is_embed === true && r.links && r.links.length > 0);
-        if (embeddable) {
-          setSelectedStreamUrl(embeddable.links[0]);
-        } else if (results.length > 0 && results[0].links && results[0].links.length > 0) {
-          // Fallback to first link if no explicit is_embed: true is found
-          setSelectedStreamUrl(results[0].links[0]);
+        // Auto-Load Default Player: first link where is_embed is true
+        const firstEmbed = results.find(r => r.is_embed === true && r.links?.length > 0);
+        if (firstEmbed) {
+          setSelectedStreamUrl(firstEmbed.links[0]);
         }
       } catch (error) {
         console.error("API Error:", error);
@@ -112,13 +109,13 @@ const MovieDetail = () => {
     if (movie) fetchApiData();
   }, [movie, title]);
 
-  // 3. Static High-Speed Servers
+  // 3. Static High-Speed Servers (Fallback/Constant)
   const servers = useMemo(() => {
     if (!tmdbId) return [];
-    const idParam = finalImdbId || tmdbId;
     const moviePath = `movie/${tmdbId}`;
     const tvPath = `tv/${tmdbId}/${season}/${episode}`;
     const path = isTV ? tvPath : moviePath;
+    const idParam = finalImdbId || tmdbId;
 
     return [
       { id: 'hdhub', name: 'SERVER: HINDI (VIP)', url: `https://vidsrc.cc/v2/embed/${path}`, tag: 'Dual-Audio' },
@@ -246,27 +243,24 @@ const MovieDetail = () => {
                     <h2 className="text-lg font-black uppercase tracking-tighter text-white">Select High-Speed Server</h2>
                 </div>
 
-                <div id="server-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {/* MOVIEBOX BUTTON */}
-                    {apiResults.length > 0 && (
-                      <Button
-                          onClick={() => {
-                            const embeddable = apiResults.find(r => r.is_embed === true);
-                            if (embeddable) setSelectedStreamUrl(embeddable.links[0]);
-                            else toast({ title: "No Embeddable Server", description: "Try external links below." });
-                          }}
-                          className={`h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 uppercase flex flex-col gap-1 ${
-                              selectedStreamUrl === apiResults.find(r => r.is_embed === true)?.links[0]
-                              ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
-                              : "bg-purple-600/10 border-purple-600/30 text-purple-400 hover:bg-purple-600 hover:text-white"
-                          }`}
-                      >
-                          <Box className="w-4 h-4 mb-1" />
-                          <span>SERVER: MOVIEBOX</span>
-                          <span className="text-[8px] opacity-70">[VIP Embed]</span>
-                      </Button>
-                    )}
+                <div id="server-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {/* API results with is_embed: true */}
+                    {apiResults.filter(r => r.is_embed === true).map((server, idx) => (
+                        <Button
+                            key={`api-embed-${idx}`}
+                            onClick={() => setSelectedStreamUrl(server.links[0])}
+                            className={`h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 uppercase flex flex-col gap-1 ${
+                                selectedStreamUrl === server.links[0]
+                                ? "bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white"
+                                : "bg-white/5 border-white/5 text-zinc-500 hover:text-white"
+                            }`}
+                        >
+                            <span>{server.source || `SERVER ${idx + 1}`}</span>
+                            <span className={`text-[8px] px-2 rounded-full ${selectedStreamUrl === server.url ? 'bg-white/20' : 'bg-red-600/20 text-red-500'}`}>[VIP EMBED]</span>
+                        </Button>
+                    ))}
 
+                    {/* Static Servers */}
                     {servers.map((server) => (
                         <Button
                             key={server.id}
@@ -281,23 +275,10 @@ const MovieDetail = () => {
                             <span className={`text-[8px] px-2 rounded-full ${selectedStreamUrl === server.url ? 'bg-white/20' : 'bg-red-600/20 text-red-500'}`}>[{server.tag}]</span>
                         </Button>
                     ))}
-
-                    {/* External Links Logic: Priority 2 (is_embed: false) */}
-                    {apiResults.filter(r => r.is_embed === false).map((external, idx) => (
-                        <Button
-                            key={`external-${idx}`}
-                            onClick={() => window.open(external.links[0], '_blank')}
-                            className="h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 border-blue-600/30 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white uppercase flex flex-col gap-1"
-                        >
-                            <ExternalLink className="w-4 h-4 mb-1" />
-                            <span>View on {external.source || 'External'}</span>
-                            <span className="text-[8px] opacity-70">[Open in New Tab]</span>
-                        </Button>
-                    ))}
                 </div>
             </div>
 
-            {/* HELP TIPS */}
+            {/* TIPS & HELP */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/50 border border-white/10 rounded-3xl">
                     <ShieldCheck className="w-5 h-5 text-green-500" />
@@ -308,7 +289,7 @@ const MovieDetail = () => {
                 <div className="flex items-center gap-3 px-6 py-4 bg-orange-600/10 border border-orange-600/20 rounded-3xl">
                     <Info className="w-5 h-5 text-orange-500" />
                     <p className="text-[11px] text-orange-200 font-medium">
-                        <b>Hindi Audio:</b> Select <b>MOVIEBOX</b> or <b>SERVER: HINDI (VIP)</b>. Check Gear settings for Audio.
+                        <b>Hindi Audio:</b> Select <b>SERVER: HINDI (VIP)</b> or check player Gear settings for Audio.
                     </p>
                 </div>
             </div>
@@ -316,27 +297,42 @@ const MovieDetail = () => {
 
           {/* 2. DOWNLOAD CENTER */}
           <section className="space-y-6">
-            <div className="flex items-center gap-3 border-l-4 border-red-600 pl-4">
-                <Download className="w-6 h-6 text-red-600" />
-                <h2 className="text-2xl font-black uppercase tracking-tighter">Download Center</h2>
+            <div className="flex items-center gap-3 border-l-4 border-green-600 pl-4">
+                <Download className="w-6 h-6 text-green-600" />
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Download Movie</h2>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* API results with is_embed: false */}
+                {apiResults.filter(r => r.is_embed === false).map((download, idx) => (
+                    <Button
+                        key={`api-download-${idx}`}
+                        onClick={() => window.open(download.links[0], '_blank')}
+                        className="h-24 bg-gradient-to-r from-green-600 to-emerald-800 hover:from-green-500 hover:to-emerald-700 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.02] group text-white relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                            <Zap className="w-12 h-12" />
+                        </div>
+                        <Download className="w-6 h-6 mr-3 group-hover:animate-bounce shrink-0" />
+                        <div className="flex flex-col items-start text-left">
+                            <span className="text-lg font-black italic uppercase leading-none truncate max-w-full">
+                                {download.text || 'High Speed Download'}
+                            </span>
+                            <span className="text-[10px] font-bold uppercase opacity-70 tracking-widest mt-1">Version 49 • Ultra Fast</span>
+                        </div>
+                    </Button>
+                ))}
+
+                {/* Default Fallback Download */}
                 <Button
                     onClick={() => window.open(getDownloadUrl(), '_blank')}
-                    className="h-20 bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 rounded-3xl shadow-xl border-none transition-all hover:scale-[1.02] group text-white"
+                    className="h-24 bg-zinc-800 hover:bg-zinc-700 rounded-3xl border border-white/5 transition-all group"
                 >
-                    <Download className="w-6 h-6 mr-3 group-hover:animate-bounce" />
-                    <div className="flex flex-col items-start">
-                        <span className="text-lg font-black italic uppercase leading-none">Fast Download</span>
-                        <span className="text-[10px] font-bold uppercase opacity-70 tracking-widest mt-1">Multi-Audio / 1080p HD</span>
+                    <Download className="w-6 h-6 mr-3 group-hover:animate-bounce text-zinc-500" />
+                    <div className="flex flex-col items-start text-left">
+                        <span className="text-lg font-black italic uppercase leading-none text-zinc-300">Standard Download</span>
+                        <span className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest mt-1">Multi-Audio / 1080p HD</span>
                     </div>
-                </Button>
-                <Button
-                    onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(title)} download hindi dubbed 1080p`, '_blank')}
-                    className="h-20 bg-zinc-800 hover:bg-zinc-700 rounded-3xl border border-white/5 transition-all flex items-center justify-center gap-3"
-                >
-                    <Globe className="w-6 h-6 text-zinc-500" />
-                    <span className="text-sm font-black uppercase text-zinc-400">Search Mirror Links</span>
                 </Button>
             </div>
           </section>
@@ -372,7 +368,7 @@ const MovieDetail = () => {
 
           {/* RELATED CONTENT */}
           <div className="pt-20">
-            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic text-red-600"><span className="w-2 h-8 bg-red-600 rounded-full"></span> Handpicked For You</h2>
+            <h2 className="text-2xl font-black flex items-center gap-3 uppercase italic text-red-600"><span className="w-2 h-8 bg-red-600 rounded-full"></span> More Like This</h2>
             <div className="relative mt-8">
                 <Carousel opts={{ align: "start", slidesToScroll: 2 }} className="w-full">
                   <CarouselContent className="-ml-6">
