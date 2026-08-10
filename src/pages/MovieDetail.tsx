@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdbService } from '@/services/tmdbService';
 import { contentService } from '@/services/contentService';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe, Box } from 'lucide-react';
+import { ArrowLeft, Star, Play, User, Download, Server, Info, ShieldCheck, List, Tv, Globe, Box, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import MovieCard from '@/components/MovieCard';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
@@ -15,6 +15,7 @@ interface ApiResult {
   text: string;
   links: string[];
   source?: string;
+  is_embed?: boolean;
 }
 
 const MovieDetail = () => {
@@ -91,10 +92,15 @@ const MovieDetail = () => {
       try {
         const response = await fetch(`https://web-production-69ea9.up.railway.app/get-telegram-movie?name=${encodeURIComponent(cleanTitle)}`);
         const data = await response.json();
-        const results = Array.isArray(data.results) ? data.results : [];
+        const results: ApiResult[] = Array.isArray(data.results) ? data.results : [];
         setApiResults(results);
 
-        if (results.length > 0 && results[0].links && results[0].links.length > 0) {
+        // Priority 1 (Embeddable): Automatically load the first link where is_embed: True into the <iframe>
+        const embeddable = results.find(r => r.is_embed === true && r.links && r.links.length > 0);
+        if (embeddable) {
+          setSelectedStreamUrl(embeddable.links[0]);
+        } else if (results.length > 0 && results[0].links && results[0].links.length > 0) {
+          // Fallback to first link if no explicit is_embed: true is found
           setSelectedStreamUrl(results[0].links[0]);
         }
       } catch (error) {
@@ -120,6 +126,7 @@ const MovieDetail = () => {
       { id: '2embed', name: 'SERVER: 2EMBED', url: `https://www.2embed.cc/embed/${isTV ? `${tmdbId}/${season}/${episode}` : tmdbId}`, tag: 'Multi' },
       { id: 'hnembed', name: 'SERVER: HNEMBED', url: `https://hnembed.cc/embed/${isTV ? `tv/${idParam}/${season}/${episode}` : `movie/${idParam}`}`, tag: 'New' },
       { id: 'vidsrc-to', name: 'SERVER: VIDSRC.TO', url: `https://vidsrc.to/embed/${path}`, tag: 'Fast' },
+      { id: 'vidsrc-me', name: 'SERVER: VIDSRC.ME', url: `https://vidsrc.me/embed/${isTV ? `tv?tmdb=${tmdbId}&sea=${season}&epi=${episode}` : `movie?tmdb=${tmdbId}`}`, tag: 'Global' },
     ];
   }, [tmdbId, isTV, season, episode, finalImdbId]);
 
@@ -165,10 +172,11 @@ const MovieDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
+      {/* Header */}
       <div className="bg-black/90 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleBack} variant="ghost" className="hover:bg-white/10"><ArrowLeft className="w-5 h-5 mr-2" /> Back</Button>
-          <h1 className="text-sm font-black truncate max-w-[200px] md:max-w-md uppercase tracking-tighter">{title}</h1>
+          <h1 className="text-sm font-black truncate max-w-[200px] md:max-w-md uppercase tracking-tighter">{(movie as any).title || (movie as any).name}</h1>
           <div className="px-3 py-1 bg-red-600 rounded-full text-[10px] font-black animate-pulse">{isTV ? 'SERIES' : 'MOVIE'}</div>
         </div>
       </div>
@@ -239,21 +247,25 @@ const MovieDetail = () => {
                 </div>
 
                 <div id="server-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    <Button
-                        onClick={() => {
-                          if (apiResults.length > 0) setSelectedStreamUrl(apiResults[0].links[0]);
-                          else toast({ title: "Moviebox Fetching...", description: "Please wait or try again." });
-                        }}
-                        className={`h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 uppercase flex flex-col gap-1 ${
-                            selectedStreamUrl === apiResults[0]?.links[0]
-                            ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
-                            : "bg-purple-600/10 border-purple-600/30 text-purple-400 hover:bg-purple-600 hover:text-white"
-                        }`}
-                    >
-                        <Box className="w-4 h-4 mb-1" />
-                        <span>SERVER: MOVIEBOX</span>
-                        <span className="text-[8px] opacity-70">[VIP Details]</span>
-                    </Button>
+                    {/* MOVIEBOX BUTTON */}
+                    {apiResults.length > 0 && (
+                      <Button
+                          onClick={() => {
+                            const embeddable = apiResults.find(r => r.is_embed === true);
+                            if (embeddable) setSelectedStreamUrl(embeddable.links[0]);
+                            else toast({ title: "No Embeddable Server", description: "Try external links below." });
+                          }}
+                          className={`h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 uppercase flex flex-col gap-1 ${
+                              selectedStreamUrl === apiResults.find(r => r.is_embed === true)?.links[0]
+                              ? "bg-purple-600 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.4)] text-white"
+                              : "bg-purple-600/10 border-purple-600/30 text-purple-400 hover:bg-purple-600 hover:text-white"
+                          }`}
+                      >
+                          <Box className="w-4 h-4 mb-1" />
+                          <span>SERVER: MOVIEBOX</span>
+                          <span className="text-[8px] opacity-70">[VIP Embed]</span>
+                      </Button>
+                    )}
 
                     {servers.map((server) => (
                         <Button
@@ -270,23 +282,22 @@ const MovieDetail = () => {
                         </Button>
                     ))}
 
-                    {apiResults.slice(1, 4).map((bot, idx) => (
+                    {/* External Links Logic: Priority 2 (is_embed: false) */}
+                    {apiResults.filter(r => r.is_embed === false).map((external, idx) => (
                         <Button
-                            key={`bot-${idx}`}
-                            onClick={() => setSelectedStreamUrl(bot.links[0])}
-                            className={`h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 uppercase ${
-                                selectedStreamUrl === bot.links[0]
-                                ? "bg-blue-600 border-blue-500 text-white"
-                                : "bg-white/5 border-white/5 text-zinc-500"
-                            }`}
+                            key={`external-${idx}`}
+                            onClick={() => window.open(external.links[0], '_blank')}
+                            className="h-auto py-5 px-4 rounded-2xl text-[10px] font-black transition-all border-2 border-blue-600/30 bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white uppercase flex flex-col gap-1"
                         >
-                            {bot.source || `SERVER ${idx + 5}`}
+                            <ExternalLink className="w-4 h-4 mb-1" />
+                            <span>View on {external.source || 'External'}</span>
+                            <span className="text-[8px] opacity-70">[Open in New Tab]</span>
                         </Button>
                     ))}
                 </div>
             </div>
 
-            {/* TIPS & HELP */}
+            {/* HELP TIPS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/50 border border-white/10 rounded-3xl">
                     <ShieldCheck className="w-5 h-5 text-green-500" />
