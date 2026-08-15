@@ -256,7 +256,7 @@ const MovieDetail = () => {
                             }`}
                         >
                             <span>{server.source || `SERVER ${idx + 1}`}</span>
-                            <span className={`text-[8px] px-2 rounded-full ${selectedStreamUrl === server.url ? 'bg-white/20' : 'bg-red-600/20 text-red-500'}`}>[VIP EMBED]</span>
+                            <span className={`text-[8px] px-2 rounded-full ${selectedStreamUrl === server.links[0] ? 'bg-white/20' : 'bg-red-600/20 text-red-500'}`}>[VIP EMBED]</span>
                         </Button>
                     ))}
 
