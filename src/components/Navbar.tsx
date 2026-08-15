@@ -98,6 +98,9 @@ const Navbar = ({ onSearch }: NavbarProps) => {
               <Link to="/" className="text-white hover:text-purple-400 transition-colors py-2 font-medium">
                 Home
               </Link>
+              <Link to="/browse" className="text-white hover:text-purple-400 transition-colors py-2 font-medium">
+                Browse
+              </Link>
               <Link to="/admin" className="text-white hover:text-purple-400 transition-colors py-2 font-medium">
                 Admin
               </Link>
