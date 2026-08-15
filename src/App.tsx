@@ -16,6 +16,8 @@ import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import Sitemap from "./pages/Sitemap";
+import MovieBoxBrowse from "./pages/MovieBoxBrowse";
+import MovieBoxDetail from "./pages/MovieBoxDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +51,8 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/movie/:id" element={<MovieDetail />} />
                       <Route path="/watch/:id" element={<WatchMovie />} />
+                      <Route path="/browse" element={<MovieBoxBrowse />} />
+                      <Route path="/mb/:slug" element={<MovieBoxDetail />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="*" element={<NotFound />} />
