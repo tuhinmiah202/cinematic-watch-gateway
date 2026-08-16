@@ -72,7 +72,40 @@ export const movieboxService = {
     return data?.data || null;
   },
 
+  proxy(url: string) {
+    if (!url) return url;
+    return `${STREAM_BASE}/api/proxy?url=${encodeURIComponent(url)}`;
+  },
+
   async getStream(subjectId: string, detailPath: string, se = 0, ep = 1): Promise<MBStream> {
+    const slug = (detailPath || '').split('/').filter(Boolean).pop() || detailPath;
+    // Movies on MovieBox are indexed as se=0&ep=0; series use real se/ep.
+    const attempts: [number, number][] = se > 0 ? [[se, ep]] : [[0, 0], [0, 1]];
+
+    for (const [s, e] of attempts) {
+      try {
+        const res = await fetch(
+          `${STREAM_BASE}/api/stream?subject_id=${subjectId}&slug=${encodeURIComponent(slug)}&se=${s}&ep=${e}`
+        );
+        if (res.ok) {
+          const data = (await res.json()) as MBStream;
+          if (data?.has_resource) {
+            const sources = (data.sources || [])
+              .filter((x) => !!x.url)
+              .map((x) => ({ ...x, url: movieboxService.proxy(x.url) }));
+            const hls = (data.hls || [])
+              .map(normalizeSource)
+              .filter((x) => !!x.url)
+              .map((x) => ({ ...x, url: movieboxService.proxy(x.url) }));
+            return { ...data, sources, hls };
+          }
+        }
+      } catch {
+        /* try next */
+      }
+    }
+
+    // Fallback to the primary API server
     return request(
       `/api/stream/${subjectId}?detail_path=${encodeURIComponent(detailPath)}&se=${se}&ep=${ep}`
     );
@@ -82,3 +115,4 @@ export const movieboxService = {
     return request(`/api/stream/${subjectId}/captions?detail_path=${encodeURIComponent(detailPath)}`);
   },
 };
+
