@@ -86,7 +86,7 @@ export const movieboxService = {
       const hit = (found.items || []).find((i) => i.slug === slug) || (found.items || [])[0];
       if (!hit) return null;
       const alt = await fetch(
-        `${STREAM_BASE}/api/detail?type=moviebox&id=${hit.subject_id}&source=moviebox&slug=${encodeURIComponent(slug)}`
+        `${EDGE_BASE}?action=detail&subject_id=${hit.subject_id}&slug=${encodeURIComponent(slug)}`
       ).then((r) => (r.ok ? r.json() : null));
       return {
         subject: {
@@ -121,7 +121,7 @@ export const movieboxService = {
     for (const [s, e] of attempts) {
       try {
         const res = await fetch(
-          `${STREAM_BASE}/api/stream?subject_id=${subjectId}&slug=${encodeURIComponent(slug)}&se=${s}&ep=${e}`
+          `${EDGE_BASE}?action=stream&subject_id=${subjectId}&slug=${encodeURIComponent(slug)}&se=${s}&ep=${e}`
         );
         if (res.ok) {
           const data = (await res.json()) as MBStream;
