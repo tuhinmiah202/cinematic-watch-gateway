@@ -1,4 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://moviebox-api-steel.vercel.app';
+// Streaming resolver (the Vercel deployment currently returns no playable sources)
+const STREAM_BASE = import.meta.env.VITE_STREAM_BASE_URL || 'https://hdmoviebox.fly.dev';
 
 export interface MBItem {
   name: string;
