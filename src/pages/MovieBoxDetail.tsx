@@ -124,7 +124,7 @@ const MovieBoxDetail = () => {
                 className="rounded-full"
                 onClick={() => setActiveUrl(s.url)}
               >
-                {s.kind} {s.resolution ? `${s.resolution}p` : ''}
+                {s.kind} {s.resolution ? String(s.resolution).replace(/p?$/, 'p') : ''}
               </Button>
             ))}
           </div>
