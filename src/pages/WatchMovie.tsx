@@ -10,6 +10,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import MovieCard from '@/components/MovieCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import MovieBoxPlayer from '@/components/MovieBoxPlayer';
+
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
@@ -205,6 +207,15 @@ const WatchMovie = () => {
         <div className="max-w-6xl mx-auto space-y-8">
 
           {/* Pro Player Container */}
+          {selectedServer === 'moviebox' ? (
+            <MovieBoxPlayer
+              title={title}
+              isTV={isTV}
+              season={season}
+              episode={episode}
+              poster={(movie as any)?.poster_path ? `https://image.tmdb.org/t/p/w780${(movie as any).poster_path}` : undefined}
+            />
+          ) : (
           <div className="space-y-4">
             <div className="relative w-full aspect-video bg-[#050505] rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group">
               {isTorrentLoading ? (
@@ -242,6 +253,8 @@ const WatchMovie = () => {
                 </Button>
             </div>
           </div>
+          )}
+
 
           {/* New Multi-Language Support Box */}
           <div className="p-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/20 rounded-[2rem] flex flex-col md:flex-row items-center gap-6">
@@ -304,6 +317,8 @@ const WatchMovie = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3"><Server className="w-6 h-6 text-blue-400" /><h2 className="text-xl font-bold">Switch Movie Server</h2></div>
               <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setSelectedServer('moviebox')} variant={selectedServer === 'moviebox' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'moviebox' ? 'bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>My API (Multi-Audio)</Button>
+
                 <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server1' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 1 (Default)</Button>
                 <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server2' ? 'bg-purple-600 shadow-[0_0_20px_rgba(147,51,234,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 2 (VidLink)</Button>
                 <Button onClick={() => setSelectedServer('server3')} variant={selectedServer === 'server3' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server3' ? 'bg-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 3 (Vidsrc.cc)</Button>
