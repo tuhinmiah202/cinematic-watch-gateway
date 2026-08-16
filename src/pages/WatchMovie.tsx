@@ -207,19 +207,18 @@ const WatchMovie = () => {
         <div className="max-w-6xl mx-auto space-y-8">
 
           {/* Pro Player Container */}
+          {selectedServer === 'moviebox' ? (
+            <MovieBoxPlayer
+              title={title}
+              isTV={isTV}
+              season={season}
+              episode={episode}
+              poster={(movie as any)?.poster_path ? `https://image.tmdb.org/t/p/w780${(movie as any).poster_path}` : undefined}
+            />
+          ) : (
           <div className="space-y-4">
             <div className="relative w-full aspect-video bg-[#050505] rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group">
-              {selectedServer === 'moviebox' ? (
-                <div className="absolute inset-0">
-                  <MovieBoxPlayer
-                    title={title}
-                    isTV={isTV}
-                    season={season}
-                    episode={episode}
-                    poster={(movie as any)?.poster_path ? `https://image.tmdb.org/t/p/w780${(movie as any).poster_path}` : undefined}
-                  />
-                </div>
-              ) : isTorrentLoading ? (
+              {isTorrentLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 z-20">
                   <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
                   <p className="text-white font-bold animate-pulse uppercase tracking-widest text-xs">Optimizing Stream (720p)...</p>
@@ -233,7 +232,6 @@ const WatchMovie = () => {
                   allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 ></iframe>
               )}
-
 
               <div className="absolute top-6 left-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                  <div className="px-4 py-2 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center gap-2">
@@ -255,6 +253,8 @@ const WatchMovie = () => {
                 </Button>
             </div>
           </div>
+          )}
+
 
           {/* New Multi-Language Support Box */}
           <div className="p-6 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/20 rounded-[2rem] flex flex-col md:flex-row items-center gap-6">
