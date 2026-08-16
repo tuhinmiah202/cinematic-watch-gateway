@@ -1,6 +1,8 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://moviebox-api-steel.vercel.app';
-// Streaming resolver (the Vercel deployment currently returns no playable sources)
+// Streaming resolver (the Vercel deployment currently returns no playable sources).
+// The upstream sends no CORS headers, so JSON calls go through our edge function proxy.
 const STREAM_BASE = import.meta.env.VITE_STREAM_BASE_URL || 'https://hdmoviebox.fly.dev';
+const EDGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moviebox`;
 
 export interface MBItem {
   name: string;
