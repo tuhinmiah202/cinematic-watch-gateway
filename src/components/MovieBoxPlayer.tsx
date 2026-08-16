@@ -161,7 +161,7 @@ const MovieBoxPlayer = ({ title, year, isTV, season = 1, episode = 1, poster }: 
               className="rounded-full"
               onClick={() => setActiveUrl(s.url)}
             >
-              {s.kind} {s.resolution ? `${s.resolution}p` : ''}
+              {s.kind} {s.resolution ? String(s.resolution).replace(/p?$/, 'p') : ''}
             </Button>
           ))}
         </div>
@@ -170,7 +170,7 @@ const MovieBoxPlayer = ({ title, year, isTV, season = 1, episode = 1, poster }: 
       {mp4 && (
         <a href={mp4.url} target="_blank" rel="noopener noreferrer" download>
           <Button className="rounded-full">
-            <Download className="w-4 h-4 mr-2" /> Download ({mp4.resolution ? `${mp4.resolution}p` : 'MP4'})
+            <Download className="w-4 h-4 mr-2" /> Download ({mp4.resolution ? String(mp4.resolution).replace(/p?$/, 'p') : 'MP4'})
           </Button>
         </a>
       )}
