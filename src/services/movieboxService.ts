@@ -70,9 +70,41 @@ export const movieboxService = {
   },
 
   async getDetail(slug: string): Promise<any> {
-    const data = await request<{ data: any }>(`/detail/${slug}`);
-    return data?.data || null;
+    try {
+      const data = await request<{ data: any }>(`/detail/${slug}`);
+      if (data?.data?.subject) return data.data;
+    } catch {
+      /* fall through to backup resolver */
+    }
+
+    // Backup: find the subject via search, then use the streaming server's detail endpoint
+    const guess = slug.replace(/-[A-Za-z0-9]{6,}$/, '').replace(/-/g, ' ');
+    try {
+      const found = await movieboxService.search(guess);
+      const hit = (found.items || []).find((i) => i.slug === slug) || (found.items || [])[0];
+      if (!hit) return null;
+      const alt = await fetch(
+        `${STREAM_BASE}/api/detail?type=moviebox&id=${hit.subject_id}&source=moviebox&slug=${encodeURIComponent(slug)}`
+      ).then((r) => (r.ok ? r.json() : null));
+      return {
+        subject: {
+          subjectId: hit.subject_id,
+          subjectType: hit.subject_type || (alt?.type === 'tv' ? 2 : 1),
+          title: alt?.title || hit.name,
+          description: alt?.overview || '',
+          cover: { url: hit.poster_url || hit.image_url || alt?.poster || '' },
+          imdbRatingValue: hit.rating || alt?.rating,
+          releaseDate: hit.year || alt?.year,
+          genre: hit.genre || (alt?.genres || []).join(', '),
+          countryName: hit.country || alt?.country,
+        },
+        resource: alt?.resource || {},
+      };
+    } catch {
+      return null;
+    }
   },
+
 
   proxy(url: string) {
     if (!url) return url;
