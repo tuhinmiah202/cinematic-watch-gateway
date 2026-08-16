@@ -317,6 +317,8 @@ const WatchMovie = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3"><Server className="w-6 h-6 text-blue-400" /><h2 className="text-xl font-bold">Switch Movie Server</h2></div>
               <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setSelectedServer('moviebox')} variant={selectedServer === 'moviebox' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'moviebox' ? 'bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>My API (Multi-Audio)</Button>
+
                 <Button onClick={() => setSelectedServer('server1')} variant={selectedServer === 'server1' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server1' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 1 (Default)</Button>
                 <Button onClick={() => setSelectedServer('server2')} variant={selectedServer === 'server2' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server2' ? 'bg-purple-600 shadow-[0_0_20px_rgba(147,51,234,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 2 (VidLink)</Button>
                 <Button onClick={() => setSelectedServer('server3')} variant={selectedServer === 'server3' ? 'default' : 'outline'} className={`rounded-2xl px-6 py-6 transition-all ${selectedServer === 'server3' ? 'bg-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-105' : 'border-white/10 hover:bg-white/5'}`}>Server 3 (Vidsrc.cc)</Button>
