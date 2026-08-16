@@ -10,6 +10,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import MovieCard from '@/components/MovieCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import MovieBoxPlayer from '@/components/MovieBoxPlayer';
+
 
 const WatchMovie = () => {
   const { id } = useParams<{ id: string }>();
